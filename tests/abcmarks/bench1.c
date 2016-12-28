@@ -37,6 +37,6 @@ main(int argc, char *argv[])
   }
   elaps = get_dtime() - elaps;
   cycleper8loop = elaps * 2000000000 / rep / (SIZE/8);
-  printf("elaps: %lf.6 sec, %lf.2 cycle/8loop\n", elaps, cycleper8loop);
+  printf("elaps: %.6lf sec, %.2lf cycle/8loop\n", elaps, cycleper8loop);
   printf("res: %lf, ..., %lf\n", c[0], c[SIZE-1]);
 }
