@@ -288,7 +288,7 @@ DefaultDecode<Impl>::unblock(ThreadID tid)
 
 template<class Impl>
 void
-DefaultDecode<Impl>::squash(DynInstPtr &inst, ThreadID tid)
+DefaultDecode<Impl>::squash(const DynInstPtr &inst, ThreadID tid)
 {
     DPRINTF(Decode, "[tid:%i]: [sn:%i] Squashing due to incorrect branch "
             "prediction detected at decode.\n", tid, inst->seqNum);
@@ -650,8 +650,6 @@ DefaultDecode<Impl>::decodeInsts(ThreadID tid)
         ++decodeRunCycles;
     }
 
-    DynInstPtr inst;
-
     std::queue<DynInstPtr>
         &insts_to_decode = decodeStatus[tid] == Unblocking ?
         skidBuffer[tid] : insts[tid];
@@ -661,9 +659,7 @@ DefaultDecode<Impl>::decodeInsts(ThreadID tid)
     while (insts_available > 0 && toRenameIndex < decodeWidth) {
         assert(!insts_to_decode.empty());
 
-        inst = insts_to_decode.front();
-
-        insts_to_decode.pop();
+        DynInstPtr inst = std::move(insts_to_decode.front());
 
         DPRINTF(Decode, "[tid:%u]: Processing instruction [sn:%lli] with "
                 "PC %s\n", tid, inst->seqNum, inst->pcState());
@@ -676,6 +672,8 @@ DefaultDecode<Impl>::decodeInsts(ThreadID tid)
             ++decodeSquashedInsts;
 
             --insts_available;
+
+            insts_to_decode.pop();
 
             continue;
         }
@@ -715,6 +713,7 @@ DefaultDecode<Impl>::decodeInsts(ThreadID tid)
             // a check at the end
             squash(inst, inst->threadNumber);
 
+            insts_to_decode.pop();
             break;
         }
 
@@ -741,6 +740,7 @@ DefaultDecode<Impl>::decodeInsts(ThreadID tid)
                 break;
             }
         }
+        insts_to_decode.pop();
     }
 
     // If we didn't process all instructions, then we will need to block

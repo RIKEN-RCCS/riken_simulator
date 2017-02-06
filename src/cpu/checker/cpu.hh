@@ -432,7 +432,7 @@ class CheckerCPU : public BaseCPU, public ExecContext
         setPredResult(val);
     }
 
-    bool readPredicate() override { return thread->readPredicate(); }
+    bool readPredicate() const override { return thread->readPredicate(); }
     void setPredicate(bool val) override
     {
         thread->setPredicate(val);
@@ -607,18 +607,18 @@ class Checker : public CheckerCPU
 
     void advancePC(const Fault &fault);
 
-    void verify(DynInstPtr &inst);
+    void verify(const DynInstPtr &inst);
 
-    void validateInst(DynInstPtr &inst);
-    void validateExecution(DynInstPtr &inst);
+    void validateInst(const DynInstPtr &inst);
+    void validateExecution(const DynInstPtr &inst);
     void validateState();
 
-    void copyResult(DynInstPtr &inst, const InstResult& mismatch_val,
+    void copyResult(const DynInstPtr &inst, const InstResult& mismatch_val,
                     int start_idx);
     void handlePendingInt();
 
   private:
-    void handleError(DynInstPtr &inst)
+    void handleError(const DynInstPtr &inst)
     {
         if (exitOnError) {
             dumpAndExit(inst);
@@ -627,7 +627,7 @@ class Checker : public CheckerCPU
         }
     }
 
-    void dumpAndExit(DynInstPtr &inst);
+    void dumpAndExit(const DynInstPtr &inst);
 
     bool updateThisCycle;
 

@@ -317,7 +317,7 @@ class ExecContext : public ::ExecContext
     }
 
     bool
-    readPredicate() override
+    readPredicate() const override
     {
         return thread.readPredicate();
     }
