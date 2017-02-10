@@ -102,6 +102,9 @@ ROB<Impl>::ROB(O3CPU *_cpu, DerivO3CPUParams *params)
         assert(0 && "Invalid ROB Sharing Policy.Options Are:{Dynamic,"
                     "Partitioned, Threshold}");
     }
+    for (ThreadID tid = numThreads; tid < Impl::MaxThreads; tid++) {
+        maxEntries[tid] = 0;
+    }
 
     resetState();
 }
@@ -110,11 +113,11 @@ template <class Impl>
 void
 ROB<Impl>::resetState()
 {
-    for (ThreadID tid = 0; tid  < numThreads; tid++) {
-        doneSquashing[tid] = true;
+    for (ThreadID tid = 0; tid  < Impl::MaxThreads; tid++) {
         threadEntries[tid] = 0;
         squashIt[tid] = instList[tid].end();
         squashedSeqNum[tid] = 0;
+        doneSquashing[tid] = true;
     }
     numInstsInROB = 0;
 

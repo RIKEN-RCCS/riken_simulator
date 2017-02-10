@@ -122,7 +122,7 @@ class DefaultFetch
 
       public:
         FinishTranslationEvent(DefaultFetch<Impl> *_fetch)
-            : fetch(_fetch)
+            : fetch(_fetch), req(nullptr)
         {}
 
         void setFault(Fault _fault)
@@ -139,7 +139,9 @@ class DefaultFetch
         void process()
         {
             assert(fetch->numInst < fetch->fetchWidth);
-            fetch->finishTranslation(fault, req);
+            auto req_temp = req;
+            req = nullptr;
+            fetch->finishTranslation(fault, req_temp);
         }
 
         const char *description() const
