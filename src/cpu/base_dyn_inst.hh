@@ -84,6 +84,9 @@ class BaseDynInst : public ExecContext, public RefCounted
     typedef typename ImplCPU::ImplState ImplState;
     using VecRegContainer = TheISA::VecRegContainer;
 
+    using LSQRequestPtr = typename Impl::CPUPol::LSQ::LSQRequest*;
+    using LQIterator = typename Impl::CPUPol::LSQUnit::LQIterator;
+
     // The DynInstPtr type.
     typedef typename Impl::DynInstPtr DynInstPtr;
     typedef RefCountingPtr<BaseDynInst<Impl> > BaseDynInstPtr;
@@ -224,6 +227,7 @@ class BaseDynInst : public ExecContext, public RefCounted
 
     /** Load queue index. */
     int16_t lqIdx;
+    LQIterator lqIt;
 
     /** Store queue index. */
     int16_t sqIdx;
@@ -234,9 +238,9 @@ class BaseDynInst : public ExecContext, public RefCounted
      * Saved memory requests (needed when the DTB address translation is
      * delayed due to a hw page table walk).
      */
-    RequestPtr savedReq;
-    RequestPtr savedSreqLow;
-    RequestPtr savedSreqHigh;
+    LSQRequestPtr savedReq;
+    LSQRequestPtr savedSreqLow;
+    LSQRequestPtr savedSreqHigh;
 
     /////////////////////// Checker //////////////////////
     // Need a copy of main request pointer to verify on writes.
@@ -270,6 +274,7 @@ class BaseDynInst : public ExecContext, public RefCounted
 
     /** Is the effective virtual address valid. */
     bool effAddrValid() const { return instFlags[EffAddrValid]; }
+    void effAddrValid(bool b) { instFlags[EffAddrValid] = b; }
 
     /** Whether or not the memory operation is done. */
     bool memOpDone() const { return instFlags[MemOpDone]; }
@@ -454,6 +459,9 @@ class BaseDynInst : public ExecContext, public RefCounted
 
     /** Returns the fault type. */
     Fault getFault() const { return fault; }
+    /** TODO: This I added for the LSQRequest side to be able to modify the
+     * fault. There should be a better mechanism in place. */
+    Fault& getFault() { return fault; }
 
     /** Checks whether or not this instruction has had its branch target
      *  calculated yet.  For now it is not utilized and is hacked to be
@@ -860,6 +868,7 @@ class BaseDynInst : public ExecContext, public RefCounted
 
     /** Sets the ASID. */
     void setASID(short addr_space_id) { asid = addr_space_id; }
+    short getASID() { return asid; }
 
     /** Sets the thread id. */
     void setTid(ThreadID tid) { threadNumber = tid; }
@@ -876,9 +885,12 @@ class BaseDynInst : public ExecContext, public RefCounted
 
     /** Is this instruction's memory access strictly ordered? */
     bool strictlyOrdered() const { return instFlags[IsStrictlyOrdered]; }
+    void strictlyOrdered(bool so) { instFlags[IsStrictlyOrdered] = so; }
 
     /** Has this instruction generated a memory request. */
     bool hasRequest() const { return instFlags[ReqMade]; }
+    /** Assert this instruction has generated a memory request. */
+    void setRequest() { instFlags[ReqMade] = true; }
 
     /** Returns iterator to this instruction in the list of all insts. */
     ListIt &getInstListIt() { return instListIt; }
@@ -910,52 +922,9 @@ Fault
 BaseDynInst<Impl>::initiateMemRead(Addr addr, unsigned size,
                                    Request::Flags flags)
 {
-    instFlags[ReqMade] = true;
-    Request *req = NULL;
-    Request *sreqLow = NULL;
-    Request *sreqHigh = NULL;
-
-    if (instFlags[ReqMade] && translationStarted()) {
-        req = savedReq;
-        sreqLow = savedSreqLow;
-        sreqHigh = savedSreqHigh;
-    } else {
-        req = new Request(asid, addr, size, flags, masterId(), this->pc.instAddr(),
-                          thread->contextId());
-
-        req->taskId(cpu->taskId());
-
-        // Only split the request if the ISA supports unaligned accesses.
-        if (TheISA::HasUnalignedMemAcc) {
-            splitRequest(req, sreqLow, sreqHigh);
-        }
-        initiateTranslation(req, sreqLow, sreqHigh, NULL, BaseTLB::Read);
-    }
-
-    if (translationCompleted()) {
-        if (fault == NoFault) {
-            effAddr = req->getVaddr();
-            effSize = size;
-            instFlags[EffAddrValid] = true;
-
-            if (cpu->checker) {
-                if (reqToVerify != NULL) {
-                    delete reqToVerify;
-                }
-                reqToVerify = new Request(*req);
-            }
-            fault = cpu->read(req, sreqLow, sreqHigh, lqIdx);
-        } else {
-            // Commit will have to clean up whatever happened.  Set this
-            // instruction as executed.
-            this->setExecuted();
-        }
-    }
-
-    if (traceData)
-        traceData->setMem(addr, size, flags);
-
-    return fault;
+    return cpu->pushRequest(
+            dynamic_cast<typename DynInstPtr::ptr_type>(this),
+            /* ld */ true, nullptr, size, addr, flags, nullptr);
 }
 
 template<class Impl>
@@ -963,46 +932,9 @@ Fault
 BaseDynInst<Impl>::writeMem(uint8_t *data, unsigned size, Addr addr,
                             Request::Flags flags, uint64_t *res)
 {
-    if (traceData)
-        traceData->setMem(addr, size, flags);
-
-    instFlags[ReqMade] = true;
-    Request *req = NULL;
-    Request *sreqLow = NULL;
-    Request *sreqHigh = NULL;
-
-    if (instFlags[ReqMade] && translationStarted()) {
-        req = savedReq;
-        sreqLow = savedSreqLow;
-        sreqHigh = savedSreqHigh;
-    } else {
-        req = new Request(asid, addr, size, flags, masterId(), this->pc.instAddr(),
-                          thread->contextId());
-
-        req->taskId(cpu->taskId());
-
-        // Only split the request if the ISA supports unaligned accesses.
-        if (TheISA::HasUnalignedMemAcc) {
-            splitRequest(req, sreqLow, sreqHigh);
-        }
-        initiateTranslation(req, sreqLow, sreqHigh, res, BaseTLB::Write);
-    }
-
-    if (fault == NoFault && translationCompleted()) {
-        effAddr = req->getVaddr();
-        effSize = size;
-        instFlags[EffAddrValid] = true;
-
-        if (cpu->checker) {
-            if (reqToVerify != NULL) {
-                delete reqToVerify;
-            }
-            reqToVerify = new Request(*req);
-        }
-        fault = cpu->write(req, sreqLow, sreqHigh, data, sqIdx);
-    }
-
-    return fault;
+    return cpu->pushRequest(
+            dynamic_cast<typename DynInstPtr::ptr_type>(this),
+            /* st */ false, data, size, addr, flags, res);
 }
 
 template<class Impl>
@@ -1022,6 +954,9 @@ BaseDynInst<Impl>::splitRequest(RequestPtr req, RequestPtr &sreqLow,
     }
 }
 
+/* TODO: This should be removed altogether. The translation now is governed
+ * by the LSQ through the LSQRequest.
+ */
 template<class Impl>
 inline void
 BaseDynInst<Impl>::initiateTranslation(RequestPtr req, RequestPtr sreqLow,
@@ -1048,9 +983,9 @@ BaseDynInst<Impl>::initiateTranslation(RequestPtr req, RequestPtr sreqLow,
             fault = NoFault;
 
             // Save memory requests.
-            savedReq = state->mainReq;
-            savedSreqLow = state->sreqLow;
-            savedSreqHigh = state->sreqHigh;
+            savedReq = nullptr;//state->mainReq;
+            savedSreqLow = nullptr;//state->sreqLow;
+            savedSreqHigh = nullptr;//state->sreqHigh;
         }
     } else {
         WholeTranslationState *state =
@@ -1073,13 +1008,16 @@ BaseDynInst<Impl>::initiateTranslation(RequestPtr req, RequestPtr sreqLow,
             fault = NoFault;
 
             // Save memory requests.
-            savedReq = state->mainReq;
-            savedSreqLow = state->sreqLow;
-            savedSreqHigh = state->sreqHigh;
+            savedReq = nullptr;//state->mainReq;
+            savedSreqLow = nullptr;//state->sreqLow;
+            savedSreqHigh = nullptr;//state->sreqHigh;
         }
     }
 }
 
+/* TODO: This should be removed altogether. The translation now is governed
+ * by the LSQ through the LSQRequest.
+ */
 template<class Impl>
 inline void
 BaseDynInst<Impl>::finishTranslation(WholeTranslationState *state)

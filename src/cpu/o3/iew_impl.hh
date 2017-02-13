@@ -747,8 +747,7 @@ template <class Impl>
 void
 DefaultIEW<Impl>::resetEntries()
 {
-    instQueue.resetEntries();
-    ldstQueue.resetEntries();
+    /* Squash deals with the reset of the instQueue and the ldstQueue. */
 }
 
 template <class Impl>

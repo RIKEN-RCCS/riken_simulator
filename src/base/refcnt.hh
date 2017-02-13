@@ -119,6 +119,8 @@ class RefCounted
 template <class T>
 class RefCountingPtr
 {
+  public:
+    using ptr_type = T*;
   protected:
     /** Convenience aliases for const/non-const versions of T w/ friendship. */
     /** @{ */
