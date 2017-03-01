@@ -60,8 +60,14 @@ using namespace std;
 template <class Impl>
 LSQ<Impl>::LSQ(O3CPU *cpu_ptr, IEW *iew_ptr, DerivO3CPUParams *params)
     : cpu(cpu_ptr), iewStage(iew_ptr),
+      lsqPolicy(readLSQPolicy(params->smtLSQPolicy)),
       LQEntries(params->LQEntries),
       SQEntries(params->SQEntries),
+      maxLQEntries(maxLSQAllocation(lsqPolicy, LQEntries, params->numThreads,
+                  params->smtLSQThreshold)),
+      maxSQEntries(maxLSQAllocation(lsqPolicy, SQEntries, params->numThreads,
+                  params->smtLSQThreshold)),
+      thread(LSQUnitAllocator(maxLQEntries, maxSQEntries)),
       numThreads(params->numThreads)
 {
     assert(numThreads > 0 && numThreads <= Impl::MaxThreads);
@@ -69,55 +75,27 @@ LSQ<Impl>::LSQ(O3CPU *cpu_ptr, IEW *iew_ptr, DerivO3CPUParams *params)
     //**********************************************/
     //************ Handle SMT Parameters ***********/
     //**********************************************/
-    std::string policy = params->smtLSQPolicy;
-
-    //Convert string to lowercase
-    std::transform(policy.begin(), policy.end(), policy.begin(),
-                   (int(*)(int)) tolower);
 
     //Figure out fetch policy
-    if (policy == "dynamic") {
-        lsqPolicy = Dynamic;
-
-        maxLQEntries = LQEntries;
-        maxSQEntries = SQEntries;
-
+    if (lsqPolicy == Dynamic) {
         DPRINTF(LSQ, "LSQ sharing policy set to Dynamic\n");
-    } else if (policy == "partitioned") {
-        lsqPolicy = Partitioned;
-
-        //@todo:make work if part_amt doesnt divide evenly.
-        maxLQEntries = LQEntries / numThreads;
-        maxSQEntries = SQEntries / numThreads;
-
+    } else if (lsqPolicy == Partitioned) {
         DPRINTF(Fetch, "LSQ sharing policy set to Partitioned: "
                 "%i entries per LQ | %i entries per SQ\n",
                 maxLQEntries,maxSQEntries);
-    } else if (policy == "threshold") {
-        lsqPolicy = Threshold;
+    } else if (lsqPolicy == Threshold) {
 
         assert(params->smtLSQThreshold > LQEntries);
         assert(params->smtLSQThreshold > SQEntries);
 
-        //Divide up by threshold amount
-        //@todo: Should threads check the max and the total
-        //amount of the LSQ
-        maxLQEntries  = params->smtLSQThreshold;
-        maxSQEntries  = params->smtLSQThreshold;
-
         DPRINTF(LSQ, "LSQ sharing policy set to Threshold: "
                 "%i entries per LQ | %i entries per SQ\n",
                 maxLQEntries,maxSQEntries);
-    } else {
-        assert(0 && "Invalid LSQ Sharing Policy.Options Are:{Dynamic,"
-                    "Partitioned, Threshold}");
     }
+    this->thread.resize(params->numThreads);
 
-    //Initialize LSQs
-    thread = new LSQUnit[numThreads];
     for (ThreadID tid = 0; tid < numThreads; tid++) {
-        thread[tid].init(cpu, iew_ptr, params, this,
-                         maxLQEntries, maxSQEntries, tid);
+        thread[tid].init(cpu, iew_ptr, params, this, tid);
         thread[tid].setDcachePort(&cpu_ptr->getDataPort());
     }
 }

@@ -54,6 +54,7 @@
 #include "arch/isa_traits.hh"
 #include "arch/locked_mem.hh"
 #include "arch/mmapped_ipr.hh"
+#include "base/allocators.hh"
 #include "config/the_isa.hh"
 #include "cpu/inst_seq.hh"
 #include "cpu/timebuf.hh"
@@ -84,15 +85,17 @@ class LSQUnit {
     typedef typename Impl::CPUPol::IEW IEW;
     typedef typename Impl::CPUPol::LSQ LSQ;
     typedef typename Impl::CPUPol::IssueStruct IssueStruct;
+    using Allocator = ArgAllocator<LSQUnit,
+          FixedArg<uint32_t>,
+          FixedArg<uint32_t>>;
 
   public:
     /** Constructs an LSQ unit. init() must be called prior to use. */
-    LSQUnit();
+    LSQUnit(uint32_t lqEntries, uint32_t sqEntries);
 
     /** Initializes the LSQ unit with the specified number of entries. */
     void init(O3CPU *cpu_ptr, IEW *iew_ptr, DerivO3CPUParams *params,
-            LSQ *lsq_ptr, unsigned maxLQEntries, unsigned maxSQEntries,
-            unsigned id);
+            LSQ *lsq_ptr, unsigned id);
 
     /** Returns the name of the LSQ unit. */
     std::string name() const;
