@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012, 2014 ARM Limited
+ * Copyright (c) 2011-2012, 2014, 2017 ARM Limited
  * Copyright (c) 2013 Advanced Micro Devices, Inc.
  * All rights reserved
  *
@@ -842,12 +842,15 @@ LSQ<Impl>::SplitDataRequest::initiateTranslation()
                     line_width, _flags, _inst->masterId(), _inst->instAddr(),
                     _inst->contextId()));
         size_so_far += line_width;
+        base_addr += line_width;
     }
 
     /* Deal with the tail. */
-    _requests.push_back(new Request(_inst->getASID(), base_addr,
-                _size - size_so_far, _flags, _inst->masterId(),
-                _inst->instAddr(), _inst->contextId()));
+    if (size_so_far < _size) {
+        _requests.push_back(new Request(_inst->getASID(), base_addr,
+                    _size - size_so_far, _flags, _inst->masterId(),
+                    _inst->instAddr(), _inst->contextId()));
+    }
 
     /* Setup the requests and send them to translation. */
     for (auto& r: _requests) {

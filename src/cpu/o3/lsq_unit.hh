@@ -155,7 +155,7 @@ class LSQUnit {
     {
       private:
         /** The store data. */
-        char _data[16];
+        char _data[64];  // TODO: 64 should become a parameter
         /** Whether or not the store can writeback. */
         bool _canWB;
         /** Whether or not the store is committed. */
@@ -877,7 +877,7 @@ LSQUnit<Impl>::write(LSQRequest *req, uint8_t *data, int store_idx)
     bool store_no_data =
         req->mainRequest()->getFlags() & Request::STORE_NO_DATA;
     storeQueue[store_idx].isAllZeros() = store_no_data;
-    assert(size <= sizeof(storeQueue[store_idx].data()) || store_no_data);
+    assert(size <= SQEntry::DataSize || store_no_data);
 
     if (!(req->request()->getFlags() & Request::CACHE_BLOCK_ZERO) &&
         !req->request()->isCacheMaintenance())

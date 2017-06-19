@@ -76,7 +76,7 @@ class LSQ {
         /** Default constructor. */
         LSQSenderState(LSQRequest* request, bool isLoad_)
             : _request(request), mainPkt(NULL), pendingPacket(NULL),
-              outstanding(0), isLoad(isLoad_), needWB(false), isSplit(false),
+              outstanding(0), isLoad(isLoad_), needWB(isLoad_), isSplit(false),
               pktToSend(false), cacheBlocked(false), deleted(false)
           { }
       public:
