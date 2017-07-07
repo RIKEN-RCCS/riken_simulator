@@ -633,28 +633,11 @@ LSQ<Impl>::dumpInsts() const
     }
 }
 
-static Addr
-addrBlockOffset(Addr addr, unsigned int block_size)
-{
-    return addr & (block_size - 1);
-}
-
-static Addr
-addrBlockAlign(Addr addr, uint64_t block_size)
-{
-    return addr & ~(block_size - 1);
-}
-
-static bool
-transferNeedsBurst(Addr addr, uint64_t size, uint64_t block_size)
-{
-    return (addrBlockOffset(addr, block_size) + size) > block_size;
-}
-
 template<class Impl>
 Fault
 LSQ<Impl>::pushRequest(const DynInstPtr& inst, bool isLoad, uint8_t *data,
-            unsigned int size, Addr addr, unsigned int flags, uint64_t *res)
+            unsigned int size, Addr addr, unsigned int flags, uint64_t *res,
+            const std::vector<bool>& writeByteEnable)
 {
     /* TODO: Revisit if this setRequest is needed */
     inst->setRequest();
@@ -669,10 +652,10 @@ LSQ<Impl>::pushRequest(const DynInstPtr& inst, bool isLoad, uint8_t *data,
     } else {
         if (needs_burst) {
             req = new SplitDataRequest(&thread.at(tid), inst, isLoad, addr,
-                    size, flags, data, res);
+                    size, flags, data, res, writeByteEnable);
         } else {
             req = new SingleDataRequest(&thread.at(tid), inst, isLoad, addr,
-                    size, flags, data, res);
+                    size, flags, data, res, writeByteEnable);
         }
         assert(req);
         req->taskId(cpu->taskId());
@@ -830,29 +813,59 @@ LSQ<Impl>::SplitDataRequest::initiateTranslation()
 
     mainReq = new Request(_inst->getASID(), base_addr,
                 _size, _flags, _inst->masterId(),
-                _inst->instAddr(), _inst->contextId());
+                _inst->instAddr(), _inst->contextId(),
+                this->_writeByteEnable);
+
+    auto& writeByteEnable = mainReq->getWriteByteEnable();
 
     /* Get the pre-fix, possibly unaligned. */
-    _requests.push_back(new Request(_inst->getASID(), base_addr,
-                next_addr - base_addr, _flags, _inst->masterId(),
-                _inst->instAddr(), _inst->contextId()));
+    if (writeByteEnable.empty()) {
+        _requests.push_back(new Request(_inst->getASID(), base_addr,
+                    next_addr - base_addr, _flags, _inst->masterId(),
+                    _inst->instAddr(), _inst->contextId()));
+    } else {
+        auto it_start = writeByteEnable.begin();
+        auto it_end = writeByteEnable.begin() + (next_addr - base_addr);
+        _requests.push_back(new Request(_inst->getASID(), base_addr,
+                    next_addr - base_addr, _flags, _inst->masterId(),
+                    _inst->instAddr(), _inst->contextId(),
+                    std::vector<bool>(it_start, it_end)));
+    }
     size_so_far = next_addr - base_addr;
 
     /* We are block aligned now, reading whole blocks. */
     base_addr = next_addr;
     while (base_addr != final_addr) {
-        _requests.push_back(new Request(_inst->getASID(), base_addr,
-                    line_width, _flags, _inst->masterId(), _inst->instAddr(),
-                    _inst->contextId()));
+        if (writeByteEnable.empty()) {
+            _requests.push_back(new Request(_inst->getASID(), base_addr,
+                        line_width, _flags, _inst->masterId(),
+                        _inst->instAddr(), _inst->contextId()));
+        } else {
+            auto it_start = writeByteEnable.begin() + size_so_far;
+            auto it_end = writeByteEnable.begin() + size_so_far + line_width;
+            _requests.push_back(new Request(_inst->getASID(), base_addr,
+                        line_width, _flags, _inst->masterId(),
+                        _inst->instAddr(), _inst->contextId(),
+                        std::vector<bool>(it_start, it_end)));
+        }
         size_so_far += line_width;
         base_addr += line_width;
     }
 
     /* Deal with the tail. */
     if (size_so_far < _size) {
-        _requests.push_back(new Request(_inst->getASID(), base_addr,
-                    _size - size_so_far, _flags, _inst->masterId(),
-                    _inst->instAddr(), _inst->contextId()));
+        if (writeByteEnable.empty()) {
+            _requests.push_back(new Request(_inst->getASID(), base_addr,
+                        _size - size_so_far, _flags, _inst->masterId(),
+                        _inst->instAddr(), _inst->contextId()));
+        } else {
+            auto it_start = writeByteEnable.begin() + size_so_far;
+            auto it_end = writeByteEnable.end();
+            _requests.push_back(new Request(_inst->getASID(), base_addr,
+                        _size - size_so_far, _flags, _inst->masterId(),
+                        _inst->instAddr(), _inst->contextId(),
+                        std::vector<bool>(it_start, it_end)));
+        }
     }
 
     /* Setup the requests and send them to translation. */

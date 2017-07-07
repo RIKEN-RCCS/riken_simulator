@@ -286,7 +286,9 @@ class TimingSimpleCPU : public BaseSimpleCPU
                           Request::Flags flags) override;
 
     Fault writeMem(uint8_t *data, unsigned size,
-                   Addr addr, Request::Flags flags, uint64_t *res) override;
+            Addr addr, Request::Flags flags, uint64_t *res,
+            const std::vector<bool>& byteEnable = std::vector<bool>())
+        override;
 
     void fetch();
     void sendFetch(const Fault &fault, RequestPtr req, ThreadContext *tc);

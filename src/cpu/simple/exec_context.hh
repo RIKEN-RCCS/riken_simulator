@@ -457,9 +457,11 @@ class SimpleExecContext : public ExecContext {
     }
 
     Fault writeMem(uint8_t *data, unsigned int size, Addr addr,
-                   Request::Flags flags, uint64_t *res) override
+            Request::Flags flags, uint64_t *res,
+            const std::vector<bool>& byteEnable = std::vector<bool>()) override
     {
-        return cpu->writeMem(data, size, addr, flags, res);
+        assert(byteEnable.empty() || byteEnable.size() == size);
+        return cpu->writeMem(data, size, addr, flags, res, byteEnable);
     }
 
     /**

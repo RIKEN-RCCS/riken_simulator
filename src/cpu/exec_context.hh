@@ -270,7 +270,8 @@ class ExecContext {
      * For timing-mode contexts, initiate a timing memory write operation.
      */
     virtual Fault writeMem(uint8_t *data, unsigned int size, Addr addr,
-                           Request::Flags flags, uint64_t *res) = 0;
+            Request::Flags flags, uint64_t *res,
+            const std::vector<bool>& byteEnable = std::vector<bool>()) = 0;
 
     /**
      * Sets the number of consecutive store conditional failures.

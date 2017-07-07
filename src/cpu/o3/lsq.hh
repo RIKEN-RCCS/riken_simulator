@@ -50,6 +50,7 @@
 #include "arch/generic/tlb.hh"
 #include "cpu/inst_seq.hh"
 #include "cpu/o3/lsq_unit.hh"
+#include "cpu/utils.hh"
 #include "mem/port.hh"
 #include "sim/sim_object.hh"
 
@@ -242,6 +243,7 @@ class LSQ {
         const Addr _addr;
         const uint32_t _size;
         const uint32_t _flags;
+        std::vector<bool> _writeByteEnable;
       protected:
         LSQUnit* lsqUnit() { return &_port; }
         LSQRequest(LSQUnit* port, const DynInstPtr& inst, bool isLoad) :
@@ -255,13 +257,15 @@ class LSQ {
         }
         LSQRequest(LSQUnit* port, const DynInstPtr& inst, bool isLoad,
                 const Addr& addr, const uint32_t& size, const uint32_t& flags_,
-                PacketDataPtr data = nullptr, uint64_t* res = nullptr) :
-            _state(State::NotIssued), _senderState(nullptr),
+                PacketDataPtr data = nullptr, uint64_t* res = nullptr,
+                const std::vector<bool>& writeByteEnable = std::vector<bool>())
+            : _state(State::NotIssued), _senderState(nullptr),
             numTranslatedFragments(0),
             numInTranslationFragments(0),
             _port(*port), _inst(inst), _data(data),
             _res(nullptr), _addr(addr), _size(size),
-            _flags(flags_)
+            _flags(flags_),
+            _writeByteEnable(writeByteEnable)
         {
             flags[(int)Flag::IsLoad] = isLoad;
             flags[(int)Flag::WbStore] = _inst->isStoreConditional();
@@ -327,9 +331,11 @@ class LSQ {
          */
         void
         setVirt(int asid, Addr vaddr, unsigned size, Request::Flags flags_,
-                MasterID mid, Addr pc)
+                MasterID mid, Addr pc,
+                const std::vector<bool>& writeByteEnable = std::vector<bool>())
         {
-            request()->setVirt(asid, vaddr, size, flags_, mid, pc);
+            request()->setVirt(asid, vaddr, size, flags_, mid, pc,
+                               writeByteEnable);
         }
 
         void taskId(const uint32_t& v)
@@ -552,13 +558,16 @@ class LSQ {
         using LSQRequest::setState;
       public:
         SingleDataRequest(LSQUnit* port, const DynInstPtr& inst, bool isLoad,
-                const Addr& addr, const uint32_t& size, const uint32_t& flags_,
-                PacketDataPtr data = nullptr, uint64_t* res = nullptr) :
-            LSQRequest(port, inst, isLoad, addr, size, flags_, data, res)
+            const Addr& addr, const uint32_t& size, const uint32_t& flags_,
+            PacketDataPtr data = nullptr, uint64_t* res = nullptr,
+            const std::vector<bool>& writeByteEnable = std::vector<bool>()) :
+            LSQRequest(port, inst, isLoad, addr, size, flags_, data, res,
+                       writeByteEnable)
         {
             LSQRequest::_requests.push_back(
                     new Request(inst->getASID(), addr, size, flags_,
-                    inst->masterId(), inst->instAddr(), inst->contextId()));
+                    inst->masterId(), inst->instAddr(), inst->contextId(),
+                    writeByteEnable));
             LSQRequest::_requests.back()->setReqInstSeqNum(inst->seqNum);
         }
         inline virtual ~SingleDataRequest() {}
@@ -624,9 +633,11 @@ class LSQ {
 
       public:
         SplitDataRequest(LSQUnit* port, const DynInstPtr& inst, bool isLoad,
-                const Addr& addr, const uint32_t& size, const uint32_t& flags_,
-                PacketDataPtr data = nullptr, uint64_t* res = nullptr) :
-            LSQRequest(port, inst, isLoad, addr, size, flags_, data, res),
+            const Addr& addr, const uint32_t& size, const uint32_t& flags_,
+            PacketDataPtr data = nullptr, uint64_t* res = nullptr,
+            const std::vector<bool>& writeByteEnable = std::vector<bool>()) :
+            LSQRequest(port, inst, isLoad, addr, size, flags_, data, res,
+                       writeByteEnable),
             numFragments(0),
             numOutstandingPackets(0),
             numReceivedPackets(0),
@@ -885,7 +896,8 @@ class LSQ {
     void recvTimingSnoopReq(PacketPtr pkt);
 
     Fault pushRequest(const DynInstPtr& inst, bool isLoad, uint8_t *data,
-            unsigned int size, Addr addr, unsigned int flags, uint64_t *res);
+            unsigned int size, Addr addr, unsigned int flags, uint64_t *res,
+            const std::vector<bool>& writeByteEnable);
 
     /** The CPU pointer. */
     O3CPU *cpu;

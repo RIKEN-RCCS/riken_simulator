@@ -149,7 +149,8 @@ class BaseSimpleCPU : public BaseCPU
                                   Request::Flags flags) = 0;
 
     virtual Fault writeMem(uint8_t* data, unsigned size, Addr addr,
-                           Request::Flags flags, uint64_t* res) = 0;
+            Request::Flags flags, uint64_t* res,
+            const std::vector<bool>& byteEnable = std::vector<bool>()) = 0;
 
     void countInst();
     Counter totalInsts() const override;

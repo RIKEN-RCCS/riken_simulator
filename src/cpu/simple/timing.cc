@@ -497,7 +497,8 @@ TimingSimpleCPU::handleWritePacket()
 
 Fault
 TimingSimpleCPU::writeMem(uint8_t *data, unsigned size,
-                          Addr addr, Request::Flags flags, uint64_t *res)
+                          Addr addr, Request::Flags flags, uint64_t *res,
+                          const std::vector<bool>& byteEnable)
 {
     SimpleExecContext &t_info = *threadInfo[curThread];
     SimpleThread* thread = t_info.thread;
@@ -520,7 +521,7 @@ TimingSimpleCPU::writeMem(uint8_t *data, unsigned size,
         traceData->setMem(addr, size, flags);
 
     RequestPtr req = new Request(asid, addr, size, flags, dataMasterId(), pc,
-                                 thread->contextId());
+                                 thread->contextId(), byteEnable);
 
     req->taskId(taskId());
 
@@ -528,6 +529,10 @@ TimingSimpleCPU::writeMem(uint8_t *data, unsigned size,
     assert(split_addr <= addr || split_addr - addr < block_size);
 
     _status = DTBWaitResponse;
+
+    // TODO: TimingSimpleCPU doesn't support arbitrarily long multi-line mem.
+    // accesses yet
+
     if (split_addr > addr) {
         RequestPtr req1, req2;
         assert(!req->isLLSC() && !req->isSwap());

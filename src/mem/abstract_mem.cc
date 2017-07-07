@@ -408,9 +408,18 @@ AbstractMemory::access(PacketPtr pkt)
     } else if (pkt->isWrite()) {
         if (writeOK(pkt)) {
             if (pmemAddr) {
-                memcpy(hostAddr, pkt->getConstPtr<uint8_t>(), pkt->getSize());
-                DPRINTF(MemoryAccess, "%s wrote %i bytes to address %x\n",
-                        __func__, pkt->getSize(), pkt->getAddr());
+                if (pkt->isMaskedWrite()) {
+                    for (int i = 0; i < pkt->getSize(); i++) {
+                        if (pkt->req->getWriteByteEnable()[i]) {
+                            hostAddr[i] = pkt->getConstPtr<uint8_t>()[i];
+                        }
+                    }
+                } else {
+                    memcpy(hostAddr, pkt->getConstPtr<uint8_t>(),
+                           pkt->getSize());
+                    DPRINTF(MemoryAccess, "%s wrote %i bytes to address %x\n",
+                            __func__, pkt->getSize(), pkt->getAddr());
+                }
             }
             assert(!pkt->req->isInstFetch());
             TRACE_PACKET("Write");
@@ -440,8 +449,17 @@ AbstractMemory::functionalAccess(PacketPtr pkt)
         TRACE_PACKET("Read");
         pkt->makeResponse();
     } else if (pkt->isWrite()) {
-        if (pmemAddr)
-            memcpy(hostAddr, pkt->getConstPtr<uint8_t>(), pkt->getSize());
+        if (pmemAddr) {
+            if (pkt->isMaskedWrite()) {
+                for (int i = 0; i < pkt->getSize(); i++) {
+                    if (pkt->req->getWriteByteEnable()[i]) {
+                        hostAddr[i] = pkt->getConstPtr<uint8_t>()[i];
+                    }
+                }
+            } else {
+                memcpy(hostAddr, pkt->getConstPtr<uint8_t>(), pkt->getSize());
+            }
+        }
         TRACE_PACKET("Write");
         pkt->makeResponse();
     } else if (pkt->isPrint()) {

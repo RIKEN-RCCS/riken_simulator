@@ -48,29 +48,16 @@
 #include "cpu/minor/exec_context.hh"
 #include "cpu/minor/execute.hh"
 #include "cpu/minor/pipeline.hh"
+#include "cpu/utils.hh"
 #include "debug/Activity.hh"
 #include "debug/MinorMem.hh"
 
 namespace Minor
 {
 
-/** Returns the offset of addr into an aligned a block of size block_size */
-static Addr
-addrBlockOffset(Addr addr, unsigned int block_size)
-{
-    return addr & (block_size - 1);
-}
-
-/** Returns true if the given [addr .. addr+size-1] transfer needs to be
- *  fragmented across a block size of block_size */
-static bool
-transferNeedsBurst(Addr addr, unsigned int size, unsigned int block_size)
-{
-    return (addrBlockOffset(addr, block_size) + size) > block_size;
-}
-
 LSQ::LSQRequest::LSQRequest(LSQ &port_, MinorDynInstPtr inst_, bool isLoad_,
-    PacketDataPtr data_, uint64_t *res_) :
+    PacketDataPtr data_, uint64_t *res_,
+    const std::vector<bool>& writeByteEnable_) :
     SenderState(),
     port(port_),
     inst(inst_),
@@ -80,6 +67,7 @@ LSQ::LSQRequest::LSQRequest(LSQ &port_, MinorDynInstPtr inst_, bool isLoad_,
     request(),
     fault(NoFault),
     res(res_),
+    writeByteEnable(writeByteEnable_),
     skipped(false),
     issuedToMemory(false),
     state(NotIssued)
@@ -319,8 +307,9 @@ LSQ::SplitDataRequest::finish(const Fault &fault_, RequestPtr request_,
 }
 
 LSQ::SplitDataRequest::SplitDataRequest(LSQ &port_, MinorDynInstPtr inst_,
-    bool isLoad_, PacketDataPtr data_, uint64_t *res_) :
-    LSQRequest(port_, inst_, isLoad_, data_, res_),
+    bool isLoad_, PacketDataPtr data_, uint64_t *res_,
+    const std::vector<bool>& writeByteEnable_) :
+    LSQRequest(port_, inst_, isLoad_, data_, res_, writeByteEnable_),
     translationEvent([this]{ sendNextFragmentToTranslation(); },
                      "translationEvent"),
     numFragments(0),
@@ -359,6 +348,8 @@ LSQ::SplitDataRequest::makeFragmentRequests()
 
     unsigned int fragment_size;
     Addr fragment_addr;
+
+    std::vector<bool> fragment_write_byte_en;
 
     /* Assume that this transfer is across potentially many block snap
      * boundaries:
@@ -404,6 +395,8 @@ LSQ::SplitDataRequest::makeFragmentRequests()
     /* Just past the last address in the request */
     Addr end_addr = base_addr + whole_size;
 
+    auto& writeByteEnable = request.getWriteByteEnable();
+
     for (unsigned int fragment_index = 0; fragment_index < numFragments;
          fragment_index++)
     {
@@ -426,10 +419,23 @@ LSQ::SplitDataRequest::makeFragmentRequests()
         Request *fragment = new Request();
 
         fragment->setContext(request.contextId());
-        fragment->setVirt(0 /* asid */,
-            fragment_addr, fragment_size, request.getFlags(),
-            request.masterId(),
-            request.getPC());
+        if (writeByteEnable.empty()) {
+            fragment->setVirt(0 /* asid */,
+                fragment_addr, fragment_size, request.getFlags(),
+                request.masterId(),
+                request.getPC());
+        } else {
+            // Set up byte-enable mask for the current fragment
+            auto it_start = writeByteEnable.begin() +
+                (fragment_addr - base_addr);
+            auto it_end = writeByteEnable.begin() +
+                (fragment_addr - base_addr) + fragment_size;
+            fragment->setVirt(0 /* asid */,
+                fragment_addr, fragment_size, request.getFlags(),
+                request.masterId(),
+                request.getPC(),
+                std::vector<bool>(it_start, it_end));
+        }
 
         DPRINTFS(MinorMem, (&port), "Generating fragment addr: 0x%x size: %d"
             " (whole request addr: 0x%x size: %d) %s\n",
@@ -476,7 +482,8 @@ LSQ::SplitDataRequest::makeFragmentPackets()
         assert(fragment->hasPaddr());
 
         PacketPtr fragment_packet =
-            makePacketForRequest(*fragment, isLoad, this, request_data);
+            makePacketForRequest(*fragment, isLoad, this, request_data,
+                                 fragment->getWriteByteEnable());
 
         fragmentPackets.push_back(fragment_packet);
         /* Accumulate flags in parent request */
@@ -1478,7 +1485,7 @@ LSQ::needsToTick()
 void
 LSQ::pushRequest(MinorDynInstPtr inst, bool isLoad, uint8_t *data,
                  unsigned int size, Addr addr, Request::Flags flags,
-                 uint64_t *res)
+                 uint64_t *res, const std::vector<bool>& writeByteEnable)
 {
     bool needs_burst = transferNeedsBurst(addr, size, lineWidth);
     LSQRequestPtr request;
@@ -1506,10 +1513,10 @@ LSQ::pushRequest(MinorDynInstPtr inst, bool isLoad, uint8_t *data,
 
     if (needs_burst) {
         request = new SplitDataRequest(
-            *this, inst, isLoad, request_data, res);
+            *this, inst, isLoad, request_data, res, writeByteEnable);
     } else {
         request = new SingleDataRequest(
-            *this, inst, isLoad, request_data, res);
+            *this, inst, isLoad, request_data, res, writeByteEnable);
     }
 
     if (inst->traceData)
@@ -1520,7 +1527,8 @@ LSQ::pushRequest(MinorDynInstPtr inst, bool isLoad, uint8_t *data,
     request->request.setVirt(0 /* asid */,
         addr, size, flags, cpu.dataMasterId(),
         /* I've no idea why we need the PC, but give it */
-        inst->pc.instAddr());
+        inst->pc.instAddr(),
+        writeByteEnable);
 
     requests.push(request);
     request->startAddrTranslation();
@@ -1558,8 +1566,10 @@ LSQ::StoreBuffer::StoreBuffer(std::string name_, LSQ &lsq_,
 
 PacketPtr
 makePacketForRequest(Request &request, bool isLoad,
-    Packet::SenderState *sender_state, PacketDataPtr data)
+    Packet::SenderState *sender_state, PacketDataPtr data,
+    const std::vector<bool>& writeByteEnable)
 {
+    assert(!isLoad || writeByteEnable.empty());
     PacketPtr ret = isLoad ? Packet::createRead(&request)
                            : Packet::createWrite(&request);
 
@@ -1602,7 +1612,8 @@ LSQ::LSQRequest::makePacket()
         return;
     }
 
-    packet = makePacketForRequest(request, isLoad, this, data);
+    packet = makePacketForRequest(request, isLoad, this, data,
+                                  writeByteEnable);
     /* Null the ret data so we know not to deallocate it when the
      * ret is destroyed.  The data now belongs to the ret and
      * the ret is responsible for its destruction */

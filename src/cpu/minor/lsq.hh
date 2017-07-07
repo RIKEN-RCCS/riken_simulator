@@ -151,6 +151,9 @@ class LSQ : public Named
         /** Res from pushRequest */
         uint64_t *res;
 
+        /** Byte-enable mask for writes */
+        std::vector<bool> writeByteEnable;
+
         /** Was skipped.  Set to indicate any reason (faulted, bad
          *  stream sequence number, in a fault shadow) that this
          *  request did not perform a memory transfer */
@@ -190,7 +193,8 @@ class LSQ : public Named
 
       public:
         LSQRequest(LSQ &port_, MinorDynInstPtr inst_, bool isLoad_,
-            PacketDataPtr data_ = NULL, uint64_t *res_ = NULL);
+            PacketDataPtr data_ = NULL, uint64_t *res_ = NULL,
+            const std::vector<bool>& writeByteEnable_ = std::vector<bool>());
 
         virtual ~LSQRequest();
 
@@ -366,8 +370,9 @@ class LSQ : public Named
 
       public:
         SingleDataRequest(LSQ &port_, MinorDynInstPtr inst_,
-            bool isLoad_, PacketDataPtr data_ = NULL, uint64_t *res_ = NULL) :
-            LSQRequest(port_, inst_, isLoad_, data_, res_),
+            bool isLoad_, PacketDataPtr data_ = NULL, uint64_t *res_ = NULL,
+            const std::vector<bool>& writeByteEnable_ = std::vector<bool>()) :
+            LSQRequest(port_, inst_, isLoad_, data_, res_, writeByteEnable_),
             packetInFlight(false),
             packetSent(false)
         { }
@@ -412,7 +417,8 @@ class LSQ : public Named
       public:
         SplitDataRequest(LSQ &port_, MinorDynInstPtr inst_,
             bool isLoad_, PacketDataPtr data_ = NULL,
-            uint64_t *res_ = NULL);
+            uint64_t *res_ = NULL,
+            const std::vector<bool>& writeByteEnable_ = std::vector<bool>());
 
         ~SplitDataRequest();
 
@@ -699,8 +705,9 @@ class LSQ : public Named
     /** Single interface for readMem/writeMem to issue requests into
      *  the LSQ */
     void pushRequest(MinorDynInstPtr inst, bool isLoad, uint8_t *data,
-                     unsigned int size, Addr addr, Request::Flags flags,
-                     uint64_t *res);
+            unsigned int size, Addr addr, Request::Flags flags,
+            uint64_t *res,
+            const std::vector<bool>& writeByteEnable = std::vector<bool>());
 
     /** Push a predicate failed-representing request into the queues just
      *  to maintain commit order */
@@ -721,7 +728,8 @@ class LSQ : public Named
  *  data will be the payload data.  If sender_state is NULL, it won't be
  *  pushed into the packet as senderState */
 PacketPtr makePacketForRequest(Request &request, bool isLoad,
-    Packet::SenderState *sender_state = NULL, PacketDataPtr data = NULL);
+    Packet::SenderState *sender_state = NULL, PacketDataPtr data = NULL,
+    const std::vector<bool>& writeByteEnable = std::vector<bool>());
 }
 
 #endif /* __CPU_MINOR_NEW_LSQ_HH__ */

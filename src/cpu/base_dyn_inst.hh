@@ -306,7 +306,8 @@ class BaseDynInst : public ExecContext, public RefCounted
     Fault initiateMemRead(Addr addr, unsigned size, Request::Flags flags);
 
     Fault writeMem(uint8_t *data, unsigned size, Addr addr,
-                   Request::Flags flags, uint64_t *res);
+            Request::Flags flags, uint64_t *res,
+            const std::vector<bool>& byteEnable = std::vector<bool>());
 
     /** Splits a request in two if it crosses a dcache block. */
     void splitRequest(RequestPtr req, RequestPtr &sreqLow,
@@ -930,13 +931,15 @@ BaseDynInst<Impl>::initiateMemRead(Addr addr, unsigned size,
 template<class Impl>
 Fault
 BaseDynInst<Impl>::writeMem(uint8_t *data, unsigned size, Addr addr,
-                            Request::Flags flags, uint64_t *res)
+                            Request::Flags flags, uint64_t *res,
+                            const std::vector<bool>& byteEnable)
 {
     return cpu->pushRequest(
             dynamic_cast<typename DynInstPtr::ptr_type>(this),
-            /* st */ false, data, size, addr, flags, res);
+            /* st */ false, data, size, addr, flags, res, byteEnable);
 }
 
+// TODO: this should be removed
 template<class Impl>
 inline void
 BaseDynInst<Impl>::splitRequest(RequestPtr req, RequestPtr &sreqLow,
