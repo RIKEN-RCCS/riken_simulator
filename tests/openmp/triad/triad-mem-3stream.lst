@@ -1,0 +1,111 @@
+Fujitsu C/C++ Version 1.2.0   Fri Aug  4 17:16:31 2017
+Compilation information
+  Current directory : /home/odajima/sim-testsuites/omp_src/stream_benchmark
+  Source file       : triad-mem-3stream.c
+(line-no.)(optimize)
+        1             #include <stdio.h>
+        2             #include <stdlib.h>
+        3             #include <omp.h>
+        4             #include "mytime.h"
+        5             
+        6             #define N 233016
+        7             
+        8             double ALPHA = 3.0;
+        9             double a0[N] __attribute__((aligned(256)));
+       10             double b0[N] __attribute__((aligned(256)));
+       11             double c0[N] __attribute__((aligned(256)));
+       12             double a1[N] __attribute__((aligned(256)));
+       13             double b1[N] __attribute__((aligned(256)));
+       14             double c1[N] __attribute__((aligned(256)));
+       15             double a2[N] __attribute__((aligned(256)));
+       16             double b2[N] __attribute__((aligned(256)));
+       17             double c2[N] __attribute__((aligned(256)));
+       18             
+       19             int main(int argc, char **argv)
+       20             {
+       21               int i;
+       22               static double time;
+       23             
+       24             #pragma omp parallel
+       25               {
+       26                 printf("%d of %d\n", omp_get_num_threads(), omp_get_thread_num());
+       27             
+       28             #pragma omp for
+                       <<< Loop-information Start >>>
+                       <<<  [OPTIMIZATION]
+                       <<<    SIMD(VL: 8)
+                       <<<    SOFTWARE PIPELINING
+                       <<< Loop-information  End >>>
+       29   p     2v      for (i = 0; i < N; i++) {
+       30   p     2v        a0[i] = 0.0;
+       31   p     2v        b0[i] = (double)(i);
+       32   p     2v        c0[i] = (double)(i+3);
+       33   p     2v        a1[i] = 0.0;
+       34   p     2v        b1[i] = (double)(i);
+       35   p     2v        c1[i] = (double)(i+3);
+       36   p     2v        a2[i] = 0.0;
+       37   p     2v        b2[i] = (double)(i);
+       38   p     2v        c2[i] = (double)(i+3);
+       39   p     2v      }
+       40               }
+       41             
+       42    i          time = get_dtime();
+       43             
+       44             #pragma omp parallel for
+                       <<< Loop-information Start >>>
+                       <<<  [OPTIMIZATION]
+                       <<<    SIMD(VL: 8)
+                       <<<    SOFTWARE PIPELINING
+                       <<< Loop-information  End >>>
+       45   p     2v    for (i = 0; i < N; i++) {
+       46   p     2v      a0[i] = b0[i] + 3.0 * c0[i];
+       47   p     2v      a1[i] = b1[i] + 3.0 * c1[i];
+       48   p     2v      a2[i] = b2[i] + 3.0 * c2[i];
+       49   p     2v    }
+       50             
+       51    i          time = get_dtime() - time;
+       52             
+       53               printf("time = %lf [msec]\n", time * 1000.0);
+       54               printf("BW = %lf [GB/s]\n", (3 * 3 * N * sizeof(double)) / time / 1e9);
+       55               printf("dummy: %lf, %lf, %lf\n", a0[N-1], a1[N-1], a2[N-1]);
+       56             
+       57               return 0;
+       58             }
+Total prefetch num: 0
+Optimization messages
+  jwd6001s-i  "triad-mem-3stream.c", line 29: SIMD conversion is applied to this loop with the loop variable 'i'.
+  jwd8204o-i  "triad-mem-3stream.c", line 29: This loop is software pipelined.
+  jwd8205o-i  "triad-mem-3stream.c", line 29: The software-pipelined loop is chosen at run time when the iteration count is greater than or equal to '64'.
+  jwd8101o-i  "triad-mem-3stream.c", line 42: Inline expansion is applied to the user defined function 'get_dtime'.
+  jwd6001s-i  "triad-mem-3stream.c", line 45: SIMD conversion is applied to this loop with the loop variable 'i'.
+  jwd8204o-i  "triad-mem-3stream.c", line 45: This loop is software pipelined.
+  jwd8205o-i  "triad-mem-3stream.c", line 45: The software-pipelined loop is chosen at run time when the iteration count is greater than or equal to '80'.
+  jwd8101o-i  "triad-mem-3stream.c", line 51: Inline expansion is applied to the user defined function 'get_dtime'.
+  jwd8206o-i  "triad-mem-3stream.c", line 54: Division is changed to multiplication by reciprocal.
+  jwd8209o-i  "triad-mem-3stream.c", line 54: Evaluation order of polynomial expression is changed according to commutative law of addition and multiplication.
+Statistics information
+  Option information
+    Command line options : -Kfast,openmp -Nlst=t -Koptmsg=2 -I../../include -S -o triad-mem-3stream.s
+    Effective options    : -noansi -g0 -mt -Qy -std=gnu99 -x- -O3 -Knoalias_const
+                           -Kassume=noshortloop -Kassume=nomemory_bandwidth
+                           -Kassume=notime_consuming_compilation -Kcmodel=small -Kconst
+                           -Knodaz -Keval -Kfast_matmul -Knofconst -Knofenv_access
+                           -Kfp_contract -Kfp_relaxed -Kfsimple -Kilfunc=loop -Klib
+                           -Kloop_blocking -Kloop_fission -Kloop_nofission_if -Kloop_fusion
+                           -Kloop_interchange -Kloop_nopart_simd -Kloop_noversioning
+                           -Klooptype=f -Knolto -Knomemalias -Kmfunc=1 -Kns -Knontst -Knoocl
+                           -Komitfp -Kopenmp -Kopenmp_noassume_norecurrence
+                           -Kopenmp_noordered_reduction -Knoopenmp_simd -Koptmsg=2
+                           -Knoparallel -Kparallel_nofp_precision -Knopreex
+                           -Kprefetch_cache_level=all -Kprefetch_conditional
+                           -Kprefetch_noindirect -Kprefetch_noinfer
+                           -Kprefetch_sequential=auto -Kprefetch_nostride
+                           -Kprefetch_nostrong -Kprefetch_strong_L2 -Krdconv
+                           -Krestp=restrict -Ksibling_calls -Ksimd=auto -Ksimd_noextension
+                           -Ksimd_nomaskload -Ksimd_reduction_product -Ksimd_reg_size=512
+                           -Knostriping -KARMv8_2 -KSVE -Kswp -Kunroll -KNOXFILL
+                           -Ncancel_overtime_compilation -Nnoexceptions -Nnofjcex
+                           -Nnohook_func -Nnohook_time -Nnoline -Nlst=p -Nlst=t
+                           -Nquickdbg=noheapchk -Nquickdbg=nosubchk -NRnotrap -Nrt_notune
+                           -Nsetvalue=noheap -Nsetvalue=nostack -Nsetvalue=noscalar
+                           -Nsetvalue=noarray -Nsetvalue=nostruct -Nsrc -Nsta -Nuse_rodata
