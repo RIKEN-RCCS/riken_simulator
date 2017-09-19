@@ -352,7 +352,7 @@ class LSQUnit {
     void writeback(const DynInstPtr &inst, PacketPtr pkt);
 
     /** Writes back a store that couldn't be completed the previous cycle. */
-    bool writebackPendingStore();
+    void writebackPendingStore();
 
     /** Completes the store at the specified index. */
     void completeStore(typename StoreQueue::iterator store_idx);

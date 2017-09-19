@@ -712,7 +712,7 @@ LSQUnit<Impl>::commitStores(InstSeqNum &youngest_inst)
 }
 
 template <class Impl>
-bool
+void
 LSQUnit<Impl>::writebackPendingStore()
 {
     if (hasPendingRequest) {
@@ -724,139 +724,135 @@ LSQUnit<Impl>::writebackPendingStore()
             storePostSend(pendingRequest->packet());
             pendingRequest = nullptr;
             hasPendingRequest = false;
-        } else {
-            return false;
         }
     }
-    return true;
 }
 
 template <class Impl>
 void
 LSQUnit<Impl>::writebackStores()
 {
-    if (writebackPendingStore()) {
+    writebackPendingStore();
 
-        while (storesToWB > 0 &&
-               storeWBIt.dereferenceable() &&
-               storeWBIt->valid() &&
-               storeWBIt->canWB() &&
-               ((!needsTSO) || (!storeInFlight)) &&
-               usedStorePorts < cacheStorePorts) {
+    while (storesToWB > 0 &&
+           storeWBIt.dereferenceable() &&
+           storeWBIt->valid() &&
+           storeWBIt->canWB() &&
+           ((!needsTSO) || (!storeInFlight)) &&
+           usedStorePorts < cacheStorePorts) {
 
-            if (isStoreBlocked) {
-                DPRINTF(LSQUnit, "Unable to write back any more stores, cache"
-                        " is blocked!\n");
-                break;
-            }
+        if (isStoreBlocked) {
+            DPRINTF(LSQUnit, "Unable to write back any more stores, cache"
+                    " is blocked!\n");
+            break;
+        }
 
-            // Store didn't write any data so no need to write it back to
-            // memory.
-            if (storeWBIt->size() == 0) {
-                /* It is important that the preincrement happens at (or before)
-                 * the call, as the the code of completeStore checks
-                 * storeWBIt. */
-                completeStore(storeWBIt++);
-                continue;
-            }
+        // Store didn't write any data so no need to write it back to
+        // memory.
+        if (storeWBIt->size() == 0) {
+            /* It is important that the preincrement happens at (or before)
+             * the call, as the the code of completeStore checks
+             * storeWBIt. */
+            completeStore(storeWBIt++);
+            continue;
+        }
 
-            ++usedStorePorts;
+        ++usedStorePorts;
 
-            if (storeWBIt->instruction()->isDataPrefetch()) {
-                storeWBIt++;
-                continue;
-            }
+        if (storeWBIt->instruction()->isDataPrefetch()) {
+            storeWBIt++;
+            continue;
+        }
 
-            assert(storeWBIt->hasRequest());
-            assert(!storeWBIt->committed());
+        assert(storeWBIt->hasRequest());
+        assert(!storeWBIt->committed());
 
-            DynInstPtr inst = storeWBIt->instruction();
-            LSQRequest* req = storeWBIt->request();
-            storeWBIt->committed() = true;
+        DynInstPtr inst = storeWBIt->instruction();
+        LSQRequest* req = storeWBIt->request();
+        storeWBIt->committed() = true;
 
-            assert(!inst->memData);
-            inst->memData = new uint8_t[req->request()->getSize()];
+        assert(!inst->memData);
+        inst->memData = new uint8_t[req->request()->getSize()];
 
-            if (storeWBIt->isAllZeros())
-                memset(inst->memData, 0, req->request()->getSize());
-            else
-                memcpy(inst->memData, storeWBIt->data(),
-                        req->_size);
+        if (storeWBIt->isAllZeros())
+            memset(inst->memData, 0, req->request()->getSize());
+        else
+            memcpy(inst->memData, storeWBIt->data(),
+                    req->_size);
 
 
-            if (req->senderState() == nullptr) {
-                SQSenderState *state = new SQSenderState(storeWBIt);
-                state->isLoad = false;
-                state->needWB = false;
-                state->inst = inst;
+        if (req->senderState() == nullptr) {
+            SQSenderState *state = new SQSenderState(storeWBIt);
+            state->isLoad = false;
+            state->needWB = false;
+            state->inst = inst;
 
-                req->senderState(state);
-                if (inst->isStoreConditional()) {
-                    /* Only store conditionals need a writeback. */
-                    state->needWB = true;
-                }
-            }
-            req->buildPackets();
-
-            DPRINTF(LSQUnit, "D-Cache: Writing back store idx:%i PC:%s "
-                    "to Addr:%#x, data:%#x [sn:%lli]\n",
-                    storeWBIt.idx(), inst->pcState(),
-                    req->request()->getPaddr(), (int)*(inst->memData),
-                    inst->seqNum);
-
-            // @todo: Remove this SC hack once the memory system handles it.
+            req->senderState(state);
             if (inst->isStoreConditional()) {
-                // Disable recording the result temporarily.  Writing to
-                // misc regs normally updates the result, but this is not
-                // the desired behavior when handling store conditionals.
-                inst->recordResult(false);
-                bool success = TheISA::handleLockedWrite(inst.get(),
-                        req->request(), cacheBlockMask);
-                inst->recordResult(true);
-                req->packetSent();
-
-                if (!success) {
-                    req->complete();
-                    // Instantly complete this store.
-                    DPRINTF(LSQUnit, "Store conditional [sn:%lli] failed.  "
-                            "Instantly completing it.\n",
-                            inst->seqNum);
-                    WritebackEvent *wb = new WritebackEvent(inst,
-                            req->packet(), this);
-                    cpu->schedule(wb, curTick() + 1);
-                    completeStore(storeWBIt);
-                    if (!storeQueue.empty())
-                        storeWBIt++;
-                    else
-                        storeWBIt = storeQueue.end();
-                    continue;
-                }
+                /* Only store conditionals need a writeback. */
+                state->needWB = true;
             }
+        }
+        req->buildPackets();
 
-            ThreadContext *thread = cpu->tcBase(lsqID);
+        DPRINTF(LSQUnit, "D-Cache: Writing back store idx:%i PC:%s "
+                "to Addr:%#x, data:%#x [sn:%lli]\n",
+                storeWBIt.idx(), inst->pcState(),
+                req->request()->getPaddr(), (int)*(inst->memData),
+                inst->seqNum);
 
-            if (req->request()->isMmappedIpr()) {
-                assert(!inst->isStoreConditional());
-                /** Here the IprWrite should be deferred to the LSQRequest
-                 * to handle multi-part operations. */
-                TheISA::handleIprWrite(thread, req->packet());
-                delete req->senderState();
-                delete req;
-                req->senderState(nullptr);
-                completeStore(storeWBIt);
-                storeWBIt++;
-            }
-            /* Send to cache */
-            req->sendPacketToCache();
+        // @todo: Remove this SC hack once the memory system handles it.
+        if (inst->isStoreConditional()) {
+            // Disable recording the result temporarily.  Writing to
+            // misc regs normally updates the result, but this is not
+            // the desired behavior when handling store conditionals.
+            inst->recordResult(false);
+            bool success = TheISA::handleLockedWrite(inst.get(),
+                    req->request(), cacheBlockMask);
+            inst->recordResult(true);
+            req->packetSent();
 
-            /* If successful, do the post send */
-            if (req->isSent()) {
-                storePostSend(req->packet());
-            } else {
-                DPRINTF(IEW, "D-Cache became blocked when writing [sn:%lli], "
-                        "will retry later\n",
+            if (!success) {
+                req->complete();
+                // Instantly complete this store.
+                DPRINTF(LSQUnit, "Store conditional [sn:%lli] failed.  "
+                        "Instantly completing it.\n",
                         inst->seqNum);
+                WritebackEvent *wb = new WritebackEvent(inst,
+                        req->packet(), this);
+                cpu->schedule(wb, curTick() + 1);
+                completeStore(storeWBIt);
+                if (!storeQueue.empty())
+                    storeWBIt++;
+                else
+                    storeWBIt = storeQueue.end();
+                continue;
             }
+        }
+
+        ThreadContext *thread = cpu->tcBase(lsqID);
+
+        if (req->request()->isMmappedIpr()) {
+            assert(!inst->isStoreConditional());
+            /** Here the IprWrite should be deferred to the LSQRequest
+             * to handle multi-part operations. */
+            TheISA::handleIprWrite(thread, req->packet());
+            delete req->senderState();
+            delete req;
+            req->senderState(nullptr);
+            completeStore(storeWBIt);
+            storeWBIt++;
+        }
+        /* Send to cache */
+        req->sendPacketToCache();
+
+        /* If successful, do the post send */
+        if (req->isSent()) {
+            storePostSend(req->packet());
+        } else {
+            DPRINTF(IEW, "D-Cache became blocked when writing [sn:%lli], "
+                    "will retry later\n",
+                    inst->seqNum);
         }
     }
 
