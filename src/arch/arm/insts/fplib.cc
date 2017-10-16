@@ -54,6 +54,7 @@ namespace ArmISA
 #define FPLIB_FZ 4
 #define FPLIB_DN 8
 #define FPLIB_AHP 16
+#define FPLIB_FZ16 32
 
 #define FPLIB_IDC 128 // Input Denormal
 #define FPLIB_IXC 16  // Inexact
@@ -1623,7 +1624,9 @@ fp64_sqrt(uint64_t a, int mode, int *flags)
 static int
 modeConv(FPSCR fpscr)
 {
-    return (((int) fpscr) >> 22) & 0xF;
+    uint32_t x = (uint32_t)fpscr;
+    return (x >> 22 & 0xf) | (x >> 19 & 1 ? FPLIB_FZ16 : 0);
+    // AHP bit is ignored. Only fplibConvert uses AHP.
 }
 
 static void
