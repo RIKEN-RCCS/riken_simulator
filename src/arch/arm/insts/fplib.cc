@@ -370,7 +370,9 @@ fp16_unpack(int *sgn, int *exp, uint16_t *mnt, uint16_t x, int mode,
         *mnt |= (uint16_t)1 << 10;
     } else {
         ++*exp;
-        // There is no flush to zero in this case!
+        // IDC (Input Denormal) is not set in this case.
+        if (mode & FPLIB_FZ16)
+            *mnt = 0;
     }
 }
 
@@ -547,7 +549,11 @@ fp16_round_(int sgn, int exp, uint16_t mnt, int rm, int mode, int *flags)
 
     assert(rm != FPRounding_TIEAWAY);
 
-    // There is no flush to zero in this case!
+    // Flush to zero:
+    if ((mode & FPLIB_FZ16) && exp < 1) {
+        *flags |= FPLIB_UFC;
+        return fp16_zero(sgn);
+    }
 
     // The bottom 5 bits of mnt are orred together:
     mnt = (uint16_t)1 << 12 | mnt >> 4 | ((mnt & 31) != 0);
@@ -1951,7 +1957,7 @@ fplibConvert(uint32_t op, FPRounding rounding, FPSCR &fpscr)
     } else {
         result = fp16_round_(sgn, exp - 127 + 15,
                              mnt >> 7 | !!(uint32_t)(mnt << 25),
-                             rounding, mode | alt_hp << 4, &flags);
+                             rounding, (mode & 0xf) | alt_hp << 4, &flags);
     }
 
     set_fpscr0(fpscr, flags);
@@ -1997,7 +2003,7 @@ fplibConvert(uint64_t op, FPRounding rounding, FPSCR &fpscr)
     } else {
         result = fp16_round_(sgn, exp - 1023 + 15,
                              mnt >> 36 | !!(uint64_t)(mnt << 28),
-                             rounding, mode | alt_hp << 4, &flags);
+                             rounding, (mode & 0xf) | alt_hp << 4, &flags);
     }
 
     set_fpscr0(fpscr, flags);
@@ -2016,7 +2022,7 @@ fplibConvert(uint16_t op, FPRounding rounding, FPSCR &fpscr)
     uint32_t result;
 
     // Unpack floating-point operand optionally with flush-to-zero:
-    fp16_unpack(&sgn, &exp, &mnt, op, mode, &flags);
+    fp16_unpack(&sgn, &exp, &mnt, op, mode & 0xf, &flags);
 
     if (exp == 31 && !fpscr.ahp && (uint16_t)(mnt << 6)) {
         if (fpscr.dn) {
@@ -2089,7 +2095,7 @@ fplibConvert(uint16_t op, FPRounding rounding, FPSCR &fpscr)
     uint64_t result;
 
     // Unpack floating-point operand optionally with flush-to-zero:
-    fp16_unpack(&sgn, &exp, &mnt, op, mode, &flags);
+    fp16_unpack(&sgn, &exp, &mnt, op, mode & 0xf, &flags);
 
     if (exp == 31 && !fpscr.ahp && (uint16_t)(mnt << 6)) {
         if (fpscr.dn) {
