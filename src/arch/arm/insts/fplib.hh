@@ -317,13 +317,13 @@ template <>
 uint32_t fplibFPToFixed(uint16_t op, int fbits, bool u, FPRounding rounding,
                         FPSCR &fpscr);
 template <>
-uint64_t fplibFPToFixed(uint16_t op, int fbits, bool u, FPRounding rounding,
-                        FPSCR &fpscr);
-template <>
 uint32_t fplibFPToFixed(uint32_t op, int fbits, bool u, FPRounding rounding,
                         FPSCR &fpscr);
 template <>
 uint32_t fplibFPToFixed(uint64_t op, int fbits, bool u, FPRounding rounding,
+                        FPSCR &fpscr);
+template <>
+uint64_t fplibFPToFixed(uint16_t op, int fbits, bool u, FPRounding rounding,
                         FPSCR &fpscr);
 template <>
 uint64_t fplibFPToFixed(uint32_t op, int fbits, bool u, FPRounding rounding,

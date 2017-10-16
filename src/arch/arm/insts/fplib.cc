@@ -2731,35 +2731,6 @@ fplibRSqrtStepFused(uint64_t op1, uint64_t op2, FPSCR &fpscr)
 
 template <>
 uint32_t
-fplibRecipStepFused(uint32_t op1, uint32_t op2, FPSCR &fpscr)
-{
-    int mode = modeConv(fpscr);
-    int flags = 0;
-    int sgn1, exp1, sgn2, exp2;
-    uint32_t mnt1, mnt2, result;
-
-    op1 = fplibNeg<uint32_t>(op1);
-    fp32_unpack(&sgn1, &exp1, &mnt1, op1, mode, &flags);
-    fp32_unpack(&sgn2, &exp2, &mnt2, op2, mode, &flags);
-
-    result = fp32_process_NaNs(op1, op2, mode, &flags);
-    if (!result) {
-        if ((exp1 == 255 && !mnt2) || (exp2 == 255 && !mnt1)) {
-            result = fp32_FPTwo(0);
-        } else if (exp1 == 255 || exp2 == 255) {
-            result = fp32_infinity(sgn1 ^ sgn2);
-        } else {
-            result = fp32_muladd(fp32_FPTwo(0), op1, op2, 0, mode, &flags);
-        }
-    }
-
-    set_fpscr0(fpscr, flags);
-
-    return result;
-}
-
-template <>
-uint32_t
 fplibRecipEstimate(uint32_t op, FPSCR &fpscr)
 {
     int mode = modeConv(fpscr);
@@ -2873,6 +2844,35 @@ fplibRecipEstimate(uint64_t op, FPSCR &fpscr)
             result_exp = 0;
         }
         result = fp64_pack(sgn, result_exp, fraction);
+    }
+
+    set_fpscr0(fpscr, flags);
+
+    return result;
+}
+
+template <>
+uint32_t
+fplibRecipStepFused(uint32_t op1, uint32_t op2, FPSCR &fpscr)
+{
+    int mode = modeConv(fpscr);
+    int flags = 0;
+    int sgn1, exp1, sgn2, exp2;
+    uint32_t mnt1, mnt2, result;
+
+    op1 = fplibNeg<uint32_t>(op1);
+    fp32_unpack(&sgn1, &exp1, &mnt1, op1, mode, &flags);
+    fp32_unpack(&sgn2, &exp2, &mnt2, op2, mode, &flags);
+
+    result = fp32_process_NaNs(op1, op2, mode, &flags);
+    if (!result) {
+        if ((exp1 == 255 && !mnt2) || (exp2 == 255 && !mnt1)) {
+            result = fp32_FPTwo(0);
+        } else if (exp1 == 255 || exp2 == 255) {
+            result = fp32_infinity(sgn1 ^ sgn2);
+        } else {
+            result = fp32_muladd(fp32_FPTwo(0), op1, op2, 0, mode, &flags);
+        }
     }
 
     set_fpscr0(fpscr, flags);
@@ -3410,36 +3410,6 @@ fplibFPToFixed(uint16_t op, int fbits, bool u, FPRounding rounding,
 }
 
 template <>
-uint64_t
-fplibFPToFixed(uint16_t op, int fbits, bool u, FPRounding rounding,
-               FPSCR &fpscr)
-{
-    int flags = 0;
-    int sgn, exp;
-    uint16_t mnt;
-    uint64_t result;
-
-    // Unpack using FPCR to determine if subnormals are flushed-to-zero:
-    fp16_unpack(&sgn, &exp, &mnt, op, modeConv(fpscr), &flags);
-
-    // If NaN, set cumulative flag or take exception:
-    if (exp == 31 && (uint16_t)(mnt << 6)) {
-        flags = FPLIB_IOC;
-        result = 0;
-    } else {
-        assert(fbits >= 0);
-        if (exp == 31)
-            exp = 255; // infinity: make it big enough to saturate
-        result = FPToFixed_64(sgn, exp + 1023 - 15 + fbits,
-                              (uint64_t)mnt << (52 - 10), u, rounding, &flags);
-    }
-
-    set_fpscr0(fpscr, flags);
-
-    return result;
-}
-
-template <>
 uint32_t
 fplibFPToFixed(uint32_t op, int fbits, bool u, FPRounding rounding, FPSCR &fpscr)
 {
@@ -3486,6 +3456,36 @@ fplibFPToFixed(uint64_t op, int fbits, bool u, FPRounding rounding, FPSCR &fpscr
         assert(fbits >= 0);
         // Infinity is treated as an ordinary normalised number that saturates.
         result = FPToFixed_32(sgn, exp + fbits, mnt, u, rounding, &flags);
+    }
+
+    set_fpscr0(fpscr, flags);
+
+    return result;
+}
+
+template <>
+uint64_t
+fplibFPToFixed(uint16_t op, int fbits, bool u, FPRounding rounding,
+               FPSCR &fpscr)
+{
+    int flags = 0;
+    int sgn, exp;
+    uint16_t mnt;
+    uint64_t result;
+
+    // Unpack using FPCR to determine if subnormals are flushed-to-zero:
+    fp16_unpack(&sgn, &exp, &mnt, op, modeConv(fpscr), &flags);
+
+    // If NaN, set cumulative flag or take exception:
+    if (exp == 31 && (uint16_t)(mnt << 6)) {
+        flags = FPLIB_IOC;
+        result = 0;
+    } else {
+        assert(fbits >= 0);
+        if (exp == 31)
+            exp = 255; // infinity: make it big enough to saturate
+        result = FPToFixed_64(sgn, exp + 1023 - 15 + fbits,
+                              (uint64_t)mnt << (52 - 10), u, rounding, &flags);
     }
 
     set_fpscr0(fpscr, flags);
