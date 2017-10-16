@@ -3365,6 +3365,8 @@ fplibFPToFixed(uint16_t op, int fbits, bool u, FPRounding rounding,
         flags = FPLIB_IOC;
         result = 0;
     } else {
+        assert(fbits >= 0);
+        // Infinity is treated as an ordinary normalised number that saturates.
         result = FPToFixed_16(sgn, exp + 1023 - 15 + fbits,
                               (uint64_t)mnt << (52 - 10), u, rounding, &flags);
     }
@@ -3392,7 +3394,10 @@ fplibFPToFixed(uint16_t op, int fbits, bool u, FPRounding rounding,
         flags = FPLIB_IOC;
         result = 0;
     } else {
-        result = (int32_t)FPToFixed_32(sgn, exp + 1023 - 15 + fbits,
+        assert(fbits >= 0);
+        if (exp == 31)
+            exp = 255; // infinity: make it big enough to saturate
+        result = FPToFixed_32(sgn, exp + 1023 - 15 + fbits,
                               (uint64_t)mnt << (52 - 10), u, rounding, &flags);
     }
 
@@ -3419,6 +3424,9 @@ fplibFPToFixed(uint16_t op, int fbits, bool u, FPRounding rounding,
         flags = FPLIB_IOC;
         result = 0;
     } else {
+        assert(fbits >= 0);
+        if (exp == 31)
+            exp = 255; // infinity: make it big enough to saturate
         result = FPToFixed_64(sgn, exp + 1023 - 15 + fbits,
                               (uint64_t)mnt << (52 - 10), u, rounding, &flags);
     }
@@ -3444,6 +3452,8 @@ fplibFPToFixed(uint32_t op, int fbits, bool u, FPRounding rounding, FPSCR &fpscr
         flags = FPLIB_IOC;
         result = 0;
     } else {
+        assert(fbits >= 0);
+        // Infinity is treated as an ordinary normalised number that saturates.
         result = FPToFixed_32(sgn, exp + 1023 - 127 + fbits,
                               (uint64_t)mnt << (52 - 23), u, rounding, &flags);
     }
@@ -3470,6 +3480,8 @@ fplibFPToFixed(uint64_t op, int fbits, bool u, FPRounding rounding, FPSCR &fpscr
         flags = FPLIB_IOC;
         result = 0;
     } else {
+        assert(fbits >= 0);
+        // Infinity is treated as an ordinary normalised number that saturates.
         result = FPToFixed_32(sgn, exp + fbits, mnt, u, rounding, &flags);
     }
 
@@ -3495,6 +3507,8 @@ fplibFPToFixed(uint32_t op, int fbits, bool u, FPRounding rounding, FPSCR &fpscr
         flags = FPLIB_IOC;
         result = 0;
     } else {
+        assert(fbits >= 0);
+        // Infinity is treated as an ordinary normalised number that saturates.
         result = FPToFixed_64(sgn, exp + 1023 - 127 + fbits,
                               (uint64_t)mnt << (52 - 23), u, rounding, &flags);
     }
@@ -3520,6 +3534,8 @@ fplibFPToFixed(uint64_t op, int fbits, bool u, FPRounding rounding, FPSCR &fpscr
         flags = FPLIB_IOC;
         result = 0;
     } else {
+        assert(fbits >= 0);
+        // Infinity is treated as an ordinary normalised number that saturates.
         result = FPToFixed_64(sgn, exp + fbits, mnt, u, rounding, &flags);
     }
 
