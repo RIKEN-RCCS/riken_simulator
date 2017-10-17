@@ -177,29 +177,43 @@ T fplibDefaultNaN();
 
 /* Function specializations... */
 template <>
+uint16_t fplibAbs(uint16_t op);
+template <>
 uint32_t fplibAbs(uint32_t op);
 template <>
 uint64_t fplibAbs(uint64_t op);
+template <>
+uint16_t fplibAdd(uint16_t op1, uint16_t op2, FPSCR &fpscr);
 template <>
 uint32_t fplibAdd(uint32_t op1, uint32_t op2, FPSCR &fpscr);
 template <>
 uint64_t fplibAdd(uint64_t op1, uint64_t op2, FPSCR &fpscr);
 template <>
+int fplibCompare(uint16_t op1, uint16_t op2, bool signal_nans, FPSCR &fpscr);
+template <>
 int fplibCompare(uint32_t op1, uint32_t op2, bool signal_nans, FPSCR &fpscr);
 template <>
 int fplibCompare(uint64_t op1, uint64_t op2, bool signal_nans, FPSCR &fpscr);
+template <>
+bool fplibCompareEQ(uint16_t op1, uint16_t op2, FPSCR &fpscr);
 template <>
 bool fplibCompareEQ(uint32_t op1, uint32_t op2, FPSCR &fpscr);
 template <>
 bool fplibCompareEQ(uint64_t op1, uint64_t op2, FPSCR &fpscr);
 template <>
+bool fplibCompareGE(uint16_t op1, uint16_t op2, FPSCR &fpscr);
+template <>
 bool fplibCompareGE(uint32_t op1, uint32_t op2, FPSCR &fpscr);
 template <>
 bool fplibCompareGE(uint64_t op1, uint64_t op2, FPSCR &fpscr);
 template <>
+bool fplibCompareGT(uint16_t op1, uint16_t op2, FPSCR &fpscr);
+template <>
 bool fplibCompareGT(uint32_t op1, uint32_t op2, FPSCR &fpscr);
 template <>
 bool fplibCompareGT(uint64_t op1, uint64_t op2, FPSCR &fpscr);
+template <>
+bool fplibCompareUN(uint16_t op1, uint16_t op2, FPSCR &fpscr);
 template <>
 bool fplibCompareUN(uint32_t op1, uint32_t op2, FPSCR &fpscr);
 template <>
@@ -217,6 +231,8 @@ uint64_t fplibConvert(uint16_t op, FPRounding rounding, FPSCR &fpscr);
 template <>
 uint64_t fplibConvert(uint32_t op, FPRounding rounding, FPSCR &fpscr);
 template <>
+uint16_t fplibDiv(uint16_t op1, uint16_t op2, FPSCR &fpscr);
+template <>
 uint32_t fplibDiv(uint32_t op1, uint32_t op2, FPSCR &fpscr);
 template <>
 uint64_t fplibDiv(uint64_t op1, uint64_t op2, FPSCR &fpscr);
@@ -225,25 +241,38 @@ uint32_t fplibExpa(uint32_t op);
 template <>
 uint64_t fplibExpa(uint64_t op);
 template <>
+uint16_t fplibMax(uint16_t op1, uint16_t op2, FPSCR &fpscr);
+template <>
 uint32_t fplibMax(uint32_t op1, uint32_t op2, FPSCR &fpscr);
 template <>
 uint64_t fplibMax(uint64_t op1, uint64_t op2, FPSCR &fpscr);
+template <>
+uint16_t fplibMaxNum(uint16_t op1, uint16_t op2, FPSCR &fpscr);
 template <>
 uint32_t fplibMaxNum(uint32_t op1, uint32_t op2, FPSCR &fpscr);
 template <>
 uint64_t fplibMaxNum(uint64_t op1, uint64_t op2, FPSCR &fpscr);
 template <>
+uint16_t fplibMin(uint16_t op1, uint16_t op2, FPSCR &fpscr);
+template <>
 uint32_t fplibMin(uint32_t op1, uint32_t op2, FPSCR &fpscr);
 template <>
 uint64_t fplibMin(uint64_t op1, uint64_t op2, FPSCR &fpscr);
+template <>
+uint16_t fplibMinNum(uint16_t op1, uint16_t op2, FPSCR &fpscr);
 template <>
 uint32_t fplibMinNum(uint32_t op1, uint32_t op2, FPSCR &fpscr);
 template <>
 uint64_t fplibMinNum(uint64_t op1, uint64_t op2, FPSCR &fpscr);
 template <>
+uint16_t fplibMul(uint16_t op1, uint16_t op2, FPSCR &fpscr);
+template <>
 uint32_t fplibMul(uint32_t op1, uint32_t op2, FPSCR &fpscr);
 template <>
 uint64_t fplibMul(uint64_t op1, uint64_t op2, FPSCR &fpscr);
+template <>
+uint16_t fplibMulAdd(uint16_t addend, uint16_t op1, uint16_t op2,
+                     FPSCR &fpscr);
 template <>
 uint32_t fplibMulAdd(uint32_t addend, uint32_t op1, uint32_t op2,
                      FPSCR &fpscr);
@@ -251,33 +280,50 @@ template <>
 uint64_t fplibMulAdd(uint64_t addend, uint64_t op1, uint64_t op2,
                      FPSCR &fpscr);
 template <>
+uint16_t fplibMulX(uint16_t op1, uint16_t op2, FPSCR &fpscr);
+template <>
 uint32_t fplibMulX(uint32_t op1, uint32_t op2, FPSCR &fpscr);
 template <>
 uint64_t fplibMulX(uint64_t op1, uint64_t op2, FPSCR &fpscr);
+template <>
+uint16_t fplibNeg(uint16_t op);
 template <>
 uint32_t fplibNeg(uint32_t op);
 template <>
 uint64_t fplibNeg(uint64_t op);
 template <>
+uint16_t fplibRSqrtEstimate(uint16_t op, FPSCR &fpscr);
+template <>
 uint32_t fplibRSqrtEstimate(uint32_t op, FPSCR &fpscr);
 template<>
 uint64_t fplibRSqrtEstimate(uint64_t op, FPSCR &fpscr);
+template <>
+uint16_t fplibRSqrtStepFused(uint16_t op1, uint16_t op2, FPSCR &fpscr);
 template <>
 uint32_t fplibRSqrtStepFused(uint32_t op1, uint32_t op2, FPSCR &fpscr);
 template <>
 uint64_t fplibRSqrtStepFused(uint64_t op1, uint64_t op2, FPSCR &fpscr);
 template <>
+uint16_t fplibRecipEstimate(uint16_t op, FPSCR &fpscr);
+template <>
 uint32_t fplibRecipEstimate(uint32_t op, FPSCR &fpscr);
 template <>
 uint64_t fplibRecipEstimate(uint64_t op, FPSCR &fpscr);
+template <>
+uint16_t fplibRecipStepFused(uint16_t op1, uint16_t op2, FPSCR &fpscr);
 template <>
 uint32_t fplibRecipStepFused(uint32_t op1, uint32_t op2, FPSCR &fpscr);
 template <>
 uint64_t fplibRecipStepFused(uint64_t op1, uint64_t op2, FPSCR &fpscr);
 template <>
+uint16_t fplibRecpX(uint16_t op, FPSCR &fpscr);
+template <>
 uint32_t fplibRecpX(uint32_t op, FPSCR &fpscr);
 template <>
 uint64_t fplibRecpX(uint64_t op, FPSCR &fpscr);
+template <>
+uint16_t fplibRoundInt(uint16_t op, FPRounding rounding, bool exact,
+                       FPSCR &fpscr);
 template <>
 uint32_t fplibRoundInt(uint32_t op, FPRounding rounding, bool exact,
                        FPSCR &fpscr);
@@ -289,9 +335,13 @@ uint32_t fplibScale(uint32_t op1, uint32_t op2, FPSCR &fpscr);
 template <>
 uint64_t fplibScale(uint64_t op1, uint64_t op2, FPSCR &fpscr);
 template <>
+uint16_t fplibSqrt(uint16_t op, FPSCR &fpscr);
+template <>
 uint32_t fplibSqrt(uint32_t op, FPSCR &fpscr);
 template <>
 uint64_t fplibSqrt(uint64_t op, FPSCR &fpscr);
+template <>
+uint16_t fplibSub(uint16_t op1, uint16_t op2, FPSCR &fpscr);
 template <>
 uint32_t fplibSub(uint32_t op1, uint32_t op2, FPSCR &fpscr);
 template <>
@@ -341,9 +391,13 @@ template <>
 uint64_t fplibFixedToFP(uint64_t op, int fbits, bool u, FPRounding rounding,
                         FPSCR &fpscr);
 template <>
+uint16_t fplibInfinity(int sgn);
+template <>
 uint32_t fplibInfinity(int sgn);
 template <>
 uint64_t fplibInfinity(int sgn);
+template <>
+uint16_t fplibDefaultNaN();
 template <>
 uint32_t fplibDefaultNaN();
 template <>

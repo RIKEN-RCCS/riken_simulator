@@ -416,6 +416,16 @@ fp64_unpack(int *sgn, int *exp, uint64_t *mnt, uint64_t x, int mode,
     }
 }
 
+static inline uint16_t
+fp16_process_NaN(uint16_t a, int mode, int *flags)
+{
+    if (!(a >> 9 & 1)) {
+        *flags |= FPLIB_IOC;
+        a |= (uint16_t)1 << 9;
+    }
+    return mode & FPLIB_DN ? fp16_defaultNaN() : a;
+}
+
 static inline uint32_t
 fp32_process_NaN(uint32_t a, int mode, int *flags)
 {
@@ -434,6 +444,29 @@ fp64_process_NaN(uint64_t a, int mode, int *flags)
         a |= (uint64_t)1 << 51;
     }
     return mode & FPLIB_DN ? fp64_defaultNaN() : a;
+}
+
+static uint16_t
+fp16_process_NaNs(uint16_t a, uint16_t b, int mode, int *flags)
+{
+    int a_exp = a >> 10 & 31;
+    uint16_t a_mnt = a & (((uint16_t)1 << 10) - 1);
+    int b_exp = b >> 10 & 31;
+    uint16_t b_mnt = b & (((uint16_t)1 << 10) - 1);
+
+    // Handle signalling NaNs:
+    if (a_exp == 31 && a_mnt && !(a_mnt >> 9 & 1))
+        return fp16_process_NaN(a, mode, flags);
+    if (b_exp == 31 && b_mnt && !(b_mnt >> 9 & 1))
+        return fp16_process_NaN(b, mode, flags);
+
+    // Handle quiet NaNs:
+    if (a_exp == 31 && a_mnt)
+        return fp16_process_NaN(a, mode, flags);
+    if (b_exp == 31 && b_mnt)
+        return fp16_process_NaN(b, mode, flags);
+
+    return 0;
 }
 
 static uint32_t
@@ -478,6 +511,35 @@ fp64_process_NaNs(uint64_t a, uint64_t b, int mode, int *flags)
         return fp64_process_NaN(a, mode, flags);
     if (b_exp == 2047 && b_mnt)
         return fp64_process_NaN(b, mode, flags);
+
+    return 0;
+}
+
+static uint16_t
+fp16_process_NaNs3(uint16_t a, uint16_t b, uint16_t c, int mode, int *flags)
+{
+    int a_exp = a >> 10 & 31;
+    uint16_t a_mnt = a & (((uint16_t)1 << 10) - 1);
+    int b_exp = b >> 10 & 31;
+    uint16_t b_mnt = b & (((uint16_t)1 << 10) - 1);
+    int c_exp = c >> 10 & 31;
+    uint16_t c_mnt = c & (((uint16_t)1 << 10) - 1);
+
+    // Handle signalling NaNs:
+    if (a_exp == 31 && a_mnt && !(a_mnt >> 9 & 1))
+        return fp16_process_NaN(a, mode, flags);
+    if (b_exp == 31 && b_mnt && !(b_mnt >> 9 & 1))
+        return fp16_process_NaN(b, mode, flags);
+    if (c_exp == 31 && c_mnt && !(c_mnt >> 9 & 1))
+        return fp16_process_NaN(c, mode, flags);
+
+    // Handle quiet NaNs:
+    if (a_exp == 31 && a_mnt)
+        return fp16_process_NaN(a, mode, flags);
+    if (b_exp == 31 && b_mnt)
+        return fp16_process_NaN(b, mode, flags);
+    if (c_exp == 31 && c_mnt)
+        return fp16_process_NaN(c, mode, flags);
 
     return 0;
 }
@@ -776,6 +838,94 @@ fp64_round(int sgn, int exp, uint64_t mnt, int mode, int *flags)
 }
 
 static int
+fp16_compare_eq(uint16_t a, uint16_t b, int mode, int *flags)
+{
+    int a_sgn, a_exp, b_sgn, b_exp;
+    uint16_t a_mnt, b_mnt;
+
+    fp16_unpack(&a_sgn, &a_exp, &a_mnt, a, mode, flags);
+    fp16_unpack(&b_sgn, &b_exp, &b_mnt, b, mode, flags);
+
+    if ((a_exp == 31 && (uint16_t)(a_mnt << 6)) ||
+        (b_exp == 31 && (uint16_t)(b_mnt << 6))) {
+        if ((a_exp == 31 && (uint16_t)(a_mnt << 6) && !(a >> 9 & 1)) ||
+            (b_exp == 31 && (uint16_t)(b_mnt << 6) && !(b >> 9 & 1)))
+            *flags |= FPLIB_IOC;
+        return 0;
+    }
+    return a == b || (!a_mnt && !b_mnt);
+}
+
+static int
+fp16_compare_ge(uint16_t a, uint16_t b, int mode, int *flags)
+{
+    int a_sgn, a_exp, b_sgn, b_exp;
+    uint16_t a_mnt, b_mnt;
+
+    fp16_unpack(&a_sgn, &a_exp, &a_mnt, a, mode, flags);
+    fp16_unpack(&b_sgn, &b_exp, &b_mnt, b, mode, flags);
+
+    if ((a_exp == 31 && (uint16_t)(a_mnt << 6)) ||
+        (b_exp == 31 && (uint16_t)(b_mnt << 6))) {
+        *flags |= FPLIB_IOC;
+        return 0;
+    }
+    if (!a_mnt && !b_mnt)
+        return 1;
+    if (a_sgn != b_sgn)
+        return b_sgn;
+    if (a_exp != b_exp)
+        return a_sgn ^ (a_exp > b_exp);
+    if (a_mnt != b_mnt)
+        return a_sgn ^ (a_mnt > b_mnt);
+    return 1;
+}
+
+static int
+fp16_compare_gt(uint16_t a, uint16_t b, int mode, int *flags)
+{
+    int a_sgn, a_exp, b_sgn, b_exp;
+    uint16_t a_mnt, b_mnt;
+
+    fp16_unpack(&a_sgn, &a_exp, &a_mnt, a, mode, flags);
+    fp16_unpack(&b_sgn, &b_exp, &b_mnt, b, mode, flags);
+
+    if ((a_exp == 31 && (uint16_t)(a_mnt << 6)) ||
+        (b_exp == 31 && (uint16_t)(b_mnt << 6))) {
+        *flags |= FPLIB_IOC;
+        return 0;
+    }
+    if (!a_mnt && !b_mnt)
+        return 0;
+    if (a_sgn != b_sgn)
+        return b_sgn;
+    if (a_exp != b_exp)
+        return a_sgn ^ (a_exp > b_exp);
+    if (a_mnt != b_mnt)
+        return a_sgn ^ (a_mnt > b_mnt);
+    return 0;
+}
+
+static int
+fp16_compare_un(uint16_t a, uint16_t b, int mode, int *flags)
+{
+    int a_sgn, a_exp, b_sgn, b_exp;
+    uint16_t a_mnt, b_mnt;
+
+    fp16_unpack(&a_sgn, &a_exp, &a_mnt, a, mode, flags);
+    fp16_unpack(&b_sgn, &b_exp, &b_mnt, b, mode, flags);
+
+    if ((a_exp == 31 && (uint16_t)(a_mnt << 6)) ||
+        (b_exp == 31 && (uint16_t)(b_mnt << 6))) {
+        if ((a_exp == 31 && (uint16_t)(a_mnt << 6) && !(a >> 9 & 1)) ||
+            (b_exp == 31 && (uint16_t)(b_mnt << 6) && !(b >> 9 & 1)))
+            *flags |= FPLIB_IOC;
+        return 1;
+    }
+    return 0;
+}
+
+static int
 fp32_compare_eq(uint32_t a, uint32_t b, int mode, int *flags)
 {
     int a_sgn, a_exp, b_sgn, b_exp;
@@ -951,6 +1101,65 @@ fp64_compare_un(uint64_t a, uint64_t b, int mode, int *flags)
     return 0;
 }
 
+static uint16_t
+fp16_add(uint16_t a, uint16_t b, int neg, int mode, int *flags)
+{
+    int a_sgn, a_exp, b_sgn, b_exp, x_sgn, x_exp;
+    uint16_t a_mnt, b_mnt, x, x_mnt;
+
+    fp16_unpack(&a_sgn, &a_exp, &a_mnt, a, mode, flags);
+    fp16_unpack(&b_sgn, &b_exp, &b_mnt, b, mode, flags);
+
+    if ((x = fp16_process_NaNs(a, b, mode, flags))) {
+        return x;
+    }
+
+    b_sgn ^= neg;
+
+    // Handle infinities and zeroes:
+    if (a_exp == 31 && b_exp == 31 && a_sgn != b_sgn) {
+        *flags |= FPLIB_IOC;
+        return fp16_defaultNaN();
+    } else if (a_exp == 31) {
+        return fp16_infinity(a_sgn);
+    } else if (b_exp == 31) {
+        return fp16_infinity(b_sgn);
+    } else if (!a_mnt && !b_mnt && a_sgn == b_sgn) {
+        return fp16_zero(a_sgn);
+    }
+
+    a_mnt <<= 3;
+    b_mnt <<= 3;
+    if (a_exp >= b_exp) {
+        b_mnt = (lsr16(b_mnt, a_exp - b_exp) |
+                 !!(b_mnt & (lsl16(1, a_exp - b_exp) - 1)));
+        b_exp = a_exp;
+    } else {
+        a_mnt = (lsr16(a_mnt, b_exp - a_exp) |
+                 !!(a_mnt & (lsl16(1, b_exp - a_exp) - 1)));
+        a_exp = b_exp;
+    }
+    x_sgn = a_sgn;
+    x_exp = a_exp;
+    if (a_sgn == b_sgn) {
+        x_mnt = a_mnt + b_mnt;
+    } else if (a_mnt >= b_mnt) {
+        x_mnt = a_mnt - b_mnt;
+    } else {
+        x_sgn ^= 1;
+        x_mnt = b_mnt - a_mnt;
+    }
+
+    if (!x_mnt) {
+        // Sign of exact zero result depends on rounding mode
+        return fp16_zero((mode & 3) == 2);
+    }
+
+    x_mnt = fp16_normalise(x_mnt, &x_exp);
+
+    return fp16_round(x_sgn, x_exp + 2, x_mnt << 1, mode, flags);
+}
+
 static uint32_t
 fp32_add(uint32_t a, uint32_t b, int neg, int mode, int *flags)
 {
@@ -1069,6 +1278,42 @@ fp64_add(uint64_t a, uint64_t b, int neg, int mode, int *flags)
     return fp64_round(x_sgn, x_exp + 8, x_mnt << 1, mode, flags);
 }
 
+static uint16_t
+fp16_mul(uint16_t a, uint16_t b, int mode, int *flags)
+{
+    int a_sgn, a_exp, b_sgn, b_exp, x_sgn, x_exp;
+    uint16_t a_mnt, b_mnt, x;
+    uint32_t x_mnt;
+
+    fp16_unpack(&a_sgn, &a_exp, &a_mnt, a, mode, flags);
+    fp16_unpack(&b_sgn, &b_exp, &b_mnt, b, mode, flags);
+
+    if ((x = fp16_process_NaNs(a, b, mode, flags))) {
+        return x;
+    }
+
+    // Handle infinities and zeroes:
+    if ((a_exp == 31 && !b_mnt) || (b_exp == 31 && !a_mnt)) {
+        *flags |= FPLIB_IOC;
+        return fp16_defaultNaN();
+    } else if (a_exp == 31 || b_exp == 31) {
+        return fp16_infinity(a_sgn ^ b_sgn);
+    } else if (!a_mnt || !b_mnt) {
+        return fp16_zero(a_sgn ^ b_sgn);
+    }
+
+    // Multiply and normalise:
+    x_sgn = a_sgn ^ b_sgn;
+    x_exp = a_exp + b_exp - 4;
+    x_mnt = (uint32_t)a_mnt * b_mnt;
+    x_mnt = fp32_normalise(x_mnt, &x_exp);
+
+    // Convert to 16 bits, collapsing error into bottom bit:
+    x_mnt = lsr32(x_mnt, 15) | !!lsl32(x_mnt, 17);
+
+    return fp16_round(x_sgn, x_exp, x_mnt, mode, flags);
+}
+
 static uint32_t
 fp32_mul(uint32_t a, uint32_t b, int mode, int *flags)
 {
@@ -1139,6 +1384,90 @@ fp64_mul(uint64_t a, uint64_t b, int mode, int *flags)
     x0_mnt = x1_mnt << 1 | !!x0_mnt;
 
     return fp64_round(x_sgn, x_exp, x0_mnt, mode, flags);
+}
+
+static uint16_t
+fp16_muladd(uint16_t a, uint16_t b, uint16_t c, int scale,
+            int mode, int *flags)
+{
+    int a_sgn, a_exp, b_sgn, b_exp, c_sgn, c_exp, x_sgn, x_exp, y_sgn, y_exp;
+    uint16_t a_mnt, b_mnt, c_mnt, x;
+    uint32_t x_mnt, y_mnt;
+
+    fp16_unpack(&a_sgn, &a_exp, &a_mnt, a, mode, flags);
+    fp16_unpack(&b_sgn, &b_exp, &b_mnt, b, mode, flags);
+    fp16_unpack(&c_sgn, &c_exp, &c_mnt, c, mode, flags);
+
+    x = fp16_process_NaNs3(a, b, c, mode, flags);
+
+    // Quiet NaN added to product of zero and infinity:
+    if (a_exp == 31 && (a_mnt >> 9 & 1) &&
+        ((!b_mnt && c_exp == 31 && !(uint16_t)(c_mnt << 6)) ||
+         (!c_mnt && b_exp == 31 && !(uint16_t)(b_mnt << 6)))) {
+        x = fp16_defaultNaN();
+        *flags |= FPLIB_IOC;
+    }
+
+    if (x) {
+        return x;
+    }
+
+    // Handle infinities and zeroes:
+    if ((b_exp == 31 && !c_mnt) ||
+        (c_exp == 31 && !b_mnt) ||
+        (a_exp == 31 && (b_exp == 31 || c_exp == 31) &&
+         (a_sgn != (b_sgn ^ c_sgn)))) {
+        *flags |= FPLIB_IOC;
+        return fp16_defaultNaN();
+    }
+    if (a_exp == 31)
+        return fp16_infinity(a_sgn);
+    if (b_exp == 31 || c_exp == 31)
+        return fp16_infinity(b_sgn ^ c_sgn);
+    if (!a_mnt && (!b_mnt || !c_mnt) && a_sgn == (b_sgn ^ c_sgn))
+        return fp16_zero(a_sgn);
+
+    x_sgn = a_sgn;
+    x_exp = a_exp + 7;
+    x_mnt = (uint32_t)a_mnt << 14;
+
+    // Multiply:
+    y_sgn = b_sgn ^ c_sgn;
+    y_exp = b_exp + c_exp - 7;
+    y_mnt = (uint32_t)b_mnt * c_mnt << 3;
+    if (!y_mnt) {
+        y_exp = x_exp;
+    }
+
+    // Add:
+    if (x_exp >= y_exp) {
+        y_mnt = (lsr32(y_mnt, x_exp - y_exp) |
+                 !!(y_mnt & (lsl32(1, x_exp - y_exp) - 1)));
+        y_exp = x_exp;
+    } else {
+        x_mnt = (lsr32(x_mnt, y_exp - x_exp) |
+                 !!(x_mnt & (lsl32(1, y_exp - x_exp) - 1)));
+        x_exp = y_exp;
+    }
+    if (x_sgn == y_sgn) {
+        x_mnt = x_mnt + y_mnt;
+    } else if (x_mnt >= y_mnt) {
+        x_mnt = x_mnt - y_mnt;
+    } else {
+        x_sgn ^= 1;
+        x_mnt = y_mnt - x_mnt;
+    }
+
+    if (!x_mnt) {
+        // Sign of exact zero result depends on rounding mode
+        return fp16_zero((mode & 3) == 2);
+    }
+
+    // Normalise and convert to 16 bits, collapsing error into bottom bit:
+    x_mnt = fp32_normalise(x_mnt, &x_exp);
+    x_mnt = x_mnt >> 15 | !!(uint16_t)(x_mnt << 1);
+
+    return fp16_round(x_sgn, x_exp + scale, x_mnt, mode, flags);
 }
 
 static uint32_t
@@ -1314,6 +1643,46 @@ fp64_muladd(uint64_t a, uint64_t b, uint64_t c, int scale,
     x0_mnt = x1_mnt << 1 | !!x0_mnt;
 
     return fp64_round(x_sgn, x_exp + scale, x0_mnt, mode, flags);
+}
+
+static uint16_t
+fp16_div(uint16_t a, uint16_t b, int mode, int *flags)
+{
+    int a_sgn, a_exp, b_sgn, b_exp, x_sgn, x_exp;
+    uint16_t a_mnt, b_mnt, x;
+    uint32_t x_mnt;
+
+    fp16_unpack(&a_sgn, &a_exp, &a_mnt, a, mode, flags);
+    fp16_unpack(&b_sgn, &b_exp, &b_mnt, b, mode, flags);
+
+    if ((x = fp16_process_NaNs(a, b, mode, flags)))
+        return x;
+
+    // Handle infinities and zeroes:
+    if ((a_exp == 31 && b_exp == 31) || (!a_mnt && !b_mnt)) {
+        *flags |= FPLIB_IOC;
+        return fp16_defaultNaN();
+    }
+    if (a_exp == 31 || !b_mnt) {
+        if (a_exp != 31)
+            *flags |= FPLIB_DZC;
+        return fp16_infinity(a_sgn ^ b_sgn);
+    }
+    if (!a_mnt || b_exp == 31)
+        return fp16_zero(a_sgn ^ b_sgn);
+
+    // Divide, setting bottom bit if inexact:
+    a_mnt = fp16_normalise(a_mnt, &a_exp);
+    x_sgn = a_sgn ^ b_sgn;
+    x_exp = a_exp - b_exp + 38;
+    x_mnt = ((uint32_t)a_mnt << 8) / b_mnt;
+    x_mnt |= (x_mnt * b_mnt != (uint32_t)a_mnt << 8);
+
+    // Normalise and convert to 16 bits, collapsing error into bottom bit:
+    x_mnt = fp32_normalise(x_mnt, &x_exp);
+    x_mnt = x_mnt >> 15 | !!(uint16_t)(x_mnt << 1);
+
+    return fp16_round(x_sgn, x_exp, x_mnt, mode, flags);
 }
 
 static uint32_t
@@ -1499,6 +1868,60 @@ fp64_scale(uint64_t a, int64_t b, int mode, int *flags)
     return fp64_round(a_sgn, a_exp + 8, a_mnt << 1, mode, flags);
 }
 
+static uint16_t
+fp16_sqrt(uint16_t a, int mode, int *flags)
+{
+    int a_sgn, a_exp, x_sgn, x_exp;
+    uint16_t a_mnt, x_mnt;
+    uint32_t x, t0, t1;
+
+    fp16_unpack(&a_sgn, &a_exp, &a_mnt, a, mode, flags);
+
+    // Handle NaNs:
+    if (a_exp == 31 && (uint16_t)(a_mnt << 6))
+        return fp16_process_NaN(a, mode, flags);
+
+    // Handle infinities and zeroes:
+    if (!a_mnt) {
+        return fp16_zero(a_sgn);
+    }
+    if (a_exp == 31 && !a_sgn) {
+        return fp16_infinity(a_sgn);
+    }
+    if (a_sgn) {
+        *flags |= FPLIB_IOC;
+        return fp16_defaultNaN();
+    }
+
+    a_mnt = fp16_normalise(a_mnt, &a_exp);
+    if (a_exp & 1) {
+        ++a_exp;
+        a_mnt >>= 1;
+    }
+
+    // x = (a * 3 + 5) / 8
+    x = ((uint32_t)a_mnt << 14) + ((uint32_t)a_mnt << 13) + ((uint32_t)5 << 28);
+
+    // x = (a / x + x) / 2; // 8-bit accuracy
+    x = (((uint32_t)a_mnt << 16) / (x >> 15) + (x >> 16)) << 15;
+
+    // x = (a / x + x) / 2; // 16-bit accuracy
+    x = (((uint32_t)a_mnt << 16) / (x >> 15) + (x >> 16)) << 15;
+
+    x_sgn = 0;
+    x_exp = (a_exp + 27) >> 1;
+    x_mnt = ((x - (1 << 18)) >> 19) + 1;
+    t1 = (uint32_t)x_mnt * x_mnt;
+    t0 = (uint32_t)a_mnt << 9;
+    if (t1 > t0) {
+        --x_mnt;
+    }
+
+    x_mnt = fp16_normalise(x_mnt, &x_exp);
+
+    return fp16_round(x_sgn, x_exp, x_mnt << 1 | (t1 != t0), mode, flags);
+}
+
 static uint32_t
 fp32_sqrt(uint32_t a, int mode, int *flags)
 {
@@ -1663,6 +2086,46 @@ set_fpscr(FPSCR &fpscr, int flags)
 
 template <>
 bool
+fplibCompareEQ(uint16_t a, uint16_t b, FPSCR &fpscr)
+{
+    int flags = 0;
+    int x = fp16_compare_eq(a, b, modeConv(fpscr), &flags);
+    set_fpscr(fpscr, flags);
+    return x;
+}
+
+template <>
+bool
+fplibCompareGE(uint16_t a, uint16_t b, FPSCR &fpscr)
+{
+    int flags = 0;
+    int x = fp16_compare_ge(a, b, modeConv(fpscr), &flags);
+    set_fpscr(fpscr, flags);
+    return x;
+}
+
+template <>
+bool
+fplibCompareGT(uint16_t a, uint16_t b, FPSCR &fpscr)
+{
+    int flags = 0;
+    int x = fp16_compare_gt(a, b, modeConv(fpscr), &flags);
+    set_fpscr(fpscr, flags);
+    return x;
+}
+
+template <>
+bool
+fplibCompareUN(uint16_t a, uint16_t b, FPSCR &fpscr)
+{
+    int flags = 0;
+    int x = fp16_compare_un(a, b, modeConv(fpscr), &flags);
+    set_fpscr(fpscr, flags);
+    return x;
+}
+
+template <>
+bool
 fplibCompareEQ(uint32_t a, uint32_t b, FPSCR &fpscr)
 {
     int flags = 0;
@@ -1742,6 +2205,13 @@ fplibCompareUN(uint64_t a, uint64_t b, FPSCR &fpscr)
 }
 
 template <>
+uint16_t
+fplibAbs(uint16_t op)
+{
+    return op & ~((uint16_t)1 << 15);
+}
+
+template <>
 uint32_t
 fplibAbs(uint32_t op)
 {
@@ -1753,6 +2223,16 @@ uint64_t
 fplibAbs(uint64_t op)
 {
     return op & ~((uint64_t)1 << 63);
+}
+
+template <>
+uint16_t
+fplibAdd(uint16_t op1, uint16_t op2, FPSCR &fpscr)
+{
+    int flags = 0;
+    uint16_t result = fp16_add(op1, op2, 0, modeConv(fpscr), &flags);
+    set_fpscr0(fpscr, flags);
+    return result;
 }
 
 template <>
@@ -1772,6 +2252,42 @@ fplibAdd(uint64_t op1, uint64_t op2, FPSCR &fpscr)
     int flags = 0;
     uint64_t result = fp64_add(op1, op2, 0, modeConv(fpscr), &flags);
     set_fpscr0(fpscr, flags);
+    return result;
+}
+
+template <>
+int
+fplibCompare(uint16_t op1, uint16_t op2, bool signal_nans, FPSCR &fpscr)
+{
+    int mode = modeConv(fpscr);
+    int flags = 0;
+    int sgn1, exp1, sgn2, exp2, result;
+    uint16_t mnt1, mnt2;
+
+    fp16_unpack(&sgn1, &exp1, &mnt1, op1, mode, &flags);
+    fp16_unpack(&sgn2, &exp2, &mnt2, op2, mode, &flags);
+
+    if ((exp1 == 31 && (uint16_t)(mnt1 << 6)) ||
+        (exp2 == 31 && (uint16_t)(mnt2 << 6))) {
+        result = 3;
+        if ((exp1 == 31 && (uint16_t)(mnt1 << 6) && !(mnt1 >> 9 & 1)) ||
+            (exp2 == 31 && (uint16_t)(mnt2 << 6) && !(mnt2 >> 9 & 1)) ||
+            signal_nans)
+            flags |= FPLIB_IOC;
+    } else {
+        if (op1 == op2 || (!mnt1 && !mnt2)) {
+            result = 6;
+        } else if (sgn1 != sgn2) {
+            result = sgn1 ? 8 : 2;
+        } else if (exp1 != exp2) {
+            result = sgn1 ^ (exp1 < exp2) ? 8 : 2;
+        } else {
+            result = sgn1 ^ (mnt1 < mnt2) ? 8 : 2;
+        }
+    }
+
+    set_fpscr0(fpscr, flags);
+
     return result;
 }
 
@@ -1883,6 +2399,12 @@ fp64_FPConvertNaN_32(uint32_t op)
     return fp64_pack(op >> 31, 2047, (uint64_t)1 << 51 | (uint64_t)op << 29);
 }
 
+static uint16_t
+fp16_FPOnePointFive(int sgn)
+{
+    return fp16_pack(sgn, 15, (uint64_t)1 << 9);
+}
+
 static uint32_t
 fp32_FPOnePointFive(int sgn)
 {
@@ -1895,6 +2417,12 @@ fp64_FPOnePointFive(int sgn)
     return fp64_pack(sgn, 1023, (uint64_t)1 << 51);
 }
 
+static uint16_t
+fp16_FPThree(int sgn)
+{
+    return fp16_pack(sgn, 16, (uint64_t)1 << 9);
+}
+
 static uint32_t
 fp32_FPThree(int sgn)
 {
@@ -1905,6 +2433,12 @@ static uint64_t
 fp64_FPThree(int sgn)
 {
     return fp64_pack(sgn, 1024, (uint64_t)1 << 51);
+}
+
+static uint16_t
+fp16_FPTwo(int sgn)
+{
+    return fp16_pack(sgn, 16, 0);
 }
 
 static uint32_t
@@ -2157,6 +2691,16 @@ fplibConvert(uint32_t op, FPRounding rounding, FPSCR &fpscr)
 }
 
 template <>
+uint16_t
+fplibMulAdd(uint16_t addend, uint16_t op1, uint16_t op2, FPSCR &fpscr)
+{
+    int flags = 0;
+    uint16_t result = fp16_muladd(addend, op1, op2, 0, modeConv(fpscr), &flags);
+    set_fpscr0(fpscr, flags);
+    return result;
+}
+
+template <>
 uint32_t
 fplibMulAdd(uint32_t addend, uint32_t op1, uint32_t op2, FPSCR &fpscr)
 {
@@ -2172,6 +2716,16 @@ fplibMulAdd(uint64_t addend, uint64_t op1, uint64_t op2, FPSCR &fpscr)
 {
     int flags = 0;
     uint64_t result = fp64_muladd(addend, op1, op2, 0, modeConv(fpscr), &flags);
+    set_fpscr0(fpscr, flags);
+    return result;
+}
+
+template <>
+uint16_t
+fplibDiv(uint16_t op1, uint16_t op2, FPSCR &fpscr)
+{
+    int flags = 0;
+    uint16_t result = fp16_div(op1, op2, modeConv(fpscr), &flags);
     set_fpscr0(fpscr, flags);
     return result;
 }
@@ -2342,6 +2896,12 @@ fplibExpa(uint64_t op)
     return (((op >> 6) & ((1 << 11) - 1)) << 52) | coeff[op & ((1 << 6) - 1)];
 }
 
+static uint16_t
+fp16_repack(int sgn, int exp, uint16_t mnt)
+{
+    return fp16_pack(sgn, mnt >> 10 ? exp : 0, mnt);
+}
+
 static uint32_t
 fp32_repack(int sgn, int exp, uint32_t mnt)
 {
@@ -2352,6 +2912,16 @@ static uint64_t
 fp64_repack(int sgn, int exp, uint64_t mnt)
 {
     return fp64_pack(sgn, mnt >> 52 ? exp : 0, mnt);
+}
+
+static void
+fp16_minmaxnum(uint16_t *op1, uint16_t *op2, int sgn)
+{
+    // Treat a single quiet-NaN as +Infinity/-Infinity
+    if (!((uint16_t)~(*op1 << 1) >> 10) && (uint16_t)~(*op2 << 1) >> 10)
+        *op1 = fp16_infinity(sgn);
+    if (!((uint16_t)~(*op2 << 1) >> 10) && (uint16_t)~(*op1 << 1) >> 10)
+        *op2 = fp16_infinity(sgn);
 }
 
 static void
@@ -2372,6 +2942,29 @@ fp64_minmaxnum(uint64_t *op1, uint64_t *op2, int sgn)
         *op1 = fp64_infinity(sgn);
     if (!((uint64_t)~(*op2 << 1) >> 52) && (uint64_t)~(*op1 << 1) >> 52)
         *op2 = fp64_infinity(sgn);
+}
+
+template <>
+uint16_t
+fplibMax(uint16_t op1, uint16_t op2, FPSCR &fpscr)
+{
+    int mode = modeConv(fpscr);
+    int flags = 0;
+    int sgn1, exp1, sgn2, exp2;
+    uint16_t mnt1, mnt2, x, result;
+
+    fp16_unpack(&sgn1, &exp1, &mnt1, op1, mode, &flags);
+    fp16_unpack(&sgn2, &exp2, &mnt2, op2, mode, &flags);
+
+    if ((x = fp16_process_NaNs(op1, op2, mode, &flags))) {
+        result = x;
+    } else {
+        result = ((sgn1 != sgn2 ? sgn2 : sgn1 ^ (op1 > op2)) ?
+                  fp16_repack(sgn1, exp1, mnt1) :
+                  fp16_repack(sgn2, exp2, mnt2));
+    }
+    set_fpscr0(fpscr, flags);
+    return result;
 }
 
 template <>
@@ -2421,6 +3014,14 @@ fplibMax(uint64_t op1, uint64_t op2, FPSCR &fpscr)
 }
 
 template <>
+uint16_t
+fplibMaxNum(uint16_t op1, uint16_t op2, FPSCR &fpscr)
+{
+    fp16_minmaxnum(&op1, &op2, 1);
+    return fplibMax<uint16_t>(op1, op2, fpscr);
+}
+
+template <>
 uint32_t
 fplibMaxNum(uint32_t op1, uint32_t op2, FPSCR &fpscr)
 {
@@ -2434,6 +3035,29 @@ fplibMaxNum(uint64_t op1, uint64_t op2, FPSCR &fpscr)
 {
     fp64_minmaxnum(&op1, &op2, 1);
     return fplibMax<uint64_t>(op1, op2, fpscr);
+}
+
+template <>
+uint16_t
+fplibMin(uint16_t op1, uint16_t op2, FPSCR &fpscr)
+{
+    int mode = modeConv(fpscr);
+    int flags = 0;
+    int sgn1, exp1, sgn2, exp2;
+    uint16_t mnt1, mnt2, x, result;
+
+    fp16_unpack(&sgn1, &exp1, &mnt1, op1, mode, &flags);
+    fp16_unpack(&sgn2, &exp2, &mnt2, op2, mode, &flags);
+
+    if ((x = fp16_process_NaNs(op1, op2, mode, &flags))) {
+        result = x;
+    } else {
+        result = ((sgn1 != sgn2 ? sgn1 : sgn1 ^ (op1 < op2)) ?
+                  fp16_repack(sgn1, exp1, mnt1) :
+                  fp16_repack(sgn2, exp2, mnt2));
+    }
+    set_fpscr0(fpscr, flags);
+    return result;
 }
 
 template <>
@@ -2483,6 +3107,14 @@ fplibMin(uint64_t op1, uint64_t op2, FPSCR &fpscr)
 }
 
 template <>
+uint16_t
+fplibMinNum(uint16_t op1, uint16_t op2, FPSCR &fpscr)
+{
+    fp16_minmaxnum(&op1, &op2, 0);
+    return fplibMin<uint16_t>(op1, op2, fpscr);
+}
+
+template <>
 uint32_t
 fplibMinNum(uint32_t op1, uint32_t op2, FPSCR &fpscr)
 {
@@ -2496,6 +3128,16 @@ fplibMinNum(uint64_t op1, uint64_t op2, FPSCR &fpscr)
 {
     fp64_minmaxnum(&op1, &op2, 0);
     return fplibMin<uint64_t>(op1, op2, fpscr);
+}
+
+template <>
+uint16_t
+fplibMul(uint16_t op1, uint16_t op2, FPSCR &fpscr)
+{
+    int flags = 0;
+    uint16_t result = fp16_mul(op1, op2, modeConv(fpscr), &flags);
+    set_fpscr0(fpscr, flags);
+    return result;
 }
 
 template <>
@@ -2515,6 +3157,36 @@ fplibMul(uint64_t op1, uint64_t op2, FPSCR &fpscr)
     int flags = 0;
     uint64_t result = fp64_mul(op1, op2, modeConv(fpscr), &flags);
     set_fpscr0(fpscr, flags);
+    return result;
+}
+
+template <>
+uint16_t
+fplibMulX(uint16_t op1, uint16_t op2, FPSCR &fpscr)
+{
+    int mode = modeConv(fpscr);
+    int flags = 0;
+    int sgn1, exp1, sgn2, exp2;
+    uint16_t mnt1, mnt2, result;
+
+    fp16_unpack(&sgn1, &exp1, &mnt1, op1, mode, &flags);
+    fp16_unpack(&sgn2, &exp2, &mnt2, op2, mode, &flags);
+
+    result = fp16_process_NaNs(op1, op2, mode, &flags);
+    if (!result) {
+        if ((exp1 == 31 && !mnt2) || (exp2 == 31 && !mnt1)) {
+            result = fp16_FPTwo(sgn1 ^ sgn2);
+        } else if (exp1 == 31 || exp2 == 31) {
+            result = fp16_infinity(sgn1 ^ sgn2);
+        } else if (!mnt1 || !mnt2) {
+            result = fp16_zero(sgn1 ^ sgn2);
+        } else {
+            result = fp16_mul(op1, op2, mode, &flags);
+        }
+    }
+
+    set_fpscr0(fpscr, flags);
+
     return result;
 }
 
@@ -2579,6 +3251,13 @@ fplibMulX(uint64_t op1, uint64_t op2, FPSCR &fpscr)
 }
 
 template <>
+uint16_t
+fplibNeg(uint16_t op)
+{
+    return op ^ (uint16_t)1 << 15;
+}
+
+template <>
 uint32_t
 fplibNeg(uint32_t op)
 {
@@ -2610,6 +3289,39 @@ static const uint8_t recip_sqrt_estimate[256] = {
     17,  17,  16,  16,  15,  14,  14,  13,  13,  12,  11,  11,  10,  10,   9,   9,
     8,   8,   7,   6,   6,   5,   5,   4,   4,   3,   3,   2,   2,   1,   1,   0
 };
+
+template <>
+uint16_t
+fplibRSqrtEstimate(uint16_t op, FPSCR &fpscr)
+{
+    int mode = modeConv(fpscr);
+    int flags = 0;
+    int sgn, exp;
+    uint16_t mnt, result;
+
+    fp16_unpack(&sgn, &exp, &mnt, op, mode, &flags);
+
+    if (exp == 31 && (uint16_t)(mnt << 6)) {
+        result = fp16_process_NaN(op, mode, &flags);
+    } else if (!mnt) {
+        result = fp16_infinity(sgn);
+        flags |= FPLIB_DZC;
+    } else if (sgn) {
+        result = fp16_defaultNaN();
+        flags |= FPLIB_IOC;
+    } else if (exp == 31) {
+        result = fp16_zero(0);
+    } else {
+        exp += 5;
+        mnt = fp16_normalise(mnt, &exp);
+        mnt = recip_sqrt_estimate[(~exp & 1) << 7 | (mnt >> 8 & 127)];
+        result = fp16_pack(0, (44 - exp) >> 1, mnt << 2);
+    }
+
+    set_fpscr0(fpscr, flags);
+
+    return result;
+}
 
 template <>
 uint32_t
@@ -2678,6 +3390,35 @@ fplibRSqrtEstimate(uint64_t op, FPSCR &fpscr)
 }
 
 template <>
+uint16_t
+fplibRSqrtStepFused(uint16_t op1, uint16_t op2, FPSCR &fpscr)
+{
+    int mode = modeConv(fpscr);
+    int flags = 0;
+    int sgn1, exp1, sgn2, exp2;
+    uint16_t mnt1, mnt2, result;
+
+    op1 = fplibNeg<uint16_t>(op1);
+    fp16_unpack(&sgn1, &exp1, &mnt1, op1, mode, &flags);
+    fp16_unpack(&sgn2, &exp2, &mnt2, op2, mode, &flags);
+
+    result = fp16_process_NaNs(op1, op2, mode, &flags);
+    if (!result) {
+        if ((exp1 == 31 && !mnt2) || (exp2 == 31 && !mnt1)) {
+            result = fp16_FPOnePointFive(0);
+        } else if (exp1 == 31 || exp2 == 31) {
+            result = fp16_infinity(sgn1 ^ sgn2);
+        } else {
+            result = fp16_muladd(fp16_FPThree(0), op1, op2, -1, mode, &flags);
+        }
+    }
+
+    set_fpscr0(fpscr, flags);
+
+    return result;
+}
+
+template <>
 uint32_t
 fplibRSqrtStepFused(uint32_t op1, uint32_t op2, FPSCR &fpscr)
 {
@@ -2728,6 +3469,67 @@ fplibRSqrtStepFused(uint64_t op1, uint64_t op2, FPSCR &fpscr)
         } else {
             result = fp64_muladd(fp64_FPThree(0), op1, op2, -1, mode, &flags);
         }
+    }
+
+    set_fpscr0(fpscr, flags);
+
+    return result;
+}
+
+template <>
+uint16_t
+fplibRecipEstimate(uint16_t op, FPSCR &fpscr)
+{
+    int mode = modeConv(fpscr);
+    int flags = 0;
+    int sgn, exp;
+    uint16_t mnt, result;
+
+    fp16_unpack(&sgn, &exp, &mnt, op, mode, &flags);
+
+    if (exp == 31 && (uint16_t)(mnt << 6)) {
+        result = fp16_process_NaN(op, mode, &flags);
+    } else if (exp == 31) {
+        result = fp16_zero(sgn);
+    } else if (!mnt) {
+        result = fp16_infinity(sgn);
+        flags |= FPLIB_DZC;
+    } else if (!((uint16_t)(op << 1) >> 9)) {
+        bool overflow_to_inf = false;
+        switch (FPCRRounding(fpscr)) {
+          case FPRounding_TIEEVEN:
+            overflow_to_inf = true;
+            break;
+          case FPRounding_POSINF:
+            overflow_to_inf = !sgn;
+            break;
+          case FPRounding_NEGINF:
+            overflow_to_inf = sgn;
+            break;
+          case FPRounding_ZERO:
+            overflow_to_inf = false;
+            break;
+          default:
+            assert(0);
+        }
+        result = overflow_to_inf ? fp16_infinity(sgn) : fp16_max_normal(sgn);
+        flags |= FPLIB_OFC | FPLIB_IXC;
+    } else if (fpscr.fz16 && exp >= 29) {
+        result = fp16_zero(sgn);
+        flags |= FPLIB_UFC;
+    } else {
+        exp += 5;
+        mnt = fp16_normalise(mnt, &exp);
+        int result_exp = 29 - exp;
+        uint16_t fraction = (((uint32_t)1 << 19) / (mnt >> 6 | 1) + 1) >> 1;
+        fraction <<= 2;
+        if (result_exp == 0) {
+            fraction >>= 1;
+        } else if (result_exp == -1) {
+            fraction >>= 2;
+            result_exp = 0;
+        }
+        result = fp16_pack(sgn, result_exp, fraction);
     }
 
     set_fpscr0(fpscr, flags);
@@ -2858,6 +3660,35 @@ fplibRecipEstimate(uint64_t op, FPSCR &fpscr)
 }
 
 template <>
+uint16_t
+fplibRecipStepFused(uint16_t op1, uint16_t op2, FPSCR &fpscr)
+{
+    int mode = modeConv(fpscr);
+    int flags = 0;
+    int sgn1, exp1, sgn2, exp2;
+    uint16_t mnt1, mnt2, result;
+
+    op1 = fplibNeg<uint16_t>(op1);
+    fp16_unpack(&sgn1, &exp1, &mnt1, op1, mode, &flags);
+    fp16_unpack(&sgn2, &exp2, &mnt2, op2, mode, &flags);
+
+    result = fp16_process_NaNs(op1, op2, mode, &flags);
+    if (!result) {
+        if ((exp1 == 31 && !mnt2) || (exp2 == 31 && !mnt1)) {
+            result = fp16_FPTwo(0);
+        } else if (exp1 == 31 || exp2 == 31) {
+            result = fp16_infinity(sgn1 ^ sgn2);
+        } else {
+            result = fp16_muladd(fp16_FPTwo(0), op1, op2, 0, mode, &flags);
+        }
+    }
+
+    set_fpscr0(fpscr, flags);
+
+    return result;
+}
+
+template <>
 uint32_t
 fplibRecipStepFused(uint32_t op1, uint32_t op2, FPSCR &fpscr)
 {
@@ -2916,6 +3747,33 @@ fplibRecipStepFused(uint64_t op1, uint64_t op2, FPSCR &fpscr)
 }
 
 template <>
+uint16_t
+fplibRecpX(uint16_t op, FPSCR &fpscr)
+{
+    int mode = modeConv(fpscr);
+    int flags = 0;
+    int sgn, exp;
+    uint16_t mnt, result;
+
+    fp16_unpack(&sgn, &exp, &mnt, op, mode, &flags);
+
+    if (exp == 31 && (uint16_t)(mnt << 6)) {
+        result = fp16_process_NaN(op, mode, &flags);
+    }
+    else {
+        if (!mnt) { // Zero and denormals
+            result = fp16_pack(sgn, 30, 0);
+        } else { // Infinities and normals
+            result = fp16_pack(sgn, exp ^ 31, 0);
+        }
+    }
+
+    set_fpscr0(fpscr, flags);
+
+    return result;
+}
+
+template <>
 uint32_t
 fplibRecpX(uint32_t op, FPSCR &fpscr)
 {
@@ -2962,6 +3820,70 @@ fplibRecpX(uint64_t op, FPSCR &fpscr)
         } else { // Infinities and normals
             result = fp64_pack(sgn, exp ^ 2047, 0);
         }
+    }
+
+    set_fpscr0(fpscr, flags);
+
+    return result;
+}
+
+template <>
+uint16_t
+fplibRoundInt(uint16_t op, FPRounding rounding, bool exact, FPSCR &fpscr)
+{
+    int mode = modeConv(fpscr);
+    int flags = 0;
+    int sgn, exp;
+    uint16_t mnt, result;
+
+    // Unpack using FPCR to determine if subnormals are flushed-to-zero:
+    fp16_unpack(&sgn, &exp, &mnt, op, mode, &flags);
+
+    // Handle NaNs, infinities and zeroes:
+    if (exp == 31 && (uint16_t)(mnt << 6)) {
+        result = fp16_process_NaN(op, mode, &flags);
+    } else if (exp == 31) {
+        result = fp16_infinity(sgn);
+    } else if (!mnt) {
+        result = fp16_zero(sgn);
+    } else if (exp >= 25) {
+        // There are no fractional bits
+        result = op;
+    } else {
+        // Truncate towards zero:
+        uint16_t x = 25 - exp >= 16 ? 0 : mnt >> (25 - exp);
+        int err = exp < 9 ? 1 :
+            ((mnt << 1 >> (24 - exp) & 3) |
+             ((uint16_t)(mnt << 2 << (exp - 9)) != 0));
+        switch (rounding) {
+          case FPRounding_TIEEVEN:
+            x += (err == 3 || (err == 2 && (x & 1)));
+            break;
+          case FPRounding_POSINF:
+            x += err && !sgn;
+            break;
+          case FPRounding_NEGINF:
+            x += err && sgn;
+            break;
+          case FPRounding_ZERO:
+            break;
+          case FPRounding_TIEAWAY:
+            x += err >> 1;
+            break;
+          default:
+            assert(0);
+        }
+
+        if (x == 0) {
+            result = fp16_zero(sgn);
+        } else {
+            exp = 25;
+            mnt = fp16_normalise(x, &exp);
+            result = fp16_pack(sgn, exp + 5, mnt >> 5);
+        }
+
+        if (err && exact)
+            flags |= FPLIB_IXC;
     }
 
     set_fpscr0(fpscr, flags);
@@ -3116,6 +4038,16 @@ fplibScale(uint64_t op1, uint64_t op2, FPSCR &fpscr)
 }
 
 template <>
+uint16_t
+fplibSqrt(uint16_t op, FPSCR &fpscr)
+{
+    int flags = 0;
+    uint16_t result = fp16_sqrt(op, modeConv(fpscr), &flags);
+    set_fpscr0(fpscr, flags);
+    return result;
+}
+
+template <>
 uint32_t
 fplibSqrt(uint32_t op, FPSCR &fpscr)
 {
@@ -3131,6 +4063,16 @@ fplibSqrt(uint64_t op, FPSCR &fpscr)
 {
     int flags = 0;
     uint64_t result = fp64_sqrt(op, modeConv(fpscr), &flags);
+    set_fpscr0(fpscr, flags);
+    return result;
+}
+
+template <>
+uint16_t
+fplibSub(uint16_t op1, uint16_t op2, FPSCR &fpscr)
+{
+    int flags = 0;
+    uint16_t result = fp16_add(op1, op2, 1, modeConv(fpscr), &flags);
     set_fpscr0(fpscr, flags);
     return result;
 }
@@ -3646,6 +4588,13 @@ fplibFixedToFP(uint64_t op, int fbits, bool u, FPRounding rounding, FPSCR &fpscr
 }
 
 template <>
+uint16_t
+fplibInfinity(int sgn)
+{
+    return fp16_infinity(sgn);
+}
+
+template <>
 uint32_t
 fplibInfinity(int sgn)
 {
@@ -3657,6 +4606,13 @@ uint64_t
 fplibInfinity(int sgn)
 {
     return fp64_infinity(sgn);
+}
+
+template <>
+uint16_t
+fplibDefaultNaN()
+{
+    return fp16_defaultNaN();
 }
 
 template <>
