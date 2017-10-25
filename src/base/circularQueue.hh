@@ -280,13 +280,16 @@ class circularQueue : public std::vector<T>
          * An iterator to a non-null circular queue is not-decrementable
          * if it is pointing to the head element, unless the queue is full
          * and we are talking about the past-the-end iterator. In that case,
-         * the iterator round equals the cq round.
+         * the iterator round equals the cq round unless the head is at the
+         * zero position and the round is one more than the cq round.
          */
         bool
         decrementable() const
         {
             return _cq && !(_idx == _cq->head() &&
-                    (_cq->empty() || _round != _cq->_round));
+                            (_cq->empty() ||
+                             (_idx == 0 && _round != _cq->_round + 1) ||
+                             (_idx !=0 && _round != _cq->_round)));
         }
       public:
         /** Pre-decrement operator. */
