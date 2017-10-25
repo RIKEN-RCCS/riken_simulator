@@ -772,13 +772,12 @@ LSQUnit<Impl>::writebackStores()
         storeWBIt->committed() = true;
 
         assert(!inst->memData);
-        inst->memData = new uint8_t[req->request()->getSize()];
+        inst->memData = new uint8_t[req->_size];
 
         if (storeWBIt->isAllZeros())
-            memset(inst->memData, 0, req->request()->getSize());
+            memset(inst->memData, 0, req->_size);
         else
-            memcpy(inst->memData, storeWBIt->data(),
-                    req->_size);
+            memcpy(inst->memData, storeWBIt->data(), req->_size);
 
 
         if (req->senderState() == nullptr) {
