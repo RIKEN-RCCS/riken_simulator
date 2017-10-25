@@ -1919,6 +1919,40 @@ set_fpscr0(FPSCR &fpscr, int flags)
     }
 }
 
+static uint16_t
+fp16_scale(uint16_t a, int16_t b, int mode, int *flags)
+{
+    int a_sgn, a_exp;
+    uint16_t a_mnt;
+
+    fp16_unpack(&a_sgn, &a_exp, &a_mnt, a, mode, flags);
+
+    // Handle NaNs:
+    if (fp16_is_NaN(a_exp, a_mnt)) {
+        return fp16_process_NaN(a, mode, flags);
+    }
+
+    // Handle zeroes:
+    if (!a_mnt) {
+        return fp16_zero(a_sgn);
+    }
+
+    // Handle infinities:
+    if (a_exp == FP16_EXP_INF) {
+        return fp16_infinity(a_sgn);
+    }
+
+    b = b < -300 ? -300 : b;
+    b = b >  300 ?  300 : b;
+    a_exp += b;
+    a_mnt <<= 3;
+
+    a_mnt = fp16_normalise(a_mnt, &a_exp);
+
+    return fp16_round(a_sgn, a_exp + FP16_EXP_BITS - 3, a_mnt << 1,
+                      mode, flags);
+}
+
 static uint32_t
 fp32_scale(uint32_t a, int32_t b, int mode, int *flags)
 {
@@ -2882,6 +2916,48 @@ fplibDiv(uint64_t op1, uint64_t op2, FPSCR &fpscr)
     uint64_t result = fp64_div(op1, op2, modeConv(fpscr), &flags);
     set_fpscr0(fpscr, flags);
     return result;
+}
+
+template <>
+uint16_t
+fplibExpA(uint16_t op)
+{
+    static uint16_t coeff[32] = {
+        0x0000,
+        0x0016,
+        0x002d,
+        0x0045,
+        0x005d,
+        0x0075,
+        0x008e,
+        0x00a8,
+        0x00c2,
+        0x00dc,
+        0x00f8,
+        0x0114,
+        0x0130,
+        0x014d,
+        0x016b,
+        0x0189,
+        0x01a8,
+        0x01c8,
+        0x01e8,
+        0x0209,
+        0x022b,
+        0x024e,
+        0x0271,
+        0x0295,
+        0x02ba,
+        0x02e0,
+        0x0306,
+        0x032e,
+        0x0356,
+        0x037f,
+        0x03a9,
+        0x03d4
+    };
+    return ((((op >> 5) & ((1 << FP16_EXP_BITS) - 1)) << FP16_MANT_BITS) |
+            coeff[op & ((1 << 5) - 1)]);
 }
 
 template <>
@@ -4183,11 +4259,21 @@ fplibRoundInt(uint64_t op, FPRounding rounding, bool exact, FPSCR &fpscr)
 }
 
 template <>
+uint16_t
+fplibScale(uint16_t op1, uint16_t op2, FPSCR &fpscr)
+{
+    int flags = 0;
+    uint16_t result = fp16_scale(op1, (int16_t)op2, modeConv(fpscr), &flags);
+    set_fpscr0(fpscr, flags);
+    return result;
+}
+
+template <>
 uint32_t
 fplibScale(uint32_t op1, uint32_t op2, FPSCR &fpscr)
 {
     int flags = 0;
-    uint32_t result = fp32_scale(op1, op2, modeConv(fpscr), &flags);
+    uint32_t result = fp32_scale(op1, (int32_t)op2, modeConv(fpscr), &flags);
     set_fpscr0(fpscr, flags);
     return result;
 }
@@ -4197,7 +4283,7 @@ uint64_t
 fplibScale(uint64_t op1, uint64_t op2, FPSCR &fpscr)
 {
     int flags = 0;
-    uint64_t result = fp64_scale(op1, op2, modeConv(fpscr), &flags);
+    uint64_t result = fp64_scale(op1, (int64_t)op2, modeConv(fpscr), &flags);
     set_fpscr0(fpscr, flags);
     return result;
 }
@@ -4258,6 +4344,40 @@ fplibSub(uint64_t op1, uint64_t op2, FPSCR &fpscr)
 {
     int flags = 0;
     uint64_t result = fp64_add(op1, op2, 1, modeConv(fpscr), &flags);
+    set_fpscr0(fpscr, flags);
+    return result;
+}
+
+template <>
+uint16_t
+fplibTrigMulAdd(uint8_t coeff_index, uint16_t op1, uint16_t op2, FPSCR &fpscr)
+{
+    static uint16_t coeff[2][8] = {
+        {
+            0x3c00,
+            0xb155,
+            0x2030,
+            0x0000,
+            0x0000,
+            0x0000,
+            0x0000,
+            0x0000,
+        },
+        {
+            0x3c00,
+            0xb800,
+            0x293a,
+            0x0000,
+            0x0000,
+            0x0000,
+            0x0000,
+            0x0000
+        }
+    };
+    int flags = 0;
+    uint16_t result =
+        fp16_muladd(coeff[op2 >> (FP16_BITS - 1)][coeff_index], op1,
+                    fplibAbs(op2), 0, modeConv(fpscr), &flags);
     set_fpscr0(fpscr, flags);
     return result;
 }
@@ -4331,6 +4451,26 @@ fplibTrigMulAdd(uint8_t coeff_index, uint64_t op1, uint64_t op2, FPSCR &fpscr)
 }
 
 template <>
+uint16_t
+fplibTrigSMul(uint16_t op1, uint16_t op2, FPSCR &fpscr)
+{
+    int flags = 0;
+    int sgn, exp;
+    uint16_t mnt;
+
+    int mode = modeConv(fpscr);
+    uint16_t result = fp16_mul(op1, op1, mode, &flags);
+    set_fpscr0(fpscr, flags);
+
+    fp16_unpack(&sgn, &exp, &mnt, result, mode, &flags);
+    if (!fp16_is_NaN(exp, mnt)) {
+        result = (result & ~(1ULL << (FP16_BITS - 1))) |
+            op2 << (FP16_BITS - 1);
+    }
+    return result;
+}
+
+template <>
 uint32_t
 fplibTrigSMul(uint32_t op1, uint32_t op2, FPSCR &fpscr)
 {
@@ -4366,6 +4506,17 @@ fplibTrigSMul(uint64_t op1, uint64_t op2, FPSCR &fpscr)
         result = (result & ~(1ULL << (FP64_BITS - 1))) | op2 << (FP64_BITS - 1);
     }
     return result;
+}
+
+template <>
+uint16_t
+fplibTrigSSel(uint16_t op1, uint16_t op2, FPSCR &fpscr)
+{
+    static constexpr uint16_t fpOne =
+        (uint16_t)FP16_EXP_BIAS << FP16_MANT_BITS; // 1.0
+    if (op2 & 1)
+        op1 = fpOne;
+    return op1 ^ ((op2 >> 1) << (FP16_BITS - 1));
 }
 
 template <>

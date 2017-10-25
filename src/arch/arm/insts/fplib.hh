@@ -237,6 +237,8 @@ uint32_t fplibDiv(uint32_t op1, uint32_t op2, FPSCR &fpscr);
 template <>
 uint64_t fplibDiv(uint64_t op1, uint64_t op2, FPSCR &fpscr);
 template <>
+uint16_t fplibExpA(uint16_t op);
+template <>
 uint32_t fplibExpA(uint32_t op);
 template <>
 uint64_t fplibExpA(uint64_t op);
@@ -331,6 +333,8 @@ template <>
 uint64_t fplibRoundInt(uint64_t op, FPRounding rounding, bool exact,
                        FPSCR &fpscr);
 template <>
+uint16_t fplibScale(uint16_t op1, uint16_t op2, FPSCR &fpscr);
+template <>
 uint32_t fplibScale(uint32_t op1, uint32_t op2, FPSCR &fpscr);
 template <>
 uint64_t fplibScale(uint64_t op1, uint64_t op2, FPSCR &fpscr);
@@ -347,15 +351,22 @@ uint32_t fplibSub(uint32_t op1, uint32_t op2, FPSCR &fpscr);
 template <>
 uint64_t fplibSub(uint64_t op1, uint64_t op2, FPSCR &fpscr);
 template <>
+uint16_t fplibTrigMulAdd(uint8_t coeff_index, uint16_t op1, uint16_t op2,
+                       FPSCR &fpscr);
+template <>
 uint32_t fplibTrigMulAdd(uint8_t coeff_index, uint32_t op1, uint32_t op2,
                          FPSCR &fpscr);
 template <>
 uint64_t fplibTrigMulAdd(uint8_t coeff_index, uint64_t op1, uint64_t op2,
                          FPSCR &fpscr);
 template <>
+uint16_t fplibTrigSMul(uint16_t op1, uint16_t op2, FPSCR &fpscr);
+template <>
 uint32_t fplibTrigSMul(uint32_t op1, uint32_t op2, FPSCR &fpscr);
 template <>
 uint64_t fplibTrigSMul(uint64_t op1, uint64_t op2, FPSCR &fpscr);
+template <>
+uint16_t fplibTrigSSel(uint16_t op1, uint16_t op2, FPSCR &fpscr);
 template <>
 uint32_t fplibTrigSSel(uint32_t op1, uint32_t op2, FPSCR &fpscr);
 template <>
