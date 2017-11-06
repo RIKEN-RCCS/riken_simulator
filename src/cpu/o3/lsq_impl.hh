@@ -777,6 +777,9 @@ LSQ<Impl>::SplitDataRequest::finish(const Fault &fault, RequestPtr req,
                 assert(_res);
                 mainReq->setExtraData(*_res);
             }
+            _inst->fault = NoFault;
+        } else {
+            _inst->fault = *fault_it;
         }
         _inst->translationCompleted(true);
     }
