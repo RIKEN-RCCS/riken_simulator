@@ -80,7 +80,6 @@ LSQUnit<Impl>::WritebackEvent::process()
         auto ss = dynamic_cast<LSQSenderState*>(pkt->senderState);
         assert(ss);
         ss->writeback();
-        delete ss;
     } else {
         /* The request and the packet are freed by the LSQ in the commit
          * cleanup step */
@@ -100,21 +99,18 @@ bool
 LSQUnit<Impl>::recvTimingResp(PacketPtr pkt)
 {
     auto senderState = dynamic_cast<LSQSenderState*>(pkt->senderState);
-
+    bool ret = true;
     /* Check that the request is still alive before any further action. */
     if (senderState->alive()) {
         LSQRequest* req = senderState->request();
-        return req->recvTimingResp(pkt);
+        ret = req->recvTimingResp(pkt);
     } else {
         auto r = senderState->request();
         assert(r != nullptr);
         senderState->outstanding--;
-        if (senderState->isComplete()) {
-            r->packetReplied();
-            delete senderState;
-        }
-        return true;
     }
+    return ret;
+
 }
 
 template<class Impl>
@@ -146,8 +142,6 @@ LSQUnit<Impl>::completeDataAccess(PacketPtr pkt)
             completeStore(dynamic_cast<SQSenderState*>(state)->idx);
         }
     }
-
-    delete state;
 }
 
 template <class Impl>
@@ -817,8 +811,9 @@ LSQUnit<Impl>::writebackStores()
                 DPRINTF(LSQUnit, "Store conditional [sn:%lli] failed.  "
                         "Instantly completing it.\n",
                         inst->seqNum);
+                PacketPtr new_pkt = new Packet(*req->packet());
                 WritebackEvent *wb = new WritebackEvent(inst,
-                        req->packet(), this);
+                        new_pkt, this);
                 cpu->schedule(wb, curTick() + 1);
                 completeStore(storeWBIt);
                 if (!storeQueue.empty())
@@ -836,8 +831,9 @@ LSQUnit<Impl>::writebackStores()
             /** Here the IprWrite should be deferred to the LSQRequest
              * to handle multi-part operations. */
             TheISA::handleIprWrite(thread, req->packet());
-            delete req->senderState();
             delete req;
+            // this code is obviously broken ...
+            assert(0);
             req->senderState(nullptr);
             completeStore(storeWBIt);
             storeWBIt++;

@@ -303,8 +303,9 @@ LSQ<Impl>::recvTimingResp(PacketPtr pkt)
         for (ThreadID tid = 0; tid < numThreads; tid++) {
             thread.at(tid).checkSnoop(pkt);
         }
-        delete pkt;
     }
+    // Update the LSQRequest state (this may delete the request)
+    senderState->request()->packetReplied();
 
     return true;
 }
@@ -731,40 +732,40 @@ LSQ<Impl>::SplitDataRequest::finish(const Fault &fault, RequestPtr req,
         ThreadContext* tc, BaseTLB::Mode mode)
 {
     _fault.push_back(fault);
-    assert(req == _requests[numTranslatedFragments]);
+    assert(req == _requests[numTranslatedFragments] || this->isDelayed());
 
     numInTranslationFragments--;
     numTranslatedFragments++;
 
-    /* Copy state to the main request. */
-    if (numTranslatedFragments == _requests.size()) {
-        if (_fault[0] == NoFault)
-            mainReq->setPaddr(req->getPaddr());
-    }
-
     mainReq->setFlags(req->getFlags());
 
     if (numTranslatedFragments == _requests.size()) {
-        auto fault_it = _fault.begin();
-        /* Ffwd to the first NoFault. */
-        while (fault_it != _fault.end() && *fault_it == NoFault)
-            fault_it++;
-        _inst->strictlyOrdered(mainReq->isStrictlyOrdered());
-        /* If none of the fragments faulted: */
-        if (fault_it == _fault.end()) {
-            _inst->physEffAddrLow = request(0)->getPaddr();
-            flags[(int)Flag::TranslationFinished] = true;
-            setState(State::Request);
-            _inst->memReqFlags = mainReq->getFlags();
-            if (mainReq->isCondSwap()) {
-                assert(_res);
-                mainReq->setExtraData(*_res);
-            }
-            _inst->fault = NoFault;
+        if (_inst->isSquashed()) {
+            this->squashTranslation();
         } else {
-            _inst->fault = *fault_it;
+            _inst->strictlyOrdered(mainReq->isStrictlyOrdered());
+            flags[(int)Flag::TranslationFinished] = true;
+            auto fault_it = _fault.begin();
+            /* Ffwd to the first NoFault. */
+            while (fault_it != _fault.end() && *fault_it == NoFault)
+                fault_it++;
+            /* If none of the fragments faulted: */
+            if (fault_it == _fault.end()) {
+                _inst->physEffAddrLow = request(0)->getPaddr();
+
+                _inst->memReqFlags = mainReq->getFlags();
+                if (mainReq->isCondSwap()) {
+                    assert(_res);
+                    mainReq->setExtraData(*_res);
+                }
+                setState(State::Request);
+                _inst->fault = NoFault;
+            } else {
+                setState(State::Fault);
+                _inst->fault = *fault_it;
+            }
+            _inst->translationCompleted(true);
         }
-        _inst->translationCompleted(true);
     }
 }
 
@@ -815,6 +816,12 @@ LSQ<Impl>::SplitDataRequest::initiateTranslation()
                 _size, _flags, _inst->masterId(),
                 _inst->instAddr(), _inst->contextId(),
                 this->_writeByteEnable);
+
+    // Paddr is not used in mainReq. However, we will accumulate the flags
+    // from the sub requests into mainReq by calling setFlags() in finish().
+    // setFlags() assumes that paddr is set so flip the paddr valid bit here to
+    // avoid a potential assert in setFlags() when we call it from  finish().
+    mainReq->setPaddr(0);
 
     auto& writeByteEnable = mainReq->getWriteByteEnable();
 
@@ -897,6 +904,7 @@ template<class Impl>
 bool
 LSQ<Impl>::SingleDataRequest::recvTimingResp(PacketPtr pkt)
 {
+    assert(_numOutstandingPackets == 1);
     auto state = dynamic_cast<LSQSenderState*>(pkt->senderState);
     setState(State::Complete);
     flags[(int)Flag::Complete] = true;
@@ -920,7 +928,6 @@ LSQ<Impl>::SplitDataRequest::recvTimingResp(PacketPtr pkt)
     /* We can clear the packet, as the instruction will be passed an
      * artificial packet, unlike with the SingleDataRequest. */
     _packets[pktIdx] = nullptr;
-    numOutstandingPackets--;
     numReceivedPackets++;
     state->outstanding--;
     if (numReceivedPackets == _packets.size()) {
@@ -957,6 +964,8 @@ LSQ<Impl>::SingleDataRequest::buildPackets()
                     :  Packet::createWrite(request()));
         _packets.back()->dataStatic(_inst->memData);
         _packets.back()->senderState = _senderState;
+    } else {
+        assert(_packets.size() == 1);
     }
 }
 
@@ -988,6 +997,8 @@ LSQ<Impl>::SplitDataRequest::buildPackets()
             pkt->senderState = _senderState;
             _packets.push_back(pkt);
         }
+    } else {
+        assert(_packets.size() == _requests.size());
     }
 }
 
@@ -995,7 +1006,9 @@ template<class Impl>
 void
 LSQ<Impl>::SingleDataRequest::sendPacketToCache()
 {
-    lsqUnit()->trySendPacket(isLoad(), _packets.at(0));
+    assert(_numOutstandingPackets == 0);
+    if (lsqUnit()->trySendPacket(isLoad(), _packets.at(0)))
+        _numOutstandingPackets = 1;
 }
 
 template<class Impl>
@@ -1003,10 +1016,10 @@ void
 LSQ<Impl>::SplitDataRequest::sendPacketToCache()
 {
     /* Try to send the packets. */
-    while (numReceivedPackets + numOutstandingPackets < _packets.size() &&
+    while (numReceivedPackets + _numOutstandingPackets < _packets.size() &&
             lsqUnit()->trySendPacket(isLoad(),
-                _packets.at(numReceivedPackets + numOutstandingPackets))) {
-        numOutstandingPackets++;
+                _packets.at(numReceivedPackets + _numOutstandingPackets))) {
+        _numOutstandingPackets++;
     }
 }
 

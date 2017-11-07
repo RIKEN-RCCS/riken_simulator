@@ -231,6 +231,7 @@ class LSQ {
         uint32_t _entryIdx;
 
         void markDelayed() { flags[(int)Flag::Delayed] = 1; }
+        bool isDelayed() { return flags[(int)Flag::Delayed]; }
       public:
         LSQUnit& _port;
         const DynInstPtr _inst;
@@ -244,12 +245,14 @@ class LSQ {
         const uint32_t _size;
         const uint32_t _flags;
         std::vector<bool> _writeByteEnable;
+        uint32_t _numOutstandingPackets;
       protected:
         LSQUnit* lsqUnit() { return &_port; }
         LSQRequest(LSQUnit* port, const DynInstPtr& inst, bool isLoad) :
             _state(State::NotIssued), _senderState(nullptr),
             _port(*port), _inst(inst), _data(nullptr),
-            _res(nullptr), _addr(0), _size(0), _flags(0)
+            _res(nullptr), _addr(0), _size(0), _flags(0),
+            _numOutstandingPackets(0)
         {
             flags[(int)Flag::IsLoad] = isLoad;
             flags[(int)Flag::WbStore] = _inst->isStoreConditional();
@@ -265,7 +268,8 @@ class LSQ {
             _port(*port), _inst(inst), _data(data),
             _res(nullptr), _addr(addr), _size(size),
             _flags(flags_),
-            _writeByteEnable(writeByteEnable)
+            _writeByteEnable(writeByteEnable),
+            _numOutstandingPackets(0)
         {
             flags[(int)Flag::IsLoad] = isLoad;
             flags[(int)Flag::WbStore] = _inst->isStoreConditional();
@@ -291,18 +295,49 @@ class LSQ {
         {
             return _inst->isSquashed();
         }
+
+        /**
+         * Test if the LSQRequest is self-owned.
+         * An LSQRequest manages itself when the resources on the LSQ are freed
+         * but the translation is still going on and the LSQEntry was freed.
+         */
+        bool
+        isSelfOwned()
+        {
+            return flags[(int)Flag::LSQEntryFreed];
+        }
+
+        /**
+         * Test if the LSQRequest is owned by the LSQ.
+         * This is the common case, when the instruction is not squashed or
+         * when at the point of squash there is no ongoing operation that
+         * requires keeping information alive for the future.
+         */
+        bool
+        isOwnedByLSQ()
+        {
+            return ((!flags[(int)Flag::TranslationStarted] ||
+                     flags[(int)Flag::TranslationFinished] ||
+                     flags[(int)Flag::TranslationSquashed]) &&
+                    (!flags[(int)Flag::WbStore] ||
+                     flags[(int)Flag::Writeback]));
+        }
+
       public:
         /** Destructor.
-         * The LSQRequest owns the request, but not the sender state.
-         * If the packet has already been sent, update the state to show
-         * that the request has been killed.
+         * The LSQRequest owns the request. If the packet has already been
+         * sent, the sender state will be deleted upon receiving the reply.
          */
         virtual ~LSQRequest() {
-            _senderState = nullptr;
+            assert(_numOutstandingPackets == 0);
+            if (_senderState)
+                delete _senderState;
+
             for (auto r: _requests)
                 delete r;
-            _requests.clear();
-            _entryIdx = 0;
+
+            for (auto r: _packets)
+                delete r;
         };
 
         /** Convenience getters/setters. */
@@ -450,85 +485,45 @@ class LSQ {
         void
         freeLSQEntry()
         {
-            if (_senderState) {
-                _senderState->deleteRequest();
-                _senderState = nullptr;
-            }
-            if (isOwnedByLSQ()) {
+            if (isOwnedByLSQ() && _numOutstandingPackets == 0) {
                 delete this;
             } else {
+                if (_senderState) {
+                    _senderState->deleteRequest();
+                }
                 flags[(int)Flag::LSQEntryFreed] = true;
             }
         }
 
         void packetReplied()
         {
-            if (isOwnedBySenderState()) delete this;
+            assert(_numOutstandingPackets > 0);
+            _numOutstandingPackets--;
+            if (isSelfOwned() && _numOutstandingPackets == 0)
+                delete this;
         }
 
         void writeback()
         {
+            flags[(int)Flag::Writeback] = true;
             /* If the lsq resources are already free */
-            if (flags[(int)Flag::LSQEntryFreed])
+            if (isSelfOwned()) {
+                assert(_numOutstandingPackets == 0);
                 delete this;
-            else
-                flags[(int)Flag::Writeback] = true;
+            }
         }
 
         void
         squashTranslation()
         {
+            flags[(int)Flag::TranslationSquashed] = true;
             /* If we are on our own, self-destruct. */
-            if (isSelfOwned())
+            if (isSelfOwned()) {
+                assert(_numOutstandingPackets == 0);
                 delete this;
-            else
-                flags[(int)Flag::TranslationSquashed] = true;
+            }
         }
 
-        /**
-         * Test if the LSQRequest is self-owned.
-         * An LSQRequest manages itself when the resources on the LSQ are freed
-         * but the translation is still going on and the LSQEntry was freed.
-         */
-        bool
-        isSelfOwned()
-        {
-            return flags[(int)Flag::TranslationStarted] &&
-                   !flags[(int)Flag::TranslationFinished] &&
-                   !flags[(int)Flag::TranslationSquashed] &&
-                   flags[(int)Flag::LSQEntryFreed];
-        }
-
-        /**
-         * Test if the LSQRequest is owned by the sender state.
-         * An LSQRequest is managed by the sender state when there is a
-         * packet already in the memory hierarchy that will be responded to
-         * at some point in the future
-         */
-        bool
-        isOwnedBySenderState()
-        {
-            return flags[(int)Flag::Sent] &&
-                   !flags[(int)Flag::Complete];
-        }
-
-        /**
-         * Test if the LSQRequest is owned by the LSQ.
-         * This is the common case, when the instruction is not squashed or
-         * when at the point of squash there is no ongoing operation that
-         * requires keeping information alive for the future.
-         */
-        bool
-        isOwnedByLSQ()
-        {
-            return (!flags[(int)Flag::Sent] ||
-                   flags[(int)Flag::Complete]) &&
-                   (!flags[(int)Flag::TranslationStarted] ||
-                   flags[(int)Flag::TranslationFinished] ||
-                   flags[(int)Flag::TranslationSquashed]) && (
-                    !flags[(int)Flag::WbStore] ||
-                    flags[(int)Flag::Writeback]);
-        }
         void complete()
         {
             flags[(int)Flag::Complete] = 1;
@@ -556,6 +551,7 @@ class LSQ {
         using LSQRequest::request;
         using LSQRequest::sendFragmentToTranslation;
         using LSQRequest::setState;
+        using LSQRequest::_numOutstandingPackets;
       public:
         SingleDataRequest(LSQUnit* port, const DynInstPtr& inst, bool isLoad,
             const Addr& addr, const uint32_t& size, const uint32_t& flags_,
@@ -608,6 +604,7 @@ class LSQ {
         using LSQRequest::request;
         using LSQRequest::sendFragmentToTranslation;
         using LSQRequest::setState;
+        using LSQRequest::_numOutstandingPackets;
 
         uint32_t numFragments;
         uint32_t numOutstandingPackets;

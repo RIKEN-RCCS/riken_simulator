@@ -408,8 +408,8 @@ class LSQUnit {
         virtual void
         complete()
         {
-            if (alive())
-                idx->request()->senderState(nullptr);
+            //if (alive())
+            //  idx->request()->senderState(nullptr);
         }
     };
 
@@ -426,8 +426,8 @@ class LSQUnit {
         virtual void
         complete()
         {
-            if (alive())
-                idx->request()->senderState(nullptr);
+            //if (alive())
+            //   idx->request()->senderState(nullptr);
         }
     };
 
