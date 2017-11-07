@@ -636,8 +636,10 @@ template <size_t Sz>
 inline bool
 to_number(const std::string& value, VecRegContainer<Sz>& v)
 {
-    int i = 0;
-    while (i < Sz) {
+    assert(value[0] == '0' && value[1] == 'x');
+    assert(value.size() <= 2 * (VecRegContainer<Sz>::SIZE + 1));
+    int i = 1; // skip the 0x prefix
+    while ((i<<1) < value.size()) {
         std::string byte = value.substr(i<<1, 2);
         v.template raw_ptr<uint8_t>()[i] = stoul(byte, 0, 16);
         i++;
