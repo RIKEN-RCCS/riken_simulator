@@ -2886,7 +2886,7 @@ fplibDiv(uint64_t op1, uint64_t op2, FPSCR &fpscr)
 
 template <>
 uint32_t
-fplibExpa(uint32_t op)
+fplibExpA(uint32_t op)
 {
     static uint32_t coeff[64] = {
         0x000000,
@@ -2960,7 +2960,7 @@ fplibExpa(uint32_t op)
 
 template <>
 uint64_t
-fplibExpa(uint64_t op)
+fplibExpA(uint64_t op)
 {
     static uint64_t coeff[64] = {
         0x0000000000000ULL,

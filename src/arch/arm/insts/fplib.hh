@@ -100,7 +100,7 @@ template <class T>
 T fplibDiv(T op1, T op2, FPSCR &fpscr);
 /** Floating-point exponential accelerator. */
 template <class T>
-T fplibExpa(T op);
+T fplibExpA(T op);
 /** Floating-point maximum. */
 template <class T>
 T fplibMax(T op1, T op2, FPSCR &fpscr);
@@ -237,9 +237,9 @@ uint32_t fplibDiv(uint32_t op1, uint32_t op2, FPSCR &fpscr);
 template <>
 uint64_t fplibDiv(uint64_t op1, uint64_t op2, FPSCR &fpscr);
 template <>
-uint32_t fplibExpa(uint32_t op);
+uint32_t fplibExpA(uint32_t op);
 template <>
-uint64_t fplibExpa(uint64_t op);
+uint64_t fplibExpA(uint64_t op);
 template <>
 uint16_t fplibMax(uint16_t op1, uint16_t op2, FPSCR &fpscr);
 template <>
