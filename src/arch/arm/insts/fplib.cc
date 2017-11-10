@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012-2013 ARM Limited
+* Copyright (c) 2012-2013, 2017 ARM Limited
 * All rights reserved
 *
 * The license below extends only to copyright in the software and shall
@@ -610,6 +610,12 @@ fp16_round_(int sgn, int exp, uint16_t mnt, int rm, int mode, int *flags)
     return fp16_pack(sgn, biased_exp, int_mant);
 }
 
+static uint16_t
+fp16_round(int sgn, int exp, uint16_t mnt, int mode, int *flags)
+{
+    return fp16_round_(sgn, exp, mnt, mode & 3, mode, flags);
+}
+
 static uint32_t
 fp32_round_(int sgn, int exp, uint32_t mnt, int rm, int mode, int *flags)
 {
@@ -832,6 +838,25 @@ fp32_compare_gt(uint32_t a, uint32_t b, int mode, int *flags)
 }
 
 static int
+fp32_compare_un(uint32_t a, uint32_t b, int mode, int *flags)
+{
+    int a_sgn, a_exp, b_sgn, b_exp;
+    uint32_t a_mnt, b_mnt;
+
+    fp32_unpack(&a_sgn, &a_exp, &a_mnt, a, mode, flags);
+    fp32_unpack(&b_sgn, &b_exp, &b_mnt, b, mode, flags);
+
+    if ((a_exp == 255 && (uint32_t)(a_mnt << 9)) ||
+        (b_exp == 255 && (uint32_t)(b_mnt << 9))) {
+        if ((a_exp == 255 && (uint32_t)(a_mnt << 9) && !(a >> 22 & 1)) ||
+            (b_exp == 255 && (uint32_t)(b_mnt << 9) && !(b >> 22 & 1)))
+            *flags |= FPLIB_IOC;
+        return 1;
+    }
+    return 0;
+}
+
+static int
 fp64_compare_eq(uint64_t a, uint64_t b, int mode, int *flags)
 {
     int a_sgn, a_exp, b_sgn, b_exp;
@@ -897,6 +922,25 @@ fp64_compare_gt(uint64_t a, uint64_t b, int mode, int *flags)
         return a_sgn ^ (a_exp > b_exp);
     if (a_mnt != b_mnt)
         return a_sgn ^ (a_mnt > b_mnt);
+    return 0;
+}
+
+static int
+fp64_compare_un(uint64_t a, uint64_t b, int mode, int *flags)
+{
+    int a_sgn, a_exp, b_sgn, b_exp;
+    uint64_t a_mnt, b_mnt;
+
+    fp64_unpack(&a_sgn, &a_exp, &a_mnt, a, mode, flags);
+    fp64_unpack(&b_sgn, &b_exp, &b_mnt, b, mode, flags);
+
+    if ((a_exp == 2047 && (uint64_t)(a_mnt << 12)) ||
+        (b_exp == 2047 && (uint64_t)(b_mnt << 12))) {
+        if ((a_exp == 2047 && (uint64_t)(a_mnt << 12) && !(a >> 51 & 1)) ||
+            (b_exp == 2047 && (uint64_t)(b_mnt << 12) && !(b >> 51 & 1)))
+            *flags |= FPLIB_IOC;
+        return 1;
+    }
     return 0;
 }
 
@@ -1383,6 +1427,72 @@ set_fpscr0(FPSCR &fpscr, int flags)
 }
 
 static uint32_t
+fp32_scale(uint32_t a, int32_t b, int mode, int *flags)
+{
+    int a_sgn, a_exp;
+    uint32_t a_mnt;
+
+    fp32_unpack(&a_sgn, &a_exp, &a_mnt, a, mode, flags);
+
+    // Handle NaN
+    if (a_exp == 255 && (uint32_t)(a_mnt << 9)) {
+        return fp32_process_NaN(a, mode, flags);
+    }
+
+    // Handle zero
+    if (!a_mnt) {
+        return fp32_zero(a_sgn);
+    }
+
+    // Handle infinite
+    if (a_exp == 255) {
+        return fp32_infinity(a_sgn);
+    }
+
+    b = b < -300 ? -300 : b;
+    b = b >  300 ?  300 : b;
+    a_exp += b;
+    a_mnt <<= 3;
+
+    a_mnt = fp32_normalise(a_mnt, &a_exp);
+
+    return fp32_round(a_sgn, a_exp + 5, a_mnt << 1, mode, flags);
+}
+
+static uint64_t
+fp64_scale(uint64_t a, int64_t b, int mode, int *flags)
+{
+    int a_sgn, a_exp;
+    uint64_t a_mnt;
+
+    fp64_unpack(&a_sgn, &a_exp, &a_mnt, a, mode, flags);
+
+    // Handle NaN
+    if (a_exp == 2047 && (uint64_t)(a_mnt << 12)) {
+        return fp64_process_NaN(a, mode, flags);
+    }
+
+    // Handle zero
+    if (!a_mnt) {
+        return fp64_zero(a_sgn);
+    }
+
+    // Handle infinite
+    if (a_exp == 2047) {
+        return fp64_infinity(a_sgn);
+    }
+
+    b = b < -3000 ? -3000 : b;
+    b = b >  3000 ?  3000 : b;
+    a_exp += b;
+    a_mnt <<= 3;
+
+    a_mnt = fp64_normalise(a_mnt, &a_exp);
+
+    return fp64_round(a_sgn, a_exp + 8, a_mnt << 1, mode, flags);
+}
+
+static uint32_t
 fp32_sqrt(uint32_t a, int mode, int *flags)
 {
     int a_sgn, a_exp, x_sgn, x_exp;
@@ -1574,6 +1684,16 @@ fplibCompareGT(uint32_t a, uint32_t b, FPSCR &fpscr)
 
 template <>
 bool
+fplibCompareUN(uint32_t a, uint32_t b, FPSCR &fpscr)
+{
+    int flags = 0;
+    int x = fp32_compare_un(a, b, modeConv(fpscr), &flags);
+    set_fpscr(fpscr, flags);
+    return x;
+}
+
+template <>
+bool
 fplibCompareEQ(uint64_t a, uint64_t b, FPSCR &fpscr)
 {
     int flags = 0;
@@ -1598,6 +1718,16 @@ fplibCompareGT(uint64_t a, uint64_t b, FPSCR &fpscr)
 {
     int flags = 0;
     int x = fp64_compare_gt(a, b, modeConv(fpscr), &flags);
+    set_fpscr(fpscr, flags);
+    return x;
+}
+
+template <>
+bool
+fplibCompareUN(uint64_t a, uint64_t b, FPSCR &fpscr)
+{
+    int flags = 0;
+    int x = fp64_compare_un(a, b, modeConv(fpscr), &flags);
     set_fpscr(fpscr, flags);
     return x;
 }
@@ -2055,6 +2185,152 @@ fplibDiv(uint64_t op1, uint64_t op2, FPSCR &fpscr)
     uint64_t result = fp64_div(op1, op2, modeConv(fpscr), &flags);
     set_fpscr0(fpscr, flags);
     return result;
+}
+
+template <>
+uint32_t
+fplibExpa(uint32_t op)
+{
+    static uint32_t coeff[64] = {
+        0x000000,
+        0x0164d2,
+        0x02cd87,
+        0x043a29,
+        0x05aac3,
+        0x071f62,
+        0x08980f,
+        0x0a14d5,
+        0x0b95c2,
+        0x0d1adf,
+        0x0ea43a,
+        0x1031dc,
+        0x11c3d3,
+        0x135a2b,
+        0x14f4f0,
+        0x16942d,
+        0x1837f0,
+        0x19e046,
+        0x1b8d3a,
+        0x1d3eda,
+        0x1ef532,
+        0x20b051,
+        0x227043,
+        0x243516,
+        0x25fed7,
+        0x27cd94,
+        0x29a15b,
+        0x2b7a3a,
+        0x2d583f,
+        0x2f3b79,
+        0x3123f6,
+        0x3311c4,
+        0x3504f3,
+        0x36fd92,
+        0x38fbaf,
+        0x3aff5b,
+        0x3d08a4,
+        0x3f179a,
+        0x412c4d,
+        0x4346cd,
+        0x45672a,
+        0x478d75,
+        0x49b9be,
+        0x4bec15,
+        0x4e248c,
+        0x506334,
+        0x52a81e,
+        0x54f35b,
+        0x5744fd,
+        0x599d16,
+        0x5bfbb8,
+        0x5e60f5,
+        0x60ccdf,
+        0x633f89,
+        0x65b907,
+        0x68396a,
+        0x6ac0c7,
+        0x6d4f30,
+        0x6fe4ba,
+        0x728177,
+        0x75257d,
+        0x77d0df,
+        0x7a83b3,
+        0x7d3e0c
+    };
+    return (((op >> 6) & ((1 << 8) - 1)) << 23) | coeff[op & ((1 << 6) - 1)];
+}
+
+template <>
+uint64_t
+fplibExpa(uint64_t op)
+{
+    uint64_t coeff[64] = {
+        0x0000000000000ULL,
+        0x02c9a3e778061ULL,
+        0x059b0d3158574ULL,
+        0x0874518759bc8ULL,
+        0x0b5586cf9890fULL,
+        0x0e3ec32d3d1a2ULL,
+        0x11301d0125b51ULL,
+        0x1429aaea92de0ULL,
+        0x172b83c7d517bULL,
+        0x1a35beb6fcb75ULL,
+        0x1d4873168b9aaULL,
+        0x2063b88628cd6ULL,
+        0x2387a6e756238ULL,
+        0x26b4565e27cddULL,
+        0x29e9df51fdee1ULL,
+        0x2d285a6e4030bULL,
+        0x306fe0a31b715ULL,
+        0x33c08b26416ffULL,
+        0x371a7373aa9cbULL,
+        0x3a7db34e59ff7ULL,
+        0x3dea64c123422ULL,
+        0x4160a21f72e2aULL,
+        0x44e086061892dULL,
+        0x486a2b5c13cd0ULL,
+        0x4bfdad5362a27ULL,
+        0x4f9b2769d2ca7ULL,
+        0x5342b569d4f82ULL,
+        0x56f4736b527daULL,
+        0x5ab07dd485429ULL,
+        0x5e76f15ad2148ULL,
+        0x6247eb03a5585ULL,
+        0x6623882552225ULL,
+        0x6a09e667f3bcdULL,
+        0x6dfb23c651a2fULL,
+        0x71f75e8ec5f74ULL,
+        0x75feb564267c9ULL,
+        0x7a11473eb0187ULL,
+        0x7e2f336cf4e62ULL,
+        0x82589994cce13ULL,
+        0x868d99b4492edULL,
+        0x8ace5422aa0dbULL,
+        0x8f1ae99157736ULL,
+        0x93737b0cdc5e5ULL,
+        0x97d829fde4e50ULL,
+        0x9c49182a3f090ULL,
+        0xa0c667b5de565ULL,
+        0xa5503b23e255dULL,
+        0xa9e6b5579fdbfULL,
+        0xae89f995ad3adULL,
+        0xb33a2b84f15fbULL,
+        0xb7f76f2fb5e47ULL,
+        0xbcc1e904bc1d2ULL,
+        0xc199bdd85529cULL,
+        0xc67f12e57d14bULL,
+        0xcb720dcef9069ULL,
+        0xd072d4a07897cULL,
+        0xd5818dcfba487ULL,
+        0xda9e603db3285ULL,
+        0xdfc97337b9b5fULL,
+        0xe502ee78b3ff6ULL,
+        0xea4afa2a490daULL,
+        0xefa1bee615a27ULL,
+        0xf50765b6e4540ULL,
+        0xfa7c1819e90d8ULL
+    };
+    return (((op >> 6) & ((1 << 11) - 1)) << 52) | coeff[op & ((1 << 6) - 1)];
 }
 
 static uint32_t
@@ -2812,6 +3088,26 @@ fplibRoundInt(uint64_t op, FPRounding rounding, bool exact, FPSCR &fpscr)
 
 template <>
 uint32_t
+fplibScale(uint32_t op1, uint32_t op2, FPSCR &fpscr)
+{
+    int flags = 0;
+    uint32_t result = fp32_scale(op1, op2, modeConv(fpscr), &flags);
+    set_fpscr0(fpscr, flags);
+    return result;
+}
+
+template <>
+uint64_t
+fplibScale(uint64_t op1, uint64_t op2, FPSCR &fpscr)
+{
+    int flags = 0;
+    uint64_t result = fp64_scale(op1, op2, modeConv(fpscr), &flags);
+    set_fpscr0(fpscr, flags);
+    return result;
+}
+
+template <>
+uint32_t
 fplibSqrt(uint32_t op, FPSCR &fpscr)
 {
     int flags = 0;
@@ -2848,6 +3144,132 @@ fplibSub(uint64_t op1, uint64_t op2, FPSCR &fpscr)
     uint64_t result = fp64_add(op1, op2, 1, modeConv(fpscr), &flags);
     set_fpscr0(fpscr, flags);
     return result;
+}
+
+template <>
+uint32_t
+fplibTrigMulAdd(uint8_t coeff_index, uint32_t op1, uint32_t op2, FPSCR &fpscr)
+{
+    static uint32_t coeff[2][8] = {
+        {
+            0x3f800000,
+            0xbe2aaaab,
+            0x3c088886,
+            0xb95008b9,
+            0x36369d6d,
+            0x00000000,
+            0x00000000,
+            0x00000000
+        },
+        {
+            0x3f800000,
+            0xbf000000,
+            0x3d2aaaa6,
+            0xbab60705,
+            0x37cd37cc,
+            0x00000000,
+            0x00000000,
+            0x00000000
+        }
+    };
+    int flags = 0;
+    uint32_t result = fp32_muladd(coeff[op2 >> 31][coeff_index], op1,
+                                  fplibAbs(op2), 0, modeConv(fpscr), &flags);
+    set_fpscr0(fpscr, flags);
+    return result;
+}
+
+template <>
+uint64_t
+fplibTrigMulAdd(uint8_t coeff_index, uint64_t op1, uint64_t op2, FPSCR &fpscr)
+{
+    static uint64_t coeff[2][8] = {
+        {
+            0x3ff0000000000000ULL,
+            0xbfc5555555555543ULL,
+            0x3f8111111110f30cULL,
+            0xbf2a01a019b92fc6ULL,
+            0x3ec71de351f3d22bULL,
+            0xbe5ae5e2b60f7b91ULL,
+            0x3de5d8408868552fULL,
+            0x0000000000000000ULL
+        },
+        {
+            0x3ff0000000000000ULL,
+            0xbfe0000000000000ULL,
+            0x3fa5555555555536ULL,
+            0xbf56c16c16c13a0bULL,
+            0x3efa01a019b1e8d8ULL,
+            0xbe927e4f7282f468ULL,
+            0x3e21ee96d2641b13ULL,
+            0xbda8f76380fbb401ULL
+        }
+    };
+    int flags = 0;
+    uint64_t result = fp64_muladd(coeff[op2 >> 63][coeff_index], op1,
+                                  fplibAbs(op2), 0, modeConv(fpscr), &flags);
+    set_fpscr0(fpscr, flags);
+    return result;
+}
+
+template <>
+uint32_t
+fplibTrigSMul(uint32_t op1, uint32_t op2, FPSCR &fpscr)
+{
+    int flags = 0;
+    int sgn, exp;
+    uint32_t mnt;
+
+    int mode = modeConv(fpscr);
+    uint32_t result = fp32_mul(op1, op1, mode, &flags);
+    set_fpscr0(fpscr, flags);
+
+    fp32_unpack(&sgn, &exp, &mnt, result, mode, &flags);
+    if (!(exp == 255 && (uint32_t) (mnt << 9))) {  // not NaN
+        result = (result & (~(((uint32_t) (0x1)) << 31))) | (op2 << 31);
+    }
+    return result;
+}
+
+template <>
+uint64_t
+fplibTrigSMul(uint64_t op1, uint64_t op2, FPSCR &fpscr)
+{
+    int flags = 0;
+    int sgn, exp;
+    uint64_t mnt;
+
+    int mode = modeConv(fpscr);
+    uint64_t result = fp64_mul(op1, op1, mode, &flags);
+    set_fpscr0(fpscr, flags);
+
+    fp64_unpack(&sgn, &exp, &mnt, result, mode, &flags);
+    if (!(exp == 2047 && (uint64_t) (mnt << 12))) {  // not NaN
+        result = (result & (~(((uint64_t) (0x1)) << 63))) | (op2 << 63);
+    }
+    return result;
+}
+
+template <>
+uint32_t
+fplibTrigSSel(uint32_t op1, uint32_t op2, FPSCR &fpscr)
+{
+    static constexpr uint32_t fpOne = 0x3f800000;  // 1.0
+    if (op2 & 1) {
+        op1 = fpOne;
+    }
+    return op1 ^ ((op2 >> 1) << 31);
+}
+
+template <>
+uint64_t
+fplibTrigSSel(uint64_t op1, uint64_t op2, FPSCR &fpscr)
+{
+    static constexpr uint64_t fpOne = 0x3ff0000000000000ULL;  // 1.0
+    if (op2 & 1) {
+        op1 = fpOne;
+    }
+    return op1 ^ ((op2 >> 1) << 63);
 }
 
 static uint64_t
@@ -2910,6 +3332,100 @@ FPToFixed_32(int sgn, int exp, uint64_t mnt, bool u, FPRounding rounding,
         x = ((uint32_t)!u << 31) - !sgn;
     }
     return x;
+}
+
+static uint16_t
+FPToFixed_16(int sgn, int exp, uint64_t mnt, bool u, FPRounding rounding,
+             int *flags)
+{
+    uint64_t x = FPToFixed_64(sgn, exp, mnt, u, rounding, flags);
+    if (u ? x >= (uint64_t)1 << 16 :
+        !(x < (uint64_t)1 << 15 ||
+          (uint64_t)-x <= (uint64_t)1 << 15)) {
+        *flags = FPLIB_IOC;
+        x = ((uint16_t)!u << 15) - !sgn;
+    }
+    return x;
+}
+
+template <>
+uint16_t
+fplibFPToFixed(uint16_t op, int fbits, bool u, FPRounding rounding,
+               FPSCR &fpscr)
+{
+    int flags = 0;
+    int sgn, exp;
+    uint16_t mnt, result;
+
+    // Unpack using FPCR to determine if subnormals are flushed-to-zero:
+    fp16_unpack(&sgn, &exp, &mnt, op, modeConv(fpscr), &flags);
+
+    // If NaN, set cumulative flag or take exception:
+    if (exp == 31 && (uint16_t)(mnt << 6)) {
+        flags = FPLIB_IOC;
+        result = 0;
+    } else {
+        result = FPToFixed_16(sgn, exp + 1023 - 15 + fbits,
+                              (uint64_t)mnt << (52 - 10), u, rounding, &flags);
+    }
+
+    set_fpscr0(fpscr, flags);
+
+    return result;
+}
+
+template <>
+uint32_t
+fplibFPToFixed(uint16_t op, int fbits, bool u, FPRounding rounding,
+               FPSCR &fpscr)
+{
+    int flags = 0;
+    int sgn, exp;
+    uint16_t mnt;
+    uint32_t result;
+
+    // Unpack using FPCR to determine if subnormals are flushed-to-zero:
+    fp16_unpack(&sgn, &exp, &mnt, op, modeConv(fpscr), &flags);
+
+    // If NaN, set cumulative flag or take exception:
+    if (exp == 31 && (uint16_t)(mnt << 6)) {
+        flags = FPLIB_IOC;
+        result = 0;
+    } else {
+        result = (int32_t)FPToFixed_32(sgn, exp + 1023 - 15 + fbits,
+                              (uint64_t)mnt << (52 - 10), u, rounding, &flags);
+    }
+
+    set_fpscr0(fpscr, flags);
+
+    return result;
+}
+
+template <>
+uint64_t
+fplibFPToFixed(uint16_t op, int fbits, bool u, FPRounding rounding,
+               FPSCR &fpscr)
+{
+    int flags = 0;
+    int sgn, exp;
+    uint16_t mnt;
+    uint64_t result;
+
+    // Unpack using FPCR to determine if subnormals are flushed-to-zero:
+    fp16_unpack(&sgn, &exp, &mnt, op, modeConv(fpscr), &flags);
+
+    // If NaN, set cumulative flag or take exception:
+    if (exp == 31 && (uint16_t)(mnt << 6)) {
+        flags = FPLIB_IOC;
+        result = 0;
+    } else {
+        result = FPToFixed_64(sgn, exp + 1023 - 15 + fbits,
+                              (uint64_t)mnt << (52 - 10), u, rounding, &flags);
+    }
+
+    set_fpscr0(fpscr, flags);
+
+    return result;
 }
 
 template <>
@@ -3012,6 +3528,25 @@ fplibFPToFixed(uint64_t op, int fbits, bool u, FPRounding rounding, FPSCR &fpscr
     return result;
 }
 
+static uint16_t
+fp16_cvtf(uint64_t a, int fbits, int u, int mode, int *flags)
+{
+    int x_sgn = !u && a >> 63;
+    int x_exp = 16 + 62 - fbits;
+    uint64_t x_mnt = x_sgn ? -a : a;
+
+    // Handle zero:
+    if (!x_mnt) {
+        return fp16_zero(0);
+    }
+
+    // Normalise and convert to 16 bits, collapsing error into bottom bit:
+    x_mnt = fp64_normalise(x_mnt, &x_exp);
+    x_mnt = x_mnt >> 47 | !!(x_mnt & ((1ull << 47) - 1ull));
+
+    return fp16_round(x_sgn, x_exp, x_mnt, mode, flags);
+}
+
 static uint32_t
 fp32_cvtf(uint64_t a, int fbits, int u, int mode, int *flags)
 {
@@ -3049,6 +3584,19 @@ fp64_cvtf(uint64_t a, int fbits, int u, int mode, int *flags)
 }
 
 template <>
+uint16_t
+fplibFixedToFP(uint64_t op, int fbits, bool u, FPRounding rounding,
+               FPSCR &fpscr)
+{
+    int flags = 0;
+    uint16_t res = fp16_cvtf(op, fbits, u,
+                             (int)rounding | ((uint32_t)fpscr >> 22 & 12),
+                             &flags);
+    set_fpscr0(fpscr, flags);
+    return res;
+}
+
+template <>
 uint32_t
 fplibFixedToFP(uint64_t op, int fbits, bool u, FPRounding rounding, FPSCR &fpscr)
 {
@@ -3070,6 +3618,34 @@ fplibFixedToFP(uint64_t op, int fbits, bool u, FPRounding rounding, FPSCR &fpscr
                              &flags);
     set_fpscr0(fpscr, flags);
     return res;
+}
+
+template <>
+uint32_t
+fplibInfinity(int sgn)
+{
+    return fp32_infinity(sgn);
+}
+
+template <>
+uint64_t
+fplibInfinity(int sgn)
+{
+    return fp64_infinity(sgn);
+}
+
+template <>
+uint32_t
+fplibDefaultNaN()
+{
+    return fp32_defaultNaN();
+}
+
+template <>
+uint64_t
+fplibDefaultNaN()
+{
+    return fp64_defaultNaN();
 }
 
 }
