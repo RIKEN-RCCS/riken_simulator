@@ -490,6 +490,9 @@ class Operand(object):
     def isVecElem(self):
         return 0
 
+    def isPredReg(self):
+        return 0
+
     def isPCState(self):
         return 0
 
@@ -793,10 +796,9 @@ class VecRegOperand(Operand):
 
         wb = '''
         if (traceData) {
-            warn_once("Vectors not supported yet in tracedata");
-            /*traceData->setData(final_val);*/
+            traceData->setData(tmp_d%d);
         }
-        '''
+        ''' % self.dest_reg_idx
         return wb
 
     def finalize(self, predRead, predWrite):
@@ -848,6 +850,88 @@ class VecElemOperand(Operand):
                    '\n\txc->setVecElemOperand(this, %d, %s);' %
                    (self.dest_reg_idx, self.base_name))
         return c_write
+
+class PredRegOperand(Operand):
+    reg_class = 'PredRegClass'
+
+    def __init__(self, parser, full_name, ext, is_src, is_dest):
+        Operand.__init__(self, parser, full_name, ext, is_src, is_dest)
+        self.parser = parser
+
+    def isReg(self):
+        return 1
+
+    def isPredReg(self):
+        return 1
+
+    def makeDecl(self):
+        return ''
+
+    def makeConstructor(self, predRead, predWrite):
+        c_src = ''
+        c_dest = ''
+
+        if self.is_src:
+            c_src = src_reg_constructor % (self.reg_class, self.reg_spec)
+
+        if self.is_dest:
+            c_dest = dst_reg_constructor % (self.reg_class, self.reg_spec)
+            c_dest += '\n\t_numPredDestRegs++;'
+
+        return c_src + c_dest
+
+    def makeRead(self, predRead):
+        func = 'readPredRegOperand'
+        if self.read_code != None:
+            return self.buildReadCode(func)
+
+        if predRead:
+            rindex = '_sourceIndex++'
+        else:
+            rindex = '%d' % self.src_reg_idx
+
+        c_read =  '\t\t%s& tmp_s%s = xc->%s(this, %s);\n' % (
+                'const TheISA::PredRegContainer', rindex, func, rindex)
+        if self.ext:
+            c_read += '\t\tauto %s = tmp_s%s.as<%s>();\n' % (
+                    self.base_name, rindex,
+                    self.parser.operandTypeMap[self.ext])
+        return c_read
+
+    def makeReadW(self, predWrite):
+        func = 'getWritablePredRegOperand'
+        if self.read_code != None:
+            return self.buildReadCode(func)
+
+        if predWrite:
+            rindex = '_destIndex++'
+        else:
+            rindex = '%d' % self.dest_reg_idx
+
+        c_readw = '\t\t%s& tmp_d%s = xc->%s(this, %s);\n' % (
+                'TheISA::PredRegContainer', rindex, func, rindex)
+        if self.ext:
+            c_readw += '\t\tauto %s = tmp_d%s.as<%s>();\n' % (
+                    self.base_name, rindex,
+                    self.parser.operandTypeMap[self.ext])
+        return c_readw
+
+    def makeWrite(self, predWrite):
+        func = 'setPredRegOperand'
+        if self.write_code != None:
+            return self.buildWriteCode(func)
+
+        wb = '''
+        if (traceData) {
+            traceData->setData(tmp_d%d);
+        }
+        ''' % self.dest_reg_idx
+        return wb
+
+    def finalize(self, predRead, predWrite):
+        super(PredRegOperand, self).finalize(predRead, predWrite)
+        if self.is_dest:
+            self.op_rd = self.makeReadW(predWrite) + self.op_rd
 
 class CCRegOperand(Operand):
     reg_class = 'CCRegClass'
@@ -1102,6 +1186,7 @@ class OperandList(object):
         self.numFPDestRegs = 0
         self.numIntDestRegs = 0
         self.numVecDestRegs = 0
+        self.numPredDestRegs = 0
         self.numCCDestRegs = 0
         self.numMiscDestRegs = 0
         self.memOperand = None
@@ -1125,6 +1210,8 @@ class OperandList(object):
                         self.numIntDestRegs += 1
                     elif op_desc.isVecReg():
                         self.numVecDestRegs += 1
+                    elif op_desc.isPredReg():
+                        self.numPredDestRegs += 1
                     elif op_desc.isCCReg():
                         self.numCCDestRegs += 1
                     elif op_desc.isControlReg():
@@ -1333,6 +1420,7 @@ class InstObjParams(object):
         header += '\n\t_numFPDestRegs = 0;'
         header += '\n\t_numVecDestRegs = 0;'
         header += '\n\t_numVecElemDestRegs = 0;'
+        header += '\n\t_numPredDestRegs = 0;'
         header += '\n\t_numIntDestRegs = 0;'
         header += '\n\t_numCCDestRegs = 0;'
 

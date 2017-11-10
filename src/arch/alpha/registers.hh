@@ -33,6 +33,7 @@
 
 #include "arch/alpha/generated/max_inst_regs.hh"
 #include "arch/alpha/ipr.hh"
+#include "arch/generic/pred_reg.hh"
 #include "arch/generic/types.hh"
 #include "arch/generic/vec_reg.hh"
 #include "base/types.hh"
@@ -57,14 +58,22 @@ typedef uint64_t MiscReg;
 // dummy typedef since we don't have CC regs
 typedef uint8_t CCReg;
 
-// dummy typedefs since we don't have vector regs
+// dummy typedefs and constants since we don't have vector regs
 constexpr unsigned NumVecElemPerVecReg = 2;
 using VecElem = uint32_t;
 using VecReg = ::VecRegT<VecElem, NumVecElemPerVecReg, false>;
 using ConstVecReg = ::VecRegT<VecElem, NumVecElemPerVecReg, true>;
 using VecRegContainer = VecReg::Container;
-// This has to be one to prevent warnings that are treated as errors
-constexpr unsigned NumVecRegs = 1;
+constexpr size_t VecRegSizeBytes = NumVecElemPerVecReg * sizeof(VecElem);
+
+// dummy typedefs and constants since we don't have predicate regs
+constexpr bool PredRegHasPackedRepr = false;
+using PredReg = ::PredRegT<VecElem, NumVecElemPerVecReg,
+                           PredRegHasPackedRepr, false>;
+using ConstPredReg = ::PredRegT<VecElem, NumVecElemPerVecReg,
+                                PredRegHasPackedRepr, true>;
+using PredRegContainer = PredReg::Container;
+constexpr size_t PredRegSizeBits = NumVecElemPerVecReg * sizeof(VecElem);
 
 union AnyReg
 {
@@ -104,6 +113,8 @@ const int NumFloatArchRegs = 32;
 
 const int NumIntRegs = NumIntArchRegs + NumPALShadowRegs;
 const int NumFloatRegs = NumFloatArchRegs;
+const int NumVecRegs = 1;  // Not applicable to Alpha
+const int NumPredRegs = 1;  // Not applicable to Alpha
 const int NumCCRegs = 0;
 const int NumMiscRegs = NUM_MISCREGS;
 

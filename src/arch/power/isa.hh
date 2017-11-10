@@ -113,6 +113,12 @@ class ISA : public SimObject
         return reg;
     }
 
+    int
+    flattenPredIndex(int reg) const
+    {
+        return reg;
+    }
+
     // dummy
     int
     flattenCCIndex(int reg) const

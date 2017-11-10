@@ -609,6 +609,7 @@ namespace ArmISA
         EC_HVC_64                  = 0x16,
         EC_SMC_64                  = 0x17,
         EC_TRAPPED_MSR_MRS_64      = 0x18,
+        EC_TRAPPED_SVE             = 0x19,
         EC_PREFETCH_ABORT_TO_HYP   = 0x20,
         EC_PREFETCH_ABORT_LOWER_EL = 0x20,  // AArch64 alias
         EC_PREFETCH_ABORT_FROM_HYP = 0x21,
@@ -735,6 +736,18 @@ namespace ArmISA
         }
     }
 
+    constexpr unsigned MaxSveVecLenInBits = 512;
+    static_assert(MaxSveVecLenInBits >= 128 &&
+                  MaxSveVecLenInBits <= 2048 &&
+                  MaxSveVecLenInBits % 128 == 0,
+                  "Unsupported max. SVE vector length");
+    constexpr unsigned MaxSveVecLenInBytes  = MaxSveVecLenInBits >> 3;
+    constexpr unsigned MaxSveVecLenInWords  = MaxSveVecLenInBits >> 5;
+    constexpr unsigned MaxSveVecLenInDWords = MaxSveVecLenInBits >> 6;
+
+    constexpr unsigned VecRegSizeBytes = MaxSveVecLenInBytes;
+    constexpr unsigned PredRegSizeBits = MaxSveVecLenInBytes;
+    constexpr unsigned PredRegHasPackedRepr = false;
 } // namespace ArmISA
 
 #endif

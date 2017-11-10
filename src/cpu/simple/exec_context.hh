@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2016 ARM Limited
+ * Copyright (c) 2014-2017 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -123,6 +123,10 @@ class SimpleExecContext : public ExecContext {
     // Number of vector register file accesses
     mutable Stats::Scalar numVecRegReads;
     Stats::Scalar numVecRegWrites;
+
+    // Number of predicate register file accesses
+    mutable Stats::Scalar numPredRegReads;
+    Stats::Scalar numPredRegWrites;
 
     // Number of condition code register file accesses
     Stats::Scalar numCCRegReads;
@@ -347,6 +351,33 @@ class SimpleExecContext : public ExecContext {
         const RegId& reg = si->destRegIdx(idx);
         assert(reg.isVecElem());
         thread->setVecElem(reg, val);
+    }
+
+    const PredRegContainer&
+    readPredRegOperand(const StaticInst *si, int idx) const override
+    {
+        numPredRegReads++;
+        const RegId& reg = si->srcRegIdx(idx);
+        assert(reg.isPredReg());
+        return thread->readPredReg(reg);
+    }
+
+    PredRegContainer&
+    getWritablePredRegOperand(const StaticInst *si, int idx) override
+    {
+        numPredRegWrites++;
+        const RegId& reg = si->destRegIdx(idx);
+        assert(reg.isPredReg());
+        return thread->getWritablePredReg(reg);
+    }
+
+    void setPredRegOperand(const StaticInst *si, int idx,
+                           const PredRegContainer& val) override
+    {
+        numPredRegWrites++;
+        const RegId& reg = si->destRegIdx(idx);
+        assert(reg.isPredReg());
+        thread->setPredReg(reg, val);
     }
 
     CCReg readCCRegOperand(const StaticInst *si, int idx) override

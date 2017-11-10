@@ -96,14 +96,23 @@ class ISA : public SimObject
         return reg;
     }
 
+    // dummy
     int
     flattenVecIndex(int reg) const
     {
         return reg;
     }
 
+    // dummy
     int
     flattenVecElemIndex(int reg) const
+    {
+        return reg;
+    }
+
+    // dummy
+    int
+    flattenPredIndex(int reg) const
     {
         return reg;
     }

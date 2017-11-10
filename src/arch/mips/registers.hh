@@ -32,6 +32,7 @@
 #ifndef __ARCH_MIPS_REGISTERS_HH__
 #define __ARCH_MIPS_REGISTERS_HH__
 
+#include "arch/generic/pred_reg.hh"
 #include "arch/generic/vec_reg.hh"
 #include "arch/mips/generated/max_inst_regs.hh"
 #include "base/logging.hh"
@@ -55,6 +56,8 @@ const int NumFloatSpecialRegs = 5;
 const int MaxShadowRegSets = 16; // Maximum number of shadow register sets
 const int NumIntRegs = NumIntArchRegs + NumIntSpecialRegs;        //HI & LO Regs
 const int NumFloatRegs = NumFloatArchRegs + NumFloatSpecialRegs;//
+const int NumVecRegs = 1;  // Not applicable to mips
+const int NumPredRegs = 1;  // Not applicable to mips
 const int NumCCRegs = 0;
 
 const uint32_t MIPS32_QNAN = 0x7fbfffff;
@@ -290,14 +293,22 @@ typedef uint64_t MiscReg;
 // dummy typedef since we don't have CC regs
 typedef uint8_t CCReg;
 
-// dummy typedefs since we don't have vector regs
+// dummy typedefs and constants - not applicable to mips
 constexpr unsigned NumVecElemPerVecReg = 2;
 using VecElem = uint32_t;
 using VecReg = ::VecRegT<VecElem, NumVecElemPerVecReg, false>;
 using ConstVecReg = ::VecRegT<VecElem, NumVecElemPerVecReg, true>;
 using VecRegContainer = VecReg::Container;
-// This has to be one to prevent warnings that are treated as errors
-constexpr unsigned NumVecRegs = 1;
+constexpr size_t VecRegSizeBytes = NumVecElemPerVecReg * sizeof(VecElem);
+
+// dummy typedefs and constants - not applicable to mips
+constexpr bool PredRegHasPackedRepr = false;
+using PredReg = ::PredRegT<VecElem, NumVecElemPerVecReg,
+                           PredRegHasPackedRepr, false>;
+using ConstPredReg = ::PredRegT<VecElem, NumVecElemPerVecReg,
+                                PredRegHasPackedRepr, true>;
+using PredRegContainer = PredReg::Container;
+constexpr size_t PredRegSizeBits = NumVecElemPerVecReg * sizeof(VecElem);
 
 typedef union {
     IntReg   intreg;

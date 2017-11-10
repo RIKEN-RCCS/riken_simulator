@@ -156,9 +156,12 @@ class ArmStaticInst : public StaticInst
 
     /// Print a register name for disassembly given the unique
     /// dependence tag number (FP or int).
-    void printIntReg(std::ostream &os, RegIndex reg_idx) const;
+    void printIntReg(std::ostream &os, RegIndex reg_idx,
+                     uint8_t opWidth = 0) const;
     void printFloatReg(std::ostream &os, RegIndex reg_idx) const;
-    void printVecReg(std::ostream &os, RegIndex reg_idx) const;
+    void printVecReg(std::ostream &os, RegIndex reg_idx,
+                     bool isSveVecReg = false) const;
+    void printPredReg(std::ostream &os, RegIndex reg_idx) const;
     void printCCReg(std::ostream &os, RegIndex reg_idx) const;
     void printMiscReg(std::ostream &os, RegIndex reg_idx) const;
     void printMnemonic(std::ostream &os,
@@ -458,6 +461,23 @@ class ArmStaticInst : public StaticInst
     Fault undefinedFault64(ThreadContext *tc, ExceptionLevel el) const;
 
     /**
+     * Trap an access to SVE registers due to access control bits.
+     *
+     * @param el Target EL for the trap.
+     */
+    Fault sveAccessTrap(ExceptionLevel el) const;
+
+    /**
+     * Check an SVE access against CPTR_EL2 and CPTR_EL3.
+     */
+    Fault checkSveTrap(ThreadContext *tc, CPSR cpsr) const;
+
+    /**
+     * Check an SVE access against CPACR_EL1, CPTR_EL2, and CPTR_EL3.
+     */
+    Fault checkSveEnabled(ThreadContext *tc, CPSR cpsr, CPACR cpacr) const;
+
+    /**
      * Get the new PSTATE from a SPSR register in preparation for an
      * exception return.
      *
@@ -504,6 +524,21 @@ class ArmStaticInst : public StaticInst
     encoding() const
     {
         return static_cast<MachInst>(machInst & (mask(instSize() * 8)));
+    }
+
+    static int getCurSveVecLenInBits(ThreadContext *tc);
+
+    static int
+    getCurSveVecLenInQWords(ThreadContext *tc)
+    {
+        return getCurSveVecLenInBits(tc) >> 6;
+    }
+
+    template<typename T>
+    static int
+    getCurSveVecLen(ThreadContext *tc)
+    {
+        return getCurSveVecLenInBits(tc) / (8 * sizeof(T));
     }
 };
 }

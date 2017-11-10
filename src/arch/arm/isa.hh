@@ -43,6 +43,7 @@
 #ifndef __ARCH_ARM_ISA_HH__
 #define __ARCH_ARM_ISA_HH__
 
+#include "arch/arm/insts/static_inst.hh"
 #include "arch/arm/isa_device.hh"
 #include "arch/arm/miscregs.hh"
 #include "arch/arm/registers.hh"
@@ -422,6 +423,8 @@ namespace ArmISA
                 return RegId(VecRegClass, flattenVecIndex(regId.index()));
               case VecElemClass:
                 return RegId(VecElemClass, flattenVecElemIndex(regId.index()));
+              case PredRegClass:
+                return RegId(PredRegClass, flattenPredIndex(regId.index()));
               case CCRegClass:
                 return RegId(CCRegClass, flattenCCIndex(regId.index()));
               case MiscRegClass:
@@ -478,6 +481,13 @@ namespace ArmISA
 
         int
         flattenVecElemIndex(int reg) const
+        {
+            assert(reg >= 0);
+            return reg;
+        }
+
+        int
+        flattenPredIndex(int reg) const
         {
             assert(reg >= 0);
             return reg;

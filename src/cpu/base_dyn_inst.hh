@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011,2013,2016 ARM Limited
+ * Copyright (c) 2011, 2013, 2016-2017 ARM Limited
  * Copyright (c) 2013 Advanced Micro Devices, Inc.
  * All rights reserved.
  *
@@ -591,6 +591,7 @@ class BaseDynInst : public ExecContext, public RefCounted
     int8_t numVecElemDestRegs() const {
         return staticInst->numVecElemDestRegs();
     }
+    int8_t numPredDestRegs() const { return staticInst->numPredDestRegs(); }
 
     /** Returns the logical register index of the i'th destination register. */
     const RegId& destRegIdx(int i) const { return staticInst->destRegIdx(i); }
@@ -645,6 +646,16 @@ class BaseDynInst : public ExecContext, public RefCounted
                         InstResult::ResultType::VecElem));
         }
     }
+
+    /** Predicate result. */
+    template<typename T>
+    void setPredResult(T&& t)
+    {
+        if (instFlags[RecordResult]) {
+            instResult.push(InstResult(std::forward<T>(t),
+                        InstResult::ResultType::PredReg));
+        }
+    }
     /** @} */
 
     /** Records an integer register being set to a value. */
@@ -683,6 +694,13 @@ class BaseDynInst : public ExecContext, public RefCounted
     void setVecElemOperand(const StaticInst *si, int idx, const VecElem val)
     {
         setVecElemResult(val);
+    }
+
+    /** Record a vector register being set to a value */
+    void setPredRegOperand(const StaticInst *si, int idx,
+                           const PredRegContainer& val)
+    {
+        setPredResult(val);
     }
 
     /** Records that one of the source registers is ready. */

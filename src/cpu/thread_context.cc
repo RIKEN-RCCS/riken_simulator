@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2016 ARM Limited
+ * Copyright (c) 2012, 2016-2017 ARM Limited
  * Copyright (c) 2013 Advanced Micro Devices, Inc.
  * All rights reserved
  *
@@ -43,6 +43,7 @@
 
 #include "cpu/thread_context.hh"
 
+#include "arch/generic/pred_reg.hh"
 #include "arch/kernel_stats.hh"
 #include "base/logging.hh"
 #include "base/trace.hh"
@@ -86,6 +87,17 @@ ThreadContext::compare(ThreadContext *one, ThreadContext *two)
             panic("Vec reg idx %d doesn't match, one: %#x, two: %#x",
                   i, t1, t2);
     }
+
+    // Then loop through the predicate registers.
+    for (int i = 0; i < TheISA::NumPredRegs; ++i) {
+        RegId rid(PredRegClass, i);
+        const TheISA::PredRegContainer& t1 = one->readPredReg(rid);
+        const TheISA::PredRegContainer& t2 = two->readPredReg(rid);
+        if (t1 != t2)
+            panic("Pred reg idx %d doesn't match, one: %#x, two: %#x",
+                  i, t1, t2);
+    }
+
     for (int i = 0; i < TheISA::NumMiscRegs; ++i) {
         TheISA::MiscReg t1 = one->readMiscRegNoEffect(i);
         TheISA::MiscReg t2 = two->readMiscRegNoEffect(i);
@@ -168,6 +180,12 @@ serialize(ThreadContext &tc, CheckpointOut &cp)
     }
     SERIALIZE_CONTAINER(vecRegs);
 
+    std::vector<TheISA::PredRegContainer> predRegs(NumPredRegs);
+    for (int i = 0; i < NumPredRegs; ++i) {
+        predRegs[i] = tc.readPredRegFlat(i);
+    }
+    SERIALIZE_CONTAINER(predRegs);
+
     IntReg intRegs[NumIntRegs];
     for (int i = 0; i < NumIntRegs; ++i)
         intRegs[i] = tc.readIntRegFlat(i);
@@ -201,6 +219,12 @@ unserialize(ThreadContext &tc, CheckpointIn &cp)
     UNSERIALIZE_CONTAINER(vecRegs);
     for (int i = 0; i < NumVecRegs; ++i) {
         tc.setVecRegFlat(i, vecRegs[i]);
+    }
+
+    std::vector<TheISA::PredRegContainer> predRegs(NumPredRegs);
+    UNSERIALIZE_CONTAINER(predRegs);
+    for (int i = 0; i < NumPredRegs; ++i) {
+        tc.setPredRegFlat(i, predRegs[i]);
     }
 
     IntReg intRegs[NumIntRegs];

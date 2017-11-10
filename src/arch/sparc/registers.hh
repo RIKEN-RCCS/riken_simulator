@@ -32,6 +32,7 @@
 #ifndef __ARCH_SPARC_REGISTERS_HH__
 #define __ARCH_SPARC_REGISTERS_HH__
 
+#include "arch/generic/pred_reg.hh"
 #include "arch/generic/vec_reg.hh"
 #include "arch/sparc/generated/max_inst_regs.hh"
 #include "arch/sparc/miscregs.hh"
@@ -53,14 +54,22 @@ typedef uint32_t FloatRegBits;
 // dummy typedef since we don't have CC regs
 typedef uint8_t CCReg;
 
-// dummy typedefs since we don't have vector regs
+// Dummy typedefs and constants - not applicable to Sparc
 constexpr unsigned NumVecElemPerVecReg = 2;
 using VecElem = uint32_t;
 using VecReg = ::VecRegT<VecElem, NumVecElemPerVecReg, false>;
 using ConstVecReg = ::VecRegT<VecElem, NumVecElemPerVecReg, true>;
 using VecRegContainer = VecReg::Container;
-// This has to be one to prevent warnings that are treated as errors
-constexpr unsigned NumVecRegs = 1;
+constexpr size_t VecRegSizeBytes = NumVecElemPerVecReg * sizeof(VecElem);
+
+// Dummy typedefs and constants - not applicable to Sparc
+constexpr bool PredRegHasPackedRepr = false;
+using PredReg = ::PredRegT<VecElem, NumVecElemPerVecReg,
+                           PredRegHasPackedRepr, false>;
+using ConstPredReg = ::PredRegT<VecElem, NumVecElemPerVecReg,
+                                PredRegHasPackedRepr, true>;
+using PredRegContainer = PredReg::Container;
+constexpr size_t PredRegSizeBits = NumVecElemPerVecReg * sizeof(VecElem);
 
 typedef union
 {
@@ -82,6 +91,8 @@ const int SyscallPseudoReturnReg = 9;
 
 const int NumIntArchRegs = 32;
 const int NumIntRegs = (MaxGL + 1) * 8 + NWindows * 16 + NumMicroIntRegs;
+const int NumVecRegs = 1;  // Not applicable to Sparc
+const int NumPredRegs = 1;  // Not applicable to Sparc
 const int NumCCRegs = 0;
 
 const int TotalNumRegs = NumIntRegs + NumFloatRegs + NumMiscRegs;

@@ -1,4 +1,4 @@
-# Copyright (c) 2012-2014 ARM Limited
+# Copyright (c) 2012-2014, 2017 ARM Limited
 # All rights reserved.
 #
 # The license below extends only to copyright in the software and shall
@@ -146,12 +146,20 @@ class MinorDefaultFloatSimdFU(MinorFU):
         'FloatMultAcc', 'FloatDiv', 'FloatSqrt',
         'SimdAdd', 'SimdAddAcc', 'SimdAlu', 'SimdCmp', 'SimdCvt',
         'SimdMisc', 'SimdMult', 'SimdMultAcc', 'SimdShift', 'SimdShiftAcc',
-        'SimdSqrt', 'SimdFloatAdd', 'SimdFloatAlu', 'SimdFloatCmp',
+        'SimdDiv', 'SimdSqrt', 'SimdFloatAdd', 'SimdFloatAlu', 'SimdFloatCmp',
         'SimdFloatCvt', 'SimdFloatDiv', 'SimdFloatMisc', 'SimdFloatMult',
-        'SimdFloatMultAcc', 'SimdFloatSqrt'])
+        'SimdFloatMultAcc', 'SimdFloatSqrt', 'SimdReduceAdd', 'SimdReduceAlu',
+        'SimdReduceCmp', 'SimdFloatReduceAdd', 'SimdFloatReduceCmp'])
+
     timings = [MinorFUTiming(description='FloatSimd',
         srcRegsRelativeLats=[2])]
     opLat = 6
+
+class MinorDefaultPredFU(MinorFU):
+    opClasses = minorMakeOpClassSet(['SimdPredAlu'])
+    timings = [MinorFUTiming(description="Pred",
+        srcRegsRelativeLats=[2])]
+    opLat = 3
 
 class MinorDefaultMemFU(MinorFU):
     opClasses = minorMakeOpClassSet(['MemRead', 'MemWrite', 'FloatMemRead',
@@ -167,8 +175,8 @@ class MinorDefaultMiscFU(MinorFU):
 class MinorDefaultFUPool(MinorFUPool):
     funcUnits = [MinorDefaultIntFU(), MinorDefaultIntFU(),
         MinorDefaultIntMulFU(), MinorDefaultIntDivFU(),
-        MinorDefaultFloatSimdFU(), MinorDefaultMemFU(),
-        MinorDefaultMiscFU()]
+        MinorDefaultFloatSimdFU(), MinorDefaultPredFU(),
+        MinorDefaultMemFU(), MinorDefaultMiscFU()]
 
 class ThreadPolicy(Enum): vals = ['SingleThreaded', 'RoundRobin', 'Random']
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2012-2013, 2015-2016 ARM Limited
+# Copyright (c) 2012-2013, 2015-2017 ARM Limited
 # All rights reserved.
 #
 # The license below extends only to copyright in the software and shall
@@ -111,3 +111,21 @@ class ArmISA(SimObject):
     # Reserved for future expansion
     id_aa64mmfr1_el1 = Param.UInt64(0x0000000000000000,
         "AArch64 Memory Model Feature Register 1")
+
+    # SVE | !GICv3 CP15 | AdvSIMD | FP | !EL3 | !EL2 | EL1 (AArch64) |
+    # EL0 (AArch64)
+    id_aa64pfr0_el1 = Param.UInt64(0x0000000100000022,
+        "AArch64 Processor Feature Register 0")
+    # Reserved for future expansion
+    id_aa64pfr1_el1 = Param.UInt64(0x0000000000000000,
+        "AArch64 Processor Feature Register 1")
+
+    # Reserved for future use
+    id_aa64zfr0_el1 = Param.UInt64(0x0000000000000000,
+        "SVE Feature ID Register 0")
+    # 256-bit SVE vector length
+    zidr_el1 = Param.UInt64(0x0000000000000001, "SVE ID Register")
+
+    # Initial vector register rename mode
+    vecRegRenameMode = Param.VecRegRenameMode('Full',
+        "Initial rename mode for vecregs")

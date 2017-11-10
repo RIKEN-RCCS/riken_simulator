@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016 ARM Limited
+ * Copyright (c) 2015-2017 ARM Limited
  * All rights reserved.
  *
  * The license below extends only to copyright in the software and shall
@@ -173,6 +173,7 @@ class UnifiedRenameMap
   private:
     static constexpr uint32_t NVecElems = TheISA::NumVecElemPerVecReg;
     using VecReg = TheISA::VecReg;
+    using PredReg = TheISA::PredReg;
 
     /** The integer register rename map */
     SimpleRenameMap intMap;
@@ -188,6 +189,9 @@ class UnifiedRenameMap
 
     /** The vector element register rename map */
     SimpleRenameMap vecElemMap;
+
+    /** The predicate register rename map */
+    SimpleRenameMap predMap;
 
     using VecMode = Enums::VecRegRenameMode;
     VecMode vecMode;
@@ -236,6 +240,8 @@ class UnifiedRenameMap
           case VecElemClass:
             assert(vecMode == Enums::Elem);
             return vecElemMap.rename(arch_reg);
+          case PredRegClass:
+            return predMap.rename(arch_reg);
           case CCRegClass:
             return ccMap.rename(arch_reg);
           case MiscRegClass:
@@ -276,6 +282,9 @@ class UnifiedRenameMap
           case VecElemClass:
             assert(vecMode == Enums::Elem);
             return  vecElemMap.lookup(arch_reg);
+
+          case PredRegClass:
+            return predMap.lookup(arch_reg);
 
           case CCRegClass:
             return ccMap.lookup(arch_reg);
@@ -320,6 +329,10 @@ class UnifiedRenameMap
             assert(vecMode == Enums::Elem);
             return vecElemMap.setEntry(arch_reg, phys_reg);
 
+          case PredRegClass:
+            assert(phys_reg->isPredPhysReg());
+            return predMap.setEntry(arch_reg, phys_reg);
+
           case CCRegClass:
             assert(phys_reg->isCCPhysReg());
             return ccMap.setEntry(arch_reg, phys_reg);
@@ -346,10 +359,11 @@ class UnifiedRenameMap
      */
     unsigned numFreeEntries() const
     {
-        return std::min(
+        return std::min(std::min(
                 std::min(intMap.numFreeEntries(), floatMap.numFreeEntries()),
                 vecMode == Enums::Full ? vecMap.numFreeEntries()
-                                    : vecElemMap.numFreeEntries());
+                                    : vecElemMap.numFreeEntries()),
+                predMap.numFreeEntries());
     }
 
     unsigned numFreeIntEntries() const { return intMap.numFreeEntries(); }
@@ -360,18 +374,21 @@ class UnifiedRenameMap
                 ? vecMap.numFreeEntries()
                 : vecElemMap.numFreeEntries();
     }
+    unsigned numFreePredEntries() const { return predMap.numFreeEntries(); }
     unsigned numFreeCCEntries() const { return ccMap.numFreeEntries(); }
 
     /**
      * Return whether there are enough registers to serve the request.
      */
     bool canRename(uint32_t intRegs, uint32_t floatRegs, uint32_t vectorRegs,
-                    uint32_t vecElemRegs, uint32_t ccRegs) const
+                   uint32_t vecElemRegs, uint32_t predRegs,
+                   uint32_t ccRegs) const
     {
         return intRegs <= intMap.numFreeEntries() &&
             floatRegs <= floatMap.numFreeEntries() &&
             vectorRegs <= vecMap.numFreeEntries() &&
             vecElemRegs <= vecElemMap.numFreeEntries() &&
+            predRegs <= predMap.numFreeEntries() &&
             ccRegs <= ccMap.numFreeEntries();
     }
     /**

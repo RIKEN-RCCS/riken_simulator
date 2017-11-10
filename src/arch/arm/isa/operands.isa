@@ -46,6 +46,7 @@ def operand_types {{
     'uh' : 'uint16_t',
     'sw' : 'int32_t',
     'uw' : 'uint32_t',
+    'sd' : 'int64_t',
     'ud' : 'uint64_t',
     'tud' : 'std::array<uint64_t, 2>',
     'sf' : 'float',
@@ -53,6 +54,10 @@ def operand_types {{
     'vc' : 'TheISA::VecRegContainer',
     # For operations that are implemented as a template
     'x' : 'TPElem',
+    'xs' : 'TPSElem',
+    'xd' : 'TPDElem',
+    'pc' : 'TheISA::PredRegContainer',
+    'pb' : 'uint8_t'
 }};
 
 let {{
@@ -128,6 +133,9 @@ let {{
 
     def vectorRegElem(elem, ext = 'sf', zeroing = False):
         return (elem, ext, zeroing)
+
+    def predReg(idx):
+        return ('PredReg', 'pc', idx, None, srtNormal)
 
     def floatReg(idx):
         return ('FloatReg', 'sf', idx, 'IsFloating', srtNormal)
@@ -507,6 +515,23 @@ def operands {{
         'AA64FpDestDV1L':  vectorRegElem('0', 'df', zeroing = True),
         'AA64FpDestQV1L':  vectorRegElem('0', 'tud', zeroing = True)
     }),
+
+    'AA64FpDestMerge':       vectorReg('dest',
+    {
+        'AA64FpDestMergeP0': vectorRegElem('0'),
+        'AA64FpDestMergeP1': vectorRegElem('1'),
+        'AA64FpDestMergeP2': vectorRegElem('2'),
+        'AA64FpDestMergeP3': vectorRegElem('3'),
+        'AA64FpDestMergeS':  vectorRegElem('0', 'sf', zeroing = True),
+        'AA64FpDestMergeD':  vectorRegElem('0', 'df', zeroing = True),
+        'AA64FpDestMergeQ':  vectorRegElem('0', 'tud', zeroing = True)
+    }),
+
+    # Predicate register operands
+    'GpOp': predReg('gp'),
+    'POp1': predReg('op1'),
+    'POp2': predReg('op2'),
+    'PDest': predReg('dest'),
 
     #Abstracted control reg operands
     'MiscDest': cntrlReg('dest'),

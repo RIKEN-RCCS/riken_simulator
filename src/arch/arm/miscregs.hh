@@ -666,21 +666,29 @@ namespace ArmISA
         MISCREG_CBAR_EL1,               // 598
         MISCREG_CONTEXTIDR_EL2,         // 599
 
+        // SVE
+        MISCREG_ID_AA64ZFR0_EL1,        // 600
+        MISCREG_ZIDR_EL1,               // 601
+        MISCREG_ZCR_EL3,                // 602
+        MISCREG_ZCR_EL2,                // 603
+        MISCREG_ZCR_EL12,               // 604
+        MISCREG_ZCR_EL1,                // 605
+
         // These MISCREG_FREESLOT are available Misc Register
         // slots for future registers to be implemented.
-        MISCREG_FREESLOT_1,             // 600
-        MISCREG_FREESLOT_2,             // 601
-        MISCREG_FREESLOT_3,             // 602
-        MISCREG_FREESLOT_4,             // 603
-        MISCREG_FREESLOT_5,             // 604
-        MISCREG_FREESLOT_6,             // 605
+        MISCREG_FREESLOT_1,             // 606
+        MISCREG_FREESLOT_2,             // 607
+        MISCREG_FREESLOT_3,             // 608
+        MISCREG_FREESLOT_4,             // 609
+        MISCREG_FREESLOT_5,             // 610
+        MISCREG_FREESLOT_6,             // 611
 
         // NUM_PHYS_MISCREGS specifies the number of actual physical
         // registers, not considering the following pseudo-registers
         // (dummy registers), like UNKNOWN, CP15_UNIMPL, MISCREG_IMPDEF_UNIMPL.
         // Checkpointing should use this physical index when
         // saving/restoring register values.
-        NUM_PHYS_MISCREGS = 606,        // 606
+        NUM_PHYS_MISCREGS = 612,        // 612
 
         // Dummy registers
         MISCREG_NOP,
@@ -1370,6 +1378,14 @@ namespace ArmISA
         "cbar_el1",
         "contextidr_el2",
 
+        // SVE
+        "id_aa64zfr0_el1",
+        "zidr_el1",
+        "zcr_el3",
+        "zcr_el2",
+        "zcr_el12",
+        "zcr_el1",
+
         "freeslot1",
         "freeslot2",
         "freeslot3",
@@ -1445,6 +1461,7 @@ namespace ArmISA
         Bitfield<10> tfp;  // AArch64
         Bitfield<9>  tcp9;
         Bitfield<8>  tcp8;
+        Bitfield<8>  tz;  // SVE
         Bitfield<7>  tcp7;
         Bitfield<6>  tcp6;
         Bitfield<5>  tcp5;
@@ -1619,6 +1636,7 @@ namespace ArmISA
         Bitfield<13, 12> cp6;
         Bitfield<15, 14> cp7;
         Bitfield<17, 16> cp8;
+        Bitfield<17, 16> zen;  // SVE
         Bitfield<19, 18> cp9;
         Bitfield<21, 20> cp10;
         Bitfield<21, 20> fpen;  // AArch64
@@ -1877,9 +1895,14 @@ namespace ArmISA
         Bitfield<20> tta;
         Bitfield<13, 12> res1_13_12_el2;
         Bitfield<10> tfp;
+        Bitfield<8> ez;  // SVE (CPTR_EL3)
+        Bitfield<8> tz;  // SVE (CPTR_EL2)
         Bitfield<9, 0> res1_9_0_el2;
    EndBitUnion(CPTR)
 
+    BitUnion64(ZCR)
+        Bitfield<3, 0> len;
+    EndBitUnion(ZCR)
 
     /**
      * Check for permission to read coprocessor registers.

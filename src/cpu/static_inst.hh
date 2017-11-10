@@ -1,4 +1,16 @@
 /*
+ * Copyright (c) 2017 ARM Limited
+ * All rights reserved
+ *
+ * The license below extends only to copyright in the software and shall
+ * not be construed as granting a license to any other intellectual
+ * property including but not limited to intellectual property relating
+ * to a hardware implementation of the functionality of the software
+ * licensed hereunder.  You may use the software subject to the license
+ * terms below provided that you ensure that this notice is replicated
+ * unmodified and in its entirety in all distributions of the software,
+ * modified or unmodified, in source code or in binary form.
+ *
  * Copyright (c) 2003-2005 The Regents of The University of Michigan
  * Copyright (c) 2013 Advanced Micro Devices, Inc.
  * All rights reserved.
@@ -104,16 +116,17 @@ class StaticInst : public RefCounted, public StaticInstFlags
     /** @{ */
     int8_t _numVecDestRegs;
     int8_t _numVecElemDestRegs;
+    int8_t _numPredDestRegs;
     /** @} */
 
   public:
 
     /// @name Register information.
-    /// The sum of numFPDestRegs(), numIntDestRegs(), numVecDestRegs() and
-    /// numVecelemDestRegs() equals numDestRegs().  The former two functions
-    /// are used to track physical register usage for machines with separate
-    /// int & FP reg files, the next two is for machines with vector register
-    /// file.
+    /// The sum of numFPDestRegs(), numIntDestRegs(), numVecDestRegs(),
+    /// numVecElemDestRegs() and numPredDestRegs() equals numDestRegs().  The
+    /// former two functions are used to track physical register usage for
+    /// machines with separate int & FP reg files, the next three are for
+    /// machines with vector and predicate register files.
     //@{
     /// Number of source registers.
     int8_t numSrcRegs()  const { return _numSrcRegs; }
@@ -127,6 +140,8 @@ class StaticInst : public RefCounted, public StaticInstFlags
     int8_t numVecDestRegs() const { return _numVecDestRegs; }
     /// Number of vector element destination regs.
     int8_t numVecElemDestRegs() const { return _numVecElemDestRegs; }
+    /// Number of predicate destination regs.
+    int8_t numPredDestRegs() const { return _numPredDestRegs; }
     /// Number of coprocesor destination regs.
     int8_t numCCDestRegs() const { return _numCCDestRegs; }
     //@}
@@ -246,8 +261,8 @@ class StaticInst : public RefCounted, public StaticInstFlags
     StaticInst(const char *_mnemonic, ExtMachInst _machInst, OpClass __opClass)
         : _opClass(__opClass), _numSrcRegs(0), _numDestRegs(0),
           _numFPDestRegs(0), _numIntDestRegs(0), _numCCDestRegs(0),
-          _numVecDestRegs(0), _numVecElemDestRegs(0), machInst(_machInst),
-          mnemonic(_mnemonic), cachedDisassembly(0)
+          _numVecDestRegs(0), _numVecElemDestRegs(0), _numPredDestRegs(0),
+          machInst(_machInst), mnemonic(_mnemonic), cachedDisassembly(0)
     { }
 
   public:

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 ARM Limited
+ * Copyright (c) 2011-2014, 2017 ARM Limited
  * Copyright (c) 2013 Advanced Micro Devices, Inc.
  * All rights reserved.
  *
@@ -102,6 +102,7 @@ InstructionQueue<Impl>::InstructionQueue(O3CPU *cpu_ptr, IEW *iew_ptr,
     numPhysRegs = params->numPhysIntRegs + params->numPhysFloatRegs +
                     params->numPhysVecRegs +
                     params->numPhysVecRegs * TheISA::NumVecElemPerVecReg +
+                    params->numPhysPredRegs +
                     params->numPhysCCRegs;
 
     //Create an entry for each physical register within the

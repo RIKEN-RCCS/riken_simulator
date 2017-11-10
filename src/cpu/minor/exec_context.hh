@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014, 2016 ARM Limited
+ * Copyright (c) 2011-2014, 2016-2017 ARM Limited
  * Copyright (c) 2013 Advanced Micro Devices, Inc.
  * All rights reserved
  *
@@ -169,6 +169,22 @@ class ExecContext : public ::ExecContext
         return thread.readVecElem(reg);
     }
 
+    const TheISA::PredRegContainer&
+    readPredRegOperand(const StaticInst *si, int idx) const override
+    {
+        const RegId& reg = si->srcRegIdx(idx);
+        assert(reg.isPredReg());
+        return thread.readPredReg(reg);
+    }
+
+    TheISA::PredRegContainer&
+    getWritablePredRegOperand(const StaticInst *si, int idx) override
+    {
+        const RegId& reg = si->destRegIdx(idx);
+        assert(reg.isPredReg());
+        return thread.getWritablePredReg(reg);
+    }
+
     void
     setIntRegOperand(const StaticInst *si, int idx, IntReg val) override
     {
@@ -202,6 +218,15 @@ class ExecContext : public ::ExecContext
         const RegId& reg = si->destRegIdx(idx);
         assert(reg.isVecReg());
         thread.setVecReg(reg, val);
+    }
+
+    void
+    setPredRegOperand(const StaticInst *si, int idx,
+                      const TheISA::PredRegContainer& val)
+    {
+        const RegId& reg = si->destRegIdx(idx);
+        assert(reg.isPredReg());
+        thread.setPredReg(reg, val);
     }
 
     /** Vector Register Lane Interfaces. */

@@ -75,6 +75,7 @@ class BaseO3DynInst : public BaseDynInst<Impl>
     using VecRegContainer = TheISA::VecRegContainer;
     using VecElem = TheISA::VecElem;
     static constexpr auto NumVecElemPerVecReg = TheISA::NumVecElemPerVecReg;
+    using PredRegContainer = TheISA::PredRegContainer;
 
     /** Misc register type. */
     typedef TheISA::MiscReg  MiscReg;
@@ -235,6 +236,10 @@ class BaseO3DynInst : public BaseDynInst<Impl>
                 this->setVecElemOperand(this->staticInst.get(), idx,
                                this->cpu->readVecElem(prev_phys_reg));
                 break;
+              case PredRegClass:
+                this->setPredRegOperand(this->staticInst.get(), idx,
+                               this->cpu->readPredReg(prev_phys_reg));
+                break;
               case CCRegClass:
                 this->setCCRegOperand(this->staticInst.get(), idx,
                                this->cpu->readCCReg(prev_phys_reg));
@@ -368,6 +373,18 @@ class BaseO3DynInst : public BaseDynInst<Impl>
         return this->cpu->readVecElem(this->_srcRegIdx[idx]);
     }
 
+    const PredRegContainer&
+    readPredRegOperand(const StaticInst *si, int idx) const override
+    {
+        return this->cpu->readPredReg(this->_srcRegIdx[idx]);
+    }
+
+    PredRegContainer&
+    getWritablePredRegOperand(const StaticInst *si, int idx) override
+    {
+        return this->cpu->getWritablePredReg(this->_destRegIdx[idx]);
+    }
+
     CCReg readCCRegOperand(const StaticInst *si, int idx)
     {
         return this->cpu->readCCReg(this->_srcRegIdx[idx]);
@@ -409,6 +426,14 @@ class BaseO3DynInst : public BaseDynInst<Impl>
         int reg_idx = idx;
         this->cpu->setVecElem(this->_destRegIdx[reg_idx], val);
         BaseDynInst<Impl>::setVecElemOperand(si, idx, val);
+    }
+
+    void
+    setPredRegOperand(const StaticInst *si, int idx,
+                      const PredRegContainer& val) override
+    {
+        this->cpu->setPredReg(this->_destRegIdx[idx], val);
+        BaseDynInst<Impl>::setPredRegOperand(si, idx, val);
     }
 
     void setCCRegOperand(const StaticInst *si, int idx, CCReg val)

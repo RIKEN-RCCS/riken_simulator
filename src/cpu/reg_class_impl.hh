@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 ARM Limited
+ * Copyright (c) 2016-2017 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -62,6 +62,7 @@ RegIndex RegId::flatIndex() const {
     case IntRegClass:
     case FloatRegClass:
     case VecRegClass:
+    case PredRegClass:
     case CCRegClass:
     case MiscRegClass:
         return regIdx;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2011, 2014, 2016 ARM Limited
+ * Copyright (c) 2010-2011, 2014, 2016-2017 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -47,6 +47,8 @@
 #include "arch/arm/generated/max_inst_regs.hh"
 #include "arch/arm/intregs.hh"
 #include "arch/arm/miscregs.hh"
+#include "arch/arm/types.hh"
+#include "arch/generic/pred_reg.hh"
 #include "arch/generic/vec_reg.hh"
 
 namespace ArmISA {
@@ -66,11 +68,16 @@ typedef uint32_t FloatRegBits;
 typedef float FloatReg;
 
 // Number of VecElem per Vector Register, computed based on the vector length
-constexpr unsigned NumVecElemPerVecReg = 4;
+constexpr unsigned NumVecElemPerVecReg = MaxSveVecLenInWords;
+
 using VecElem = uint32_t;
 using VecReg = ::VecRegT<VecElem, NumVecElemPerVecReg, false>;
 using ConstVecReg = ::VecRegT<VecElem, NumVecElemPerVecReg, true>;
 using VecRegContainer = VecReg::Container;
+
+using PredReg = ::PredRegT<VecElem, NumVecElemPerVecReg, false, false>;
+using ConstPredReg = ::PredRegT<VecElem, NumVecElemPerVecReg, false, true>;
+using PredRegContainer = PredReg::Container;
 
 // cop-0/cop-1 system control register
 typedef uint64_t MiscReg;
@@ -92,11 +99,13 @@ const int NumIntRegs = NUM_INTREGS;
 const int NumFloatRegs = NumFloatV8ArchRegs + NumFloatSpecialRegs;
 const int NumVecRegs = NumVecV8ArchRegs + NumVecSpecialRegs;
 const int NumCCRegs = NUM_CCREGS;
+const int NumPredRegs = 16;
 const int NumMiscRegs = NUM_MISCREGS;
 
 #define ISA_HAS_CC_REGS
 
-const int TotalNumRegs = NumIntRegs + NumFloatRegs + NumVecRegs + NumMiscRegs;
+const int TotalNumRegs = NumIntRegs + NumFloatRegs + NumVecRegs +
+    NumPredRegs + NumMiscRegs;
 
 // semantically meaningful register indices
 const int ReturnValueReg = 0;

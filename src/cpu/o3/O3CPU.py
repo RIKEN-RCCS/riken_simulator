@@ -1,4 +1,4 @@
-# Copyright (c) 2016 ARM Limited
+# Copyright (c) 2016-2017 ARM Limited
 # All rights reserved.
 #
 # The license below extends only to copyright in the software and shall
@@ -138,6 +138,8 @@ class DerivO3CPU(BaseCPU):
         # never be the bottleneck here.
         _defaultNumPhysCCRegs = Self.numPhysIntRegs * 5
     numPhysVecRegs = Param.Unsigned(256, "Number of physical vector "
+                                      "registers")
+    numPhysPredRegs = Param.Unsigned(32, "Number of physical predicate "
                                       "registers")
     numPhysCCRegs = Param.Unsigned(_defaultNumPhysCCRegs,
                                    "Number of physical cc registers")

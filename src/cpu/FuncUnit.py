@@ -1,4 +1,4 @@
-# Copyright (c) 2010 ARM Limited
+# Copyright (c) 2010, 2017 ARM Limited
 # All rights reserved.
 #
 # The license below extends only to copyright in the software and shall
@@ -47,9 +47,12 @@ class OpClass(Enum):
             'FloatMisc', 'FloatSqrt',
             'SimdAdd', 'SimdAddAcc', 'SimdAlu', 'SimdCmp', 'SimdCvt',
             'SimdMisc', 'SimdMult', 'SimdMultAcc', 'SimdShift', 'SimdShiftAcc',
-            'SimdSqrt', 'SimdFloatAdd', 'SimdFloatAlu', 'SimdFloatCmp',
-            'SimdFloatCvt', 'SimdFloatDiv', 'SimdFloatMisc', 'SimdFloatMult',
-            'SimdFloatMultAcc', 'SimdFloatSqrt',
+            'SimdDiv', 'SimdSqrt', 'SimdFloatAdd', 'SimdFloatAlu',
+            'SimdFloatCmp', 'SimdFloatCvt', 'SimdFloatDiv', 'SimdFloatMisc',
+            'SimdFloatMult', 'SimdFloatMultAcc', 'SimdFloatSqrt',
+            'SimdReduceAdd', 'SimdReduceAlu', 'SimdReduceCmp',
+            'SimdFloatReduceAdd', 'SimdFloatReduceCmp',
+            'SimdPredAlu',
             'MemRead', 'MemWrite', 'FloatMemRead', 'FloatMemWrite',
             'IprAccess', 'InstPrefetch']
 

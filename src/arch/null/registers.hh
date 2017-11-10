@@ -40,6 +40,7 @@
 #ifndef __ARCH_NULL_REGISTERS_HH__
 #define __ARCH_NULL_REGISTERS_HH__
 
+#include "arch/generic/pred_reg.hh"
 #include "arch/generic/vec_reg.hh"
 #include "arch/types.hh"
 #include "base/types.hh"
@@ -53,14 +54,22 @@ typedef uint8_t CCReg;
 typedef uint64_t MiscReg;
 const RegIndex ZeroReg = 0;
 
-// dummy typedefs since we don't have vector regs
+// Dummy typedefs and constants - not applicable to null
 constexpr unsigned NumVecElemPerVecReg = 2;
 using VecElem = uint32_t;
 using VecReg = ::VecRegT<VecElem, NumVecElemPerVecReg, false>;
 using ConstVecReg = ::VecRegT<VecElem, NumVecElemPerVecReg, true>;
 using VecRegContainer = VecReg::Container;
-// This has to be one to prevent warnings that are treated as errors
-constexpr unsigned NumVecRegs = 1;
+constexpr size_t VecRegSizeBytes = NumVecElemPerVecReg * sizeof(VecElem);
+
+// Dummy typedefs and constants - not applicable to null
+constexpr bool PredRegHasPackedRepr = false;
+using PredReg = ::PredRegT<VecElem, NumVecElemPerVecReg,
+                           PredRegHasPackedRepr, false>;
+using ConstPredReg = ::PredRegT<VecElem, NumVecElemPerVecReg,
+                                PredRegHasPackedRepr, true>;
+using PredRegContainer = PredReg::Container;
+constexpr size_t PredRegSizeBits = NumVecElemPerVecReg * sizeof(VecElem);
 
 }
 

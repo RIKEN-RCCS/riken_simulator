@@ -41,6 +41,7 @@
 #ifndef __ARCH_X86_REGISTERS_HH__
 #define __ARCH_X86_REGISTERS_HH__
 
+#include "arch/generic/pred_reg.hh"
 #include "arch/generic/vec_reg.hh"
 #include "arch/x86/generated/max_inst_regs.hh"
 #include "arch/x86/regs/int.hh"
@@ -77,6 +78,9 @@ enum DependenceTags {
     Max_Reg_Index = Misc_Reg_Base + NumMiscRegs
 };
 
+const int NumVecRegs = 1;  // Not applicable to x86
+const int NumPredRegs = 1;  // Not applicable to x86
+
 // semantically meaningful register indices
 //There is no such register in X86
 const int ZeroReg = NUM_INTREGS;
@@ -94,14 +98,22 @@ typedef uint64_t IntReg;
 typedef uint64_t CCReg;
 typedef uint64_t MiscReg;
 
-// dummy typedefs since we don't have vector regs
+// Dummy typedefs and constants - not applicable to Riscv
 constexpr unsigned NumVecElemPerVecReg = 2;
 using VecElem = uint32_t;
 using VecReg = ::VecRegT<VecElem, NumVecElemPerVecReg, false>;
 using ConstVecReg = ::VecRegT<VecElem, NumVecElemPerVecReg, true>;
 using VecRegContainer = VecReg::Container;
-// This has to be one to prevent warnings that are treated as errors
-constexpr unsigned NumVecRegs = 1;
+constexpr size_t VecRegSizeBytes = NumVecElemPerVecReg * sizeof(VecElem);
+
+// Dummy typedefs and constants - not applicable to Riscv
+constexpr bool PredRegHasPackedRepr = false;
+using PredReg = ::PredRegT<VecElem, NumVecElemPerVecReg,
+                           PredRegHasPackedRepr, false>;
+using ConstPredReg = ::PredRegT<VecElem, NumVecElemPerVecReg,
+                                PredRegHasPackedRepr, true>;
+using PredRegContainer = PredReg::Container;
+constexpr size_t PredRegSizeBits = NumVecElemPerVecReg * sizeof(VecElem);
 
 //These floating point types are correct for mmx, but not
 //technically for x87 (80 bits) or at all for xmm (128 bits)

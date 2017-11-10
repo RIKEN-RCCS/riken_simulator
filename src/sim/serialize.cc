@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 ARM Limited
+ * Copyright (c) 2015, 2017 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -57,6 +57,7 @@
 #include <string>
 #include <vector>
 
+#include "arch/generic/pred_reg.hh"
 #include "arch/generic/vec_reg.hh"
 #include "base/framebuffer.hh"
 #include "base/inifile.hh"
@@ -456,6 +457,19 @@ objParamIn(CheckpointIn &cp, const string &name, SimObject * &param)
     arrayParamIn(CheckpointIn &cp, const string &name,                  \
                  list<type> &param);
 
+using PredRegContainer8BitPacked   = PredRegContainer<  8, true>;
+using PredRegContainer16BitPacked  = PredRegContainer< 16, true>;
+using PredRegContainer32BitPacked  = PredRegContainer< 32, true>;
+using PredRegContainer64BitPacked  = PredRegContainer< 64, true>;
+using PredRegContainer128BitPacked = PredRegContainer<128, true>;
+using PredRegContainer256BitPacked = PredRegContainer<256, true>;
+using PredRegContainer8BitUnpacked   = PredRegContainer<  8, false>;
+using PredRegContainer16BitUnpacked  = PredRegContainer< 16, false>;
+using PredRegContainer32BitUnpacked  = PredRegContainer< 32, false>;
+using PredRegContainer64BitUnpacked  = PredRegContainer< 64, false>;
+using PredRegContainer128BitUnpacked = PredRegContainer<128, false>;
+using PredRegContainer256BitUnpacked = PredRegContainer<256, false>;
+
 INSTANTIATE_PARAM_TEMPLATES(char)
 INSTANTIATE_PARAM_TEMPLATES(signed char)
 INSTANTIATE_PARAM_TEMPLATES(unsigned char)
@@ -474,6 +488,22 @@ INSTANTIATE_PARAM_TEMPLATES(string)
 INSTANTIATE_PARAM_TEMPLATES(Pixel)
 INSTANTIATE_PARAM_TEMPLATES(VecRegContainer<8>)
 INSTANTIATE_PARAM_TEMPLATES(VecRegContainer<16>)
+INSTANTIATE_PARAM_TEMPLATES(VecRegContainer<32>)
+INSTANTIATE_PARAM_TEMPLATES(VecRegContainer<64>)
+INSTANTIATE_PARAM_TEMPLATES(VecRegContainer<128>)
+INSTANTIATE_PARAM_TEMPLATES(VecRegContainer<256>)
+INSTANTIATE_PARAM_TEMPLATES(PredRegContainer8BitPacked)
+INSTANTIATE_PARAM_TEMPLATES(PredRegContainer16BitPacked)
+INSTANTIATE_PARAM_TEMPLATES(PredRegContainer32BitPacked)
+INSTANTIATE_PARAM_TEMPLATES(PredRegContainer64BitPacked)
+INSTANTIATE_PARAM_TEMPLATES(PredRegContainer128BitPacked)
+INSTANTIATE_PARAM_TEMPLATES(PredRegContainer256BitPacked)
+INSTANTIATE_PARAM_TEMPLATES(PredRegContainer8BitUnpacked)
+INSTANTIATE_PARAM_TEMPLATES(PredRegContainer16BitUnpacked)
+INSTANTIATE_PARAM_TEMPLATES(PredRegContainer32BitUnpacked)
+INSTANTIATE_PARAM_TEMPLATES(PredRegContainer64BitUnpacked)
+INSTANTIATE_PARAM_TEMPLATES(PredRegContainer128BitUnpacked)
+INSTANTIATE_PARAM_TEMPLATES(PredRegContainer256BitUnpacked)
 
 // set is only used with strings and furthermore doesn't agree with Pixel
 template void

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012, 2016 ARM Limited
+ * Copyright (c) 2011-2012, 2016-2017 ARM Limited
  * Copyright (c) 2013 Advanced Micro Devices, Inc.
  * All rights reserved
  *
@@ -264,6 +264,12 @@ class CheckerThreadContext : public ThreadContext
     const VecElem& readVecElem(const RegId& reg) const
     { return actualTC->readVecElem(reg); }
 
+    const PredRegContainer& readPredReg(const RegId& reg) const override
+    { return actualTC->readPredReg(reg); }
+
+    PredRegContainer& getWritablePredReg(const RegId& reg) override
+    { return actualTC->getWritablePredReg(reg); }
+
     CCReg readCCReg(int reg_idx)
     { return actualTC->readCCReg(reg_idx); }
 
@@ -295,6 +301,12 @@ class CheckerThreadContext : public ThreadContext
     {
         actualTC->setVecElem(reg, val);
         checkerTC->setVecElem(reg, val);
+    }
+
+    void setPredReg(const RegId& reg, const PredRegContainer& val) override
+    {
+        actualTC->setPredReg(reg, val);
+        checkerTC->setPredReg(reg, val);
     }
 
     void setCCReg(int reg_idx, CCReg val)
@@ -413,6 +425,15 @@ class CheckerThreadContext : public ThreadContext
     void setVecElemFlat(const RegIndex& idx,
                         const ElemIndex& elem_idx, const VecElem& val)
     { actualTC->setVecElemFlat(idx, elem_idx, val); }
+
+    const PredRegContainer& readPredRegFlat(int idx) const override
+    { return actualTC->readPredRegFlat(idx); }
+
+    PredRegContainer& getWritablePredRegFlat(int idx) override
+    { return actualTC->getWritablePredRegFlat(idx); }
+
+    void setPredRegFlat(int idx, const PredRegContainer& val) override
+    { actualTC->setPredRegFlat(idx, val); }
 
     CCReg readCCRegFlat(int idx)
     { return actualTC->readCCRegFlat(idx); }

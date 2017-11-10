@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016 ARM Limited
+ * Copyright (c) 2014, 2016-2017 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -81,6 +81,7 @@ class ExecContext {
     typedef TheISA::CCReg CCReg;
     using VecRegContainer = TheISA::VecRegContainer;
     using VecElem = TheISA::VecElem;
+    using PredRegContainer = TheISA::PredRegContainer;
 
   public:
     /**
@@ -178,6 +179,22 @@ class ExecContext {
     /** Sets a vector register to a value. */
     virtual void setVecElemOperand(const StaticInst *si, int idx,
                                    const VecElem val) = 0;
+    /** @} */
+
+    /** Predicate registers interface. */
+    /** @{ */
+    /** Reads source predicate register operand. */
+    virtual const PredRegContainer&
+    readPredRegOperand(const StaticInst *si, int idx) const = 0;
+
+    /** Gets destination predicate register operand for modification. */
+    virtual PredRegContainer&
+    getWritablePredRegOperand(const StaticInst *si, int idx) = 0;
+
+    /** Sets a destination predicate register operand to a value. */
+    virtual void
+    setPredRegOperand(const StaticInst *si, int idx,
+                      const PredRegContainer& val) = 0;
     /** @} */
 
     /**

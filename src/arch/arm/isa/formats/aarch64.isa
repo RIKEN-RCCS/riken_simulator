@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2016 ARM Limited
+// Copyright (c) 2011-2017 ARM Limited
 // All rights reserved
 //
 // The license below extends only to copyright in the software and shall
@@ -52,6 +52,10 @@ namespace Aarch64
     template <typename DecoderFeatures>
     StaticInstPtr decodeAdvSIMD(ExtMachInst machInst);
     StaticInstPtr decodeAdvSIMDScalar(ExtMachInst machInst);
+
+    StaticInstPtr decodeSveInt(ExtMachInst machInst);
+    StaticInstPtr decodeSveFp(ExtMachInst machInst);
+    StaticInstPtr decodeSveMem(ExtMachInst machInst);
 
     StaticInstPtr decodeGem5Ops(ExtMachInst machInst);
 }
@@ -2067,9 +2071,24 @@ def format Aarch64() {{
     {
         using namespace Aarch64;
         if (bits(machInst, 27) == 0x0) {
-            if (bits(machInst, 28) == 0x0)
-                return new Unknown64(machInst);
-            else if (bits(machInst, 26) == 0)
+            if (bits(machInst, 28) == 0x0) {
+                if (bits(machInst, 26, 25) != 0x2) {
+                    return new Unknown64(machInst);
+                }
+                if (bits(machInst, 31) == 0x0) {
+                    switch (bits(machInst, 30, 29)) {
+                      case 0x0:
+                      case 0x1:
+                        return decodeSveInt(machInst);
+                      case 0x2:
+                        return new Unknown64(machInst);
+                      case 0x3:
+                        return decodeSveFp(machInst);
+                    }
+                } else {
+                    return decodeSveMem(machInst);
+                }
+            } else if (bits(machInst, 26) == 0)
                 // bit 28:26=100
                 return decodeDataProcImm(machInst);
             else

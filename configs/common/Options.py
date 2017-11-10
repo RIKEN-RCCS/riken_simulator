@@ -1,4 +1,4 @@
-# Copyright (c) 2013 ARM Limited
+# Copyright (c) 2013, 2017 ARM Limited
 # All rights reserved.
 #
 # The license below extends only to copyright in the software and shall
@@ -291,6 +291,9 @@ def addCommonOptions(parser):
     parser.add_option("--arm-iset", default="arm", type="choice",
                       choices=["arm", "thumb", "aarch64"],
                       help="ARM instruction set.")
+    parser.add_option("--arm-sve-vl", default="2", type="choice",
+                      choices=["1", "2", "4"],
+                      help="SVE vector length in quadwords (128-bit)")
 
 
 def addSEOptions(parser):

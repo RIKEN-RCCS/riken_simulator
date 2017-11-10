@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2016 ARM Limited
+ * Copyright (c) 2010-2017 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -116,6 +116,7 @@ ISA::clear()
     miscRegs[MISCREG_MIDR] = p->midr;
     miscRegs[MISCREG_MIDR_EL1] = p->midr;
     miscRegs[MISCREG_VPIDR] = p->midr;
+    miscRegs[MISCREG_ZIDR_EL1] = p->zidr_el1;
 
     if (FullSystem && system->highestELIs64()) {
         // Initialize AArch64 state
@@ -306,6 +307,10 @@ ISA::clear64(const ArmISAParams *p)
         (p->pmu ? 0x03000000ULL : 0); // Enable PMUv3
 
     miscRegs[MISCREG_ID_DFR0] = miscRegs[MISCREG_ID_DFR0_EL1];
+
+    // SVE
+    miscRegs[MISCREG_ID_AA64ZFR0_EL1] = p->id_aa64zfr0_el1;
+    miscRegs[MISCREG_ZIDR_EL1] = p->zidr_el1;
 
     // Enforce consistency with system-level settings...
 
@@ -1879,7 +1884,7 @@ ISA::getGenericTimer(ThreadContext *tc)
     return *timer.get();
 }
 
-}
+}  // namespace ArmISA
 
 ArmISA::ISA *
 ArmISAParams::create()

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013, 2016 ARM Limited
+ * Copyright (c) 2011-2013, 2016-2017 ARM Limited
  * Copyright (c) 2013 Advanced Micro Devices, Inc.
  * All rights reserved
  *
@@ -106,6 +106,8 @@ class FullO3CPU : public BaseO3CPU
 
     using VecElem =  TheISA::VecElem;
     using VecRegContainer =  TheISA::VecRegContainer;
+
+    using PredRegContainer = TheISA::PredRegContainer;
 
     typedef O3ThreadState<Impl> ImplState;
     typedef O3ThreadState<Impl> Thread;
@@ -445,6 +447,10 @@ class FullO3CPU : public BaseO3CPU
 
     const VecElem& readVecElem(PhysRegIdPtr reg_idx) const;
 
+    const PredRegContainer& readPredReg(PhysRegIdPtr reg_idx) const;
+
+    PredRegContainer& getWritablePredReg(PhysRegIdPtr reg_idx);
+
     TheISA::CCReg readCCReg(PhysRegIdPtr phys_reg);
 
     void setIntReg(PhysRegIdPtr phys_reg, uint64_t val);
@@ -456,6 +462,8 @@ class FullO3CPU : public BaseO3CPU
     void setVecReg(PhysRegIdPtr reg_idx, const VecRegContainer& val);
 
     void setVecElem(PhysRegIdPtr reg_idx, const VecElem& val);
+
+    void setPredReg(PhysRegIdPtr reg_idx, const PredRegContainer& val);
 
     void setCCReg(PhysRegIdPtr phys_reg, TheISA::CCReg val);
 
@@ -493,6 +501,10 @@ class FullO3CPU : public BaseO3CPU
     const VecElem& readArchVecElem(const RegIndex& reg_idx,
                                    const ElemIndex& ldx, ThreadID tid) const;
 
+    const PredRegContainer& readArchPredReg(int reg_idx, ThreadID tid) const;
+
+    PredRegContainer& getWritableArchPredReg(int reg_idx, ThreadID tid);
+
     TheISA::CCReg readArchCCReg(int reg_idx, ThreadID tid);
 
     /** Architectural register accessors.  Looks up in the commit
@@ -505,6 +517,9 @@ class FullO3CPU : public BaseO3CPU
     void setArchFloatReg(int reg_idx, float val, ThreadID tid);
 
     void setArchFloatRegInt(int reg_idx, uint64_t val, ThreadID tid);
+
+    void setArchPredReg(int reg_idx, const PredRegContainer& val,
+                        ThreadID tid);
 
     void setArchVecReg(int reg_idx, const VecRegContainer& val, ThreadID tid);
 
@@ -793,6 +808,9 @@ class FullO3CPU : public BaseO3CPU
     //number of vector register file accesses
     mutable Stats::Scalar vecRegfileReads;
     Stats::Scalar vecRegfileWrites;
+    //number of predicate register file accesses
+    mutable Stats::Scalar predRegfileReads;
+    Stats::Scalar predRegfileWrites;
     //number of CC register file accesses
     Stats::Scalar ccRegfileReads;
     Stats::Scalar ccRegfileWrites;

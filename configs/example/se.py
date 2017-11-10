@@ -1,4 +1,4 @@
-# Copyright (c) 2012-2013 ARM Limited
+# Copyright (c) 2012-2013, 2017 ARM Limited
 # All rights reserved.
 #
 # The license below extends only to copyright in the software and shall
@@ -248,6 +248,11 @@ for i in xrange(np):
         system.cpu[i].addCheckerCpu()
 
     system.cpu[i].createThreads()
+
+    if buildEnv['TARGET_ISA'] == 'arm':
+        # Set ARM SVE vector length
+        for t in xrange(numThreads):
+            system.cpu[i].isa[t].zidr_el1 = int(options.arm_sve_vl) - 1
 
 if options.ruby:
     Ruby.create_system(options, False, system)
