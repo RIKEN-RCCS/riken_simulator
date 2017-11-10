@@ -3,7 +3,9 @@
 This branch hosts a work-in-progress version of gem5 with support for the Arm
 Scalable Vector Extension (SVE).  The aim of this branch is to provide early
 access to interested parties, while work is carried out for gradually
-upstreaming the contributions to the "master" branch.
+upstreaming the contributions to the "master" branch.  Please note that changes
+to the codebase are expected as the code will be rebased on top of a more
+recent changeset from "master" in the near future.
 
 At the moment SVE is supported for all CPU models in syscall-emulation mode.
 See the next section for the list of known issues and limitations.
