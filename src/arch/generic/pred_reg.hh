@@ -35,6 +35,7 @@
 //
 // Authors: Giacomo Gabrielli
 //          Rekai Gonzalez
+//          Javier Setoain
 
 #ifndef __ARCH_GENERIC_PRED_REG_HH__
 #define __ARCH_GENERIC_PRED_REG_HH__
@@ -112,6 +113,24 @@ class PredRegT
     operator[](size_t idx)
     {
         return container[idx * (Packed ? 1 : sizeof(VecElem))];
+    }
+
+    /// Return an element of the predicate register as it appears
+    /// in the raw (untyped) internal representation
+    uint8_t
+    get_raw(size_t idx) const
+    {
+        return container.get_bits(idx * (Packed ? 1 : sizeof(VecElem)),
+                (Packed ? 1 : sizeof(VecElem)));
+    }
+
+    /// Write a raw value in an element of the predicate register
+    template<bool Condition = !Const>
+    typename std::enable_if<Condition, void>::type
+    set_raw(size_t idx, uint8_t val)
+    {
+        container.set_bits(idx * (Packed ? 1 : sizeof(VecElem)),
+                (Packed ? 1 : sizeof(VecElem)), val);
     }
 
     /// Equality operator, required to compare thread contexts.
@@ -271,6 +290,31 @@ class PredRegContainer
     /// Returns a const reference to a specific element of the internal
     /// container.
     const bool& operator[](size_t idx) const { return container[idx]; }
+
+    /// Returns a subset of bits starting from a specific element in the
+    /// container.
+    uint8_t get_bits(size_t idx, uint8_t nbits) const
+    {
+        assert(nbits > 0 && nbits <= 8 && (idx + nbits - 1) < NumBits);
+        uint8_t v = 0;
+        idx = idx + nbits - 1;
+        for (int i = 0; i < nbits; ++i, --idx) {
+            v <<= 1;
+            v |= container[idx];
+        }
+        return v;
+    }
+
+    /// Set a subset of bits starting from a specific element in the
+    /// container.
+    void set_bits(size_t idx, uint8_t nbits, uint8_t bval)
+    {
+        assert(nbits > 0 && nbits <= 8 && (idx + nbits - 1) < NumBits);
+        for (int i = 0; i < nbits; ++i, ++idx) {
+            container[idx] = bval & 1;
+            bval >>= 1;
+        }
+    }
 
     /// Returns a string representation of the register content.
     const std::string print() const { return csprintf("%s", *this); }
