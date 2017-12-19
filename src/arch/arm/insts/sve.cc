@@ -704,12 +704,16 @@ sveDecodePredCount(uint8_t imm, unsigned int num_elems)
 uint64_t
 sveExpandFpImmAddSub(uint8_t imm, uint8_t size)
 {
+    static constexpr uint16_t fpOne16 = 0x3c00;
+    static constexpr uint16_t fpPointFive16 = 0x3800;
     static constexpr uint32_t fpOne32 = 0x3f800000;
     static constexpr uint32_t fpPointFive32 = 0x3f000000;
     static constexpr uint64_t fpOne64 = 0x3ff0000000000000;
     static constexpr uint64_t fpPointFive64 = 0x3fe0000000000000;
 
     switch (size) {
+      case 0x1:
+        return imm ? fpOne16 : fpPointFive16;
       case 0x2:
         return imm ? fpOne32 : fpPointFive32;
       case 0x3:
@@ -722,10 +726,13 @@ sveExpandFpImmAddSub(uint8_t imm, uint8_t size)
 uint64_t
 sveExpandFpImmMaxMin(uint8_t imm, uint8_t size)
 {
+    static constexpr uint16_t fpOne16 = 0x3c00;
     static constexpr uint32_t fpOne32 = 0x3f800000;
     static constexpr uint64_t fpOne64 = 0x3ff0000000000000;
 
     switch (size) {
+      case 0x1:
+        return imm ? fpOne16 : 0x0;
       case 0x2:
         return imm ? fpOne32 : 0x0;
       case 0x3:
@@ -738,12 +745,16 @@ sveExpandFpImmMaxMin(uint8_t imm, uint8_t size)
 uint64_t
 sveExpandFpImmMul(uint8_t imm, uint8_t size)
 {
+    static constexpr uint16_t fpTwo16 = 0x4000;
+    static constexpr uint16_t fpPointFive16 = 0x3800;
     static constexpr uint32_t fpTwo32 = 0x40000000;
     static constexpr uint32_t fpPointFive32 = 0x3f000000;
     static constexpr uint64_t fpTwo64 = 0x4000000000000000;
     static constexpr uint64_t fpPointFive64 = 0x3fe0000000000000;
 
     switch (size) {
+      case 0x1:
+        return imm ? fpTwo16 : fpPointFive16;
       case 0x2:
         return imm ? fpTwo32 : fpPointFive32;
       case 0x3:

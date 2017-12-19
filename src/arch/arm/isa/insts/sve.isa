@@ -195,6 +195,8 @@ output header {{
                         IntRegIndex dest, IntRegIndex op1, IntRegIndex gp)
     {
         switch (size) {
+          case 1:
+            return new Base<uint16_t>(machInst, dest, op1, gp);
           case 2:
             return new Base<uint32_t>(machInst, dest, op1, gp);
           case 3:
@@ -233,9 +235,8 @@ output header {{
                           IntRegIndex dest, IntRegIndex op1)
     {
         switch (size) {
-          // TODO: enable half-prec. support
-          // case 1:
-          //   return new Base<uint16_t>(machInst, dest, op1);
+          case 1:
+            return new Base<uint16_t>(machInst, dest, op1);
           case 2:
             return new Base<uint32_t>(machInst, dest, op1);
           case 3:
@@ -376,9 +377,8 @@ output header {{
             uint64_t immediate, IntRegIndex gp)
     {
         switch (size) {
-          // TODO: enable half-prec. support
-          // case 1:
-          //   return new Base<uint16_t>(machInst, dest, immediate, gp);
+          case 1:
+            return new Base<uint16_t>(machInst, dest, immediate, gp);
           case 2:
             return new Base<uint32_t>(machInst, dest, immediate, gp);
           case 3:
@@ -438,9 +438,8 @@ output header {{
             IntRegIndex dest, uint64_t immediate)
     {
         switch (size) {
-          // TODO: enable half-prec. support
-          // case 1:
-          //   return new Base<uint16_t>(machInst, dest, immediate);
+          case 1:
+            return new Base<uint16_t>(machInst, dest, immediate);
           case 2:
             return new Base<uint32_t>(machInst, dest, immediate);
           case 3:
@@ -484,9 +483,8 @@ output header {{
             IntRegIndex dest, uint64_t immediate, IntRegIndex gp)
     {
         switch (size) {
-          // TODO: enable half-prec. support
-          // case 1:
-          //   return new Base<uint16_t>(machInst, dest, immediate, gp);
+          case 1:
+            return new Base<uint16_t>(machInst, dest, immediate, gp);
           case 2:
             return new Base<uint32_t>(machInst, dest, immediate, gp);
           case 3:
@@ -546,9 +544,8 @@ output header {{
                            IntRegIndex dest, IntRegIndex op2, IntRegIndex gp)
     {
         switch (size) {
-          // TODO: enable half-prec. support
-          // case 1:
-          //   return new Base<uint16_t>(machInst, dest, op2, gp);
+          case 1:
+            return new Base<uint16_t>(machInst, dest, op2, gp);
           case 2:
             return new Base<uint32_t>(machInst, dest, op2, gp);
           case 3:
@@ -666,9 +663,8 @@ output header {{
             IntRegIndex op1, IntRegIndex op2)
     {
         switch (size) {
-          // TODO: enable half-prec. support
-          // case 1:
-          //   return new Base<uint16_t>(machInst, dest, op1, op2);
+          case 1:
+            return new Base<uint16_t>(machInst, dest, op1, op2);
           case 2:
             return new Base<uint32_t>(machInst, dest, op1, op2);
           case 3:
@@ -687,9 +683,8 @@ output header {{
                   IntRegIndex gp)
     {
         switch (size) {
-          // TODO: enable half-prec. support
-          // case 1:
-          //   return new Base<uint16_t>(machInst, dest, op1, op2, gp);
+          case 1:
+            return new Base<uint16_t>(machInst, dest, op1, op2, gp);
           case 2:
             return new Base<uint32_t>(machInst, dest, op1, op2, gp);
           case 3:
@@ -709,9 +704,8 @@ output header {{
                      IntRegIndex gp)
     {
         switch (size) {
-          // TODO: enable half-prec. support
-          // case 1:
-          //   return new Base<uint16_t>(machInst, dest, op1, imm, gp);
+          case 1:
+            return new Base<uint16_t>(machInst, dest, op1, imm, gp);
           case 2:
             return new Base<uint32_t>(machInst, dest, op1, imm, gp);
           case 3:
@@ -923,9 +917,8 @@ output header {{
                       IntRegIndex gp)
     {
         switch (size) {
-          // TODO: enable half-prec. support
-          // case 1:
-          //   return new Base<uint16_t>(machInst, dest, op1, op2, gp);
+          case 1:
+            return new Base<uint16_t>(machInst, dest, op1, op2, gp);
           case 2:
             return new Base<uint32_t>(machInst, dest, op1, op2, gp);
           case 3:
@@ -943,9 +936,8 @@ output header {{
                            IntRegIndex dest, IntRegIndex op2, uint8_t imm)
     {
         switch (size) {
-          // TODO: enable half-prec. support
-          // case 1:
-          //   return new Base<uint16_t>(machInst, dest, op2, imm);
+          case 1:
+            return new Base<uint16_t>(machInst, dest, op2, imm);
           case 2:
             return new Base<uint32_t>(machInst, dest, op2, imm);
           case 3:
@@ -2481,7 +2473,7 @@ let {{
         header_output += SvePredicateUnaryOpDeclare.subst(iop)
         exec_output += SveNonTemplatedOpExecute.subst(iop)
 
-    fpTypes = ('uint32_t', 'uint64_t')
+    fpTypes = ('uint16_t', 'uint32_t', 'uint64_t')
     signedTypes = ('int8_t', 'int16_t', 'int32_t', 'int64_t')
     unsignedTypes = ('uint8_t', 'uint16_t', 'uint32_t', 'uint64_t')
 

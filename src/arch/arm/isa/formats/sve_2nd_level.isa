@@ -435,11 +435,9 @@ namespace Aarch64
                     return decodeSveUnaryPredU<SveCnot>(
                             esize, machInst, zd, zn, pg);
                 case 4:
-                    if (esize < 2) break;
                     return decodeSveUnaryPredF<SveFabs>(
                             esize, machInst, zd, zn, pg);
                 case 5:
-                    if (esize < 2) break;
                     return decodeSveUnaryPredF<SveFneg>(
                             esize, machInst, zd, zn, pg);
                 case 6:
