@@ -217,7 +217,7 @@ SveUnaryWideImmPredOp::generateDisassembly(Addr pc,
 }
 
 std::string
-SveBinImmUnpredOp::generateDisassembly(Addr pc,
+SveBinImmUnpredConstrOp::generateDisassembly(Addr pc,
         const SymbolTable *symtab) const
 {
     std::stringstream ss;
@@ -623,6 +623,37 @@ SvePredUnaryOp::generateDisassembly(Addr pc,
     std::stringstream ss;
     printMnemonic(ss, "", false);
     printPredReg(ss, dest);
+    return ss.str();
+}
+
+std::string
+SveBinImmUnpredDestrOp::generateDisassembly(Addr pc,
+        const SymbolTable *symtab) const
+{
+    std::stringstream ss;
+    printMnemonic(ss, "", false);
+    printVecReg(ss, dest, true);
+    ccprintf(ss, ", ");
+    printVecReg(ss, dest, true);
+    ccprintf(ss, ", ");
+    printVecReg(ss, op1, true);
+    ccprintf(ss, ", #");
+    ss << imm;
+    return ss.str();
+}
+
+std::string
+SveBinImmIdxUnpredOp::generateDisassembly(Addr pc,
+        const SymbolTable *symtab) const
+{
+    std::stringstream ss;
+    printMnemonic(ss, "", false);
+    printVecReg(ss, dest, true);
+    ccprintf(ss, ", ");
+    printVecReg(ss, op1, true);
+    ccprintf(ss, "[");
+    ss << imm;
+    ccprintf(ss, "]");
     return ss.str();
 }
 

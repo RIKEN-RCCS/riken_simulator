@@ -1682,7 +1682,7 @@ let {{
         }'''
         iop = InstObjParams(name, 'Sve' + Name,
                 'SveBinImmPredOp' if predType != PredType.NONE
-                else 'SveBinImmUnpredOp',
+                else 'SveBinImmUnpredConstrOp',
                 {'code': code, 'op_class': opClass}, [])
         if predType != PredType.NONE:
             header_output += SveBinImmPredOpDeclare.subst(iop)
@@ -2473,6 +2473,115 @@ let {{
         header_output += SvePredicateUnaryOpDeclare.subst(iop)
         exec_output += SveNonTemplatedOpExecute.subst(iop)
 
+    # Generate definition for SVE Ext instruction
+    def sveExtInst(name, Name, opClass, decoder = 'Generic'):
+        global header_output, exec_output, decoders
+        code = sveEnabledCheckCode + '''
+        unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
+                xc->tcBase());
+        uint64_t pos = imm;
+        if (pos >= eCount)
+            pos = 0;
+        for (int i = 0; i < eCount; ++i, ++pos)
+        {
+            if (pos < eCount)
+                AA64FpDest_x[i] = AA64FpDestMerge_x[pos];
+            else
+                AA64FpDest_x[i] = AA64FpOp1_x[pos-eCount];
+        }
+        '''
+        iop = InstObjParams(name, 'Sve' + Name, 'SveBinImmUnpredDestrOp',
+                {'code': code, 'op_class': opClass}, [])
+        header_output += SveBinImmUnpredOpDeclare.subst(iop);
+        exec_output += SveOpExecute.subst(iop)
+        substDict = {'targs': 'uint8_t', 'class_name': 'Sve' + Name}
+        exec_output += SveOpExecDeclare.subst(substDict)
+
+    # Generate definition for SVE Slice instruction
+    def sveSpliceInst(name, Name, opClass, types, decoder = 'Generic'):
+        global header_output, exec_output, decoders
+        code = sveEnabledCheckCode + '''
+        unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
+                xc->tcBase());
+        int firstelem = -1, lastelem = -2;
+        for (int i = 0; i < eCount; ++i) {
+            if (GpOp_x[i]) {
+                lastelem = i;
+                if (firstelem < 0)
+                    firstelem = i;
+            }
+        }
+        int x = 0;
+        for (int i = firstelem; i <= lastelem; ++i, ++x) {
+            AA64FpDest_x[x] = AA64FpDestMerge_x[i];
+        }
+        int remaining = eCount - x;
+        for (int i = 0; i < remaining; ++i, ++x) {
+            AA64FpDest_x[x] = AA64FpOp2_x[i];
+        }
+        '''
+        iop = InstObjParams(name, 'Sve' + Name, 'SveBinDestrPredOp',
+                {'code': code, 'op_class': opClass}, [])
+        header_output += SveBinDestrPredOpDeclare.subst(iop)
+        exec_output += SveOpExecute.subst(iop)
+        for type in types:
+            substDict = {'targs': type, 'class_name': 'Sve' + Name}
+            exec_output += SveOpExecDeclare.subst(substDict)
+
+    # Generate definition for SVE DUP (index) instruction
+    def sveDupIndexInst(name, Name, opClass, types, decoder = 'Generic'):
+        global header_output, exec_output, decoders
+        code = sveEnabledCheckCode + '''
+        unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
+                xc->tcBase());
+        Element srcElem1 = 0;
+        if (imm < eCount) {
+            srcElem1 = AA64FpOp1_x[imm];
+        }
+        for (int i = 0; i < eCount; ++i) {
+            AA64FpDest_x[i] = srcElem1;
+        }'''
+        iop = InstObjParams(name, 'Sve' + Name, 'SveBinImmIdxUnpredOp',
+                {'code': code, 'op_class': opClass}, [])
+        header_output += SveBinImmUnpredOpDeclare.subst(iop)
+        exec_output += SveOpExecute.subst(iop)
+        for type in types:
+            substDict = {'targs': type, 'class_name': 'Sve' + Name}
+            exec_output += SveOpExecDeclare.subst(substDict)
+
+    # Generate definition for SVE reverse elements instructions
+    def sveReverseElementsInst(name, Name, opClass, types,
+            srcType = SrcRegType.Vector, decoder = 'Generic'):
+        assert srcType in (SrcRegType.Vector, SrcRegType.Predicate)
+        global header_output, exec_output, decoders
+        extraPrologCode = '''
+        auto& destPred = PDest;'''
+        code = sveEnabledCheckCode + '''
+        unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
+                xc->tcBase());'''
+        if srcType == SrcRegType.Predicate:
+            code += '''
+        PDest_x[0] = 0;'''
+        code += '''
+        for (int i = 0; i < eCount; ++i) {'''
+        if srcType == SrcRegType.Vector:
+            code += '''
+            AA64FpDest_x[i] = AA64FpOp1_x[eCount - i - 1];'''
+        else:
+            code += '''
+            destPred.set_raw(i, POp1_x.get_raw(eCount - i - 1));'''
+        code += '''
+        }'''
+        iop = InstObjParams(name, 'Sve' + Name, 'SveUnaryUnpredOp',
+                {'code': code, 'op_class': opClass}, [])
+        if srcType == SrcRegType.Predicate:
+            iop.snippets['code'] = extraPrologCode + iop.snippets['code']
+        header_output += SveUnaryUnpredOpDeclare.subst(iop)
+        exec_output += SveOpExecute.subst(iop)
+        for type in types:
+            substDict = {'targs': type, 'class_name': 'Sve' + Name}
+            exec_output += SveOpExecDeclare.subst(substDict)
+
     fpTypes = ('uint16_t', 'uint32_t', 'uint64_t')
     signedTypes = ('int8_t', 'int16_t', 'int32_t', 'int64_t')
     unsignedTypes = ('uint8_t', 'uint16_t', 'uint32_t', 'uint64_t')
@@ -2852,6 +2961,8 @@ let {{
     # DUP (immediate)
     sveWideImmInst('dup', 'DupImm', 'SimdAluOp', unsignedTypes, dupCode,
                    isUnary=True)
+    # DUP (index)
+    sveDupIndexInst('mov', 'DupIdx', 'SimdAluOp', unsignedTypes)
     # DUP (scalar)
     sveUnaryInst('dup', 'DupScalar', 'SimdAluOp', unsignedTypes, dupCode,
                  PredType.NONE, srcRegType=SrcRegType.Scalar)
@@ -2876,6 +2987,8 @@ let {{
     eorvCode = 'destElem ^= srcElem1;'
     sveAssocReducInst('eorv', 'Eorv', 'SimdReduceAluOp', unsignedTypes,
                       eorvCode, '0')
+    # EXT
+    sveExtInst('ext', 'Ext', 'SimdAluOp')
     # FABD
     fpOp = '''
             FPSCR fpscr = (FPSCR) FpscrExc;
@@ -3413,6 +3526,11 @@ let {{
     # PUNPKLO
     sveUnpackInst('punpklo', 'Punpklo', 'SimdPredAluOp', unsignedWideSDTypes,
             unpackHalf = Unpack.Low, regType = SrcRegType.Predicate)
+    # RBIT
+    rbitCode = '''
+        destElem = reverseBits(srcElem1);'''
+    sveUnaryInst('rbit', 'Rbit', 'SimdAluOp', unsignedTypes, rbitCode,
+            predType=PredType.MERGE, srcRegType=SrcRegType.Vector)
     # RDVL
     rdvlCode = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<uint8_t>(
@@ -3423,6 +3541,32 @@ let {{
     header_output += RegImmOpDeclare.subst(rdvlIop)
     decoder_output += RegImmOpConstructor.subst(rdvlIop)
     exec_output += BasicExecute.subst(rdvlIop)
+    # REV (predicate)
+    sveReverseElementsInst('rev', 'Revp', 'SimdPredAluOp', unsignedTypes,
+            srcType = SrcRegType.Predicate)
+    # REV (vector)
+    sveReverseElementsInst('rev', 'Revv', 'SimdAluOp', unsignedTypes,
+            srcType = SrcRegType.Vector)
+    # REVB
+    revCode = '''
+        %(revtype)s* srcPtr = reinterpret_cast<%(revtype)s*>(&srcElem1);
+        %(revtype)s* dstPtr = reinterpret_cast<%(revtype)s*>(&destElem);
+        uint8_t subelements = sizeof(Element) / sizeof(%(revtype)s);
+        for(int i = 0; i < subelements; ++i) {
+            dstPtr[subelements - i - 1] = srcPtr[i];
+        }'''
+    sveUnaryInst('revb', 'Revb', 'SimdAluOp',
+            ['uint16_t', 'uint32_t', 'uint64_t'],
+            revCode % {'revtype' : 'uint8_t'}, predType=PredType.MERGE,
+            srcRegType=SrcRegType.Vector, decoder='Generic')
+    # REVH
+    sveUnaryInst('revh', 'Revh', 'SimdAluOp', ['uint32_t', 'uint64_t'],
+            revCode % {'revtype' : 'uint16_t'}, predType=PredType.MERGE,
+            srcRegType=SrcRegType.Vector, decoder='Generic')
+    # REVW
+    sveUnaryInst('revw', 'Revw', 'SimdAluOp', ['uint64_t'],
+            revCode % {'revtype' : 'uint32_t'}, predType=PredType.MERGE,
+            srcRegType=SrcRegType.Vector, decoder='Generic')
     # SABD
     abdCode = '''
             destElem = (srcElem1 > srcElem2) ? (srcElem1 - srcElem2) :
@@ -3575,6 +3719,8 @@ let {{
     destElem = do_mulh(srcElem1, srcElem2);'''
     sveBinInst('smulh', 'Smulh', 'SimdMultOp', signedTypes, mulhCode,
                PredType.MERGE, True)
+    # SPLICE
+    sveSpliceInst('splice', 'Splice', 'SimdAluOp', unsignedTypes)
     # SQADD (immediate)
     sqaddCode = '''
             destElem = srcElem1 + srcElem2;

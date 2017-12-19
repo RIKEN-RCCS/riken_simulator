@@ -241,12 +241,12 @@ class SveUnaryWideImmPredOp : public ArmStaticInst {
 };
 
 /// Binary with immediate, destructive, unpredicated SVE instruction.
-class SveBinImmUnpredOp : public ArmStaticInst {
+class SveBinImmUnpredConstrOp : public ArmStaticInst {
   protected:
     IntRegIndex dest, op1;
     uint64_t imm;
 
-    SveBinImmUnpredOp(const char* mnem, ExtMachInst _machInst,
+    SveBinImmUnpredConstrOp(const char* mnem, ExtMachInst _machInst,
             OpClass __opClass, IntRegIndex _dest, IntRegIndex _op1,
             uint64_t _imm) :
         ArmStaticInst(mnem, _machInst, __opClass),
@@ -656,6 +656,38 @@ class SvePredUnaryOp : public ArmStaticInst {
         ArmStaticInst(mnem, _machInst, __opClass),
         dest(_dest)
     {}
+    std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;
+};
+
+/// SVE vector - immediate binary operation
+class SveBinImmUnpredDestrOp : public ArmStaticInst {
+  protected:
+    IntRegIndex dest;
+    IntRegIndex op1;
+    uint64_t imm;
+
+    SveBinImmUnpredDestrOp(const char* mnem, ExtMachInst _machInst,
+            OpClass __opClass, IntRegIndex _dest, IntRegIndex _op1,
+            uint64_t _imm) :
+        ArmStaticInst(mnem, _machInst, __opClass),
+        dest(_dest), op1(_op1), imm(_imm)
+    {}
+    std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;
+};
+
+/// Binary with immediate index, destructive, unpredicated SVE instruction.
+class SveBinImmIdxUnpredOp : public ArmStaticInst {
+  protected:
+    IntRegIndex dest, op1;
+    uint64_t imm;
+
+    SveBinImmIdxUnpredOp(const char* mnem, ExtMachInst _machInst,
+            OpClass __opClass, IntRegIndex _dest, IntRegIndex _op1,
+            uint64_t _imm) :
+        ArmStaticInst(mnem, _machInst, __opClass),
+        dest(_dest), op1(_op1), imm(_imm)
+    {}
+
     std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;
 };
 
