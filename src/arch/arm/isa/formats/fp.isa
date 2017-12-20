@@ -1,6 +1,6 @@
 // -*- mode:c++ -*-
 
-// Copyright (c) 2010-2011,2016 ARM Limited
+// Copyright (c) 2010-2011, 2016-2017 ARM Limited
 // All rights reserved
 //
 // The license below extends only to copyright in the software and shall
@@ -2393,11 +2393,11 @@ let {{
                 const uint32_t baseImm =
                     bits(machInst, 3, 0) | (bits(machInst, 19, 16) << 4);
                 if (single) {
-                    uint32_t imm = vfp_modified_imm(baseImm, false);
+                    uint32_t imm = vfp_modified_imm(baseImm, 2);
                     return decodeVfpRegImmOp<VmovImmS>(
                             machInst, vd, imm, false);
                 } else {
-                    uint64_t imm = vfp_modified_imm(baseImm, true);
+                    uint64_t imm = vfp_modified_imm(baseImm, 3);
                     return decodeVfpRegImmOp<VmovImmD>(
                             machInst, vd, imm, true);
                 }

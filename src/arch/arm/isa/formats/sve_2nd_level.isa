@@ -964,8 +964,7 @@ namespace Aarch64
                 }
             }
         } else if (bits(machInst, 15, 13) == 0x6 && size != 0x0) {
-            uint64_t imm = vfp_modified_imm(bits(machInst, 12, 5),
-                                            size == 0x3);
+            uint64_t imm = vfp_modified_imm(bits(machInst, 12, 5), size);
             return decodeSveWideImmPredF<SveFcpy>(
                         size, machInst, zd, imm, pg);
         }
@@ -2013,8 +2012,7 @@ namespace Aarch64
     {
         IntRegIndex zd = (IntRegIndex) (uint8_t) bits(machInst, 4, 0);
         uint8_t size = bits(machInst, 23, 22);
-        // TODO: vfp_modified_imm needs to be modified to support half-prec. FP
-        uint64_t imm = vfp_modified_imm(bits(machInst, 12, 5), size == 0x3);
+        uint64_t imm = vfp_modified_imm(bits(machInst, 12, 5), size);
 
         if (bits(machInst, 18, 17) == 0x0 && size != 0x0) {
             return decodeSveWideImmUnpredF<SveFdup>(size, machInst, zd, imm);

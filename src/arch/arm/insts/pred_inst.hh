@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2012-2013 ARM Limited
+ * Copyright (c) 2010, 2012-2013, 2017 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -159,20 +159,31 @@ simd_modified_imm(bool op, uint8_t cmode, uint8_t data, bool &immValid,
 }
 
 static inline uint64_t
-vfp_modified_imm(uint8_t data, bool wide)
+vfp_modified_imm(uint8_t data, uint8_t size)
 {
     uint64_t bigData = data;
     uint64_t repData;
-    if (wide) {
-        repData = bits(data, 6) ? 0xFF : 0;
-        bigData = (bits(bigData, 5, 0) << 48) |
-                  (repData << 54) | (bits(~bigData, 6) << 62) |
-                  (bits(bigData, 7) << 63);
-    } else {
+    switch (size) {
+    case 1:
+        repData = bits(data, 6) ? 0x3 : 0;
+        bigData = (bits(bigData, 5, 0) << 6) |
+                  (repData << 12) | (bits(~bigData, 6) << 14) |
+                  (bits(bigData, 7) << 15);
+        break;
+    case 2:
         repData = bits(data, 6) ? 0x1F : 0;
         bigData = (bits(bigData, 5, 0) << 19) |
                   (repData << 25) | (bits(~bigData, 6) << 30) |
                   (bits(bigData, 7) << 31);
+        break;
+    case 3:
+        repData = bits(data, 6) ? 0xFF : 0;
+        bigData = (bits(bigData, 5, 0) << 48) |
+                  (repData << 54) | (bits(~bigData, 6) << 62) |
+                  (bits(bigData, 7) << 63);
+        break;
+    default:
+        assert(0);
     }
     return bigData;
 }
