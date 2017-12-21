@@ -86,6 +86,7 @@ class BaseDynInst : public ExecContext, public RefCounted
 
     using LSQRequestPtr = typename Impl::CPUPol::LSQ::LSQRequest*;
     using LQIterator = typename Impl::CPUPol::LSQUnit::LQIterator;
+    using SQIterator = typename Impl::CPUPol::LSQUnit::SQIterator;
 
     // The DynInstPtr type.
     typedef typename Impl::DynInstPtr DynInstPtr;
@@ -231,6 +232,7 @@ class BaseDynInst : public ExecContext, public RefCounted
 
     /** Store queue index. */
     int16_t sqIdx;
+    SQIterator sqIt;
 
 
     /////////////////////// TLB Miss //////////////////////

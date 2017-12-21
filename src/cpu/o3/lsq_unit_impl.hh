@@ -303,15 +303,10 @@ LSQUnit<Impl>::insertLoad(const DynInstPtr &load_inst)
     DPRINTF(LSQUnit, "Inserting load PC %s, idx:%i [sn:%lli]\n",
             load_inst->pcState(), loadQueue.tail(), load_inst->seqNum);
 
-
     /* Grow the queue. */
     loadQueue.advance_tail();
 
-    if (stores == 0) {
-        load_inst->sqIdx = -1;
-    } else {
-        load_inst->sqIdx = storeQueue.add(storeQueue.tail(), 1);
-    }
+    load_inst->sqIt = storeQueue.end();
 
     assert(!loadQueue.back().valid());
     loadQueue.back().set(load_inst);

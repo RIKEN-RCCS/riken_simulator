@@ -675,26 +675,6 @@ class circularQueue : public std::vector<T>
         }
         return iterator(this, idx, round);
     }
-
-    /** Return an iterator to an index in the vector.
-     * Same as the previous except that in the case in which the queue is full
-     * and idx == head, in which case the past-the-end iterator is returned.
-     */
-    iterator getBoundaryIterator(size_t idx) {
-        assert(isValidIdx(idx) || add(_tail, 1) == idx);
-        if (_head == idx && (_empty || (add(_tail, 1) == _head)))
-            return end();
-
-        uint32_t round = _round;
-        if (idx > _tail) {
-            if (idx >= _head && _head > _tail && !_empty) {
-                round -= 1;
-            }
-        } else if (idx < _head && _tail + 1 == _size) {
-            round += 1;
-        }
-        return iterator(this, idx, round);
-    }
 };
 
 #endif /* __BASE_CIRCULARQUEUE_HH__ */

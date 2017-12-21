@@ -607,6 +607,7 @@ class LSQUnit {
     bool isStalled()  { return stalled; }
   public:
     typedef typename circularQueue<LQEntry>::iterator LQIterator;
+    typedef typename circularQueue<SQEntry>::iterator SQIterator;
     typedef circularQueue<LQEntry> LQueue;
     typedef circularQueue<SQEntry> SQueue;
 };
@@ -645,16 +646,9 @@ LSQUnit<Impl>::read(LSQRequest *req, int load_idx)
             load_inst->seqNum, load_inst->pcState());
     }
 
-    // Check the SQ for any previous stores that might lead to forwarding
-    int store_idx = load_inst->sqIdx;
-    auto store_it = store_idx == -1 ? storeQueue.begin()
-                       :  storeQueue.getBoundaryIterator(store_idx);
-
-    int store_size = 0;
-
     DPRINTF(LSQUnit, "Read called, load idx: %i, store idx: %i, "
             "storeHead: %i addr: %#x%s\n",
-            load_idx - 1, store_idx, storeQueue.head() - 1,
+            load_idx - 1, load_inst->sqIt._idx, storeQueue.head() - 1,
             req->mainRequest()->getPaddr(), req->isSplit() ? " split" : "");
 
     if (req->mainRequest()->isLLSC()) {
@@ -707,13 +701,16 @@ LSQUnit<Impl>::read(LSQRequest *req, int load_idx)
         return NoFault;
     }
 
+    // Check the SQ for any previous stores that might lead to forwarding
+    auto store_it = load_inst->sqIt;
     assert (store_it >= storeWBIt);
     // End once we've reached the top of the LSQ
     while (store_it != storeWBIt) {
         // Move the index to one younger
         store_it--;
         assert(store_it->valid());
-        store_size = store_it->size();
+        assert(store_it->instruction()->seqNum < load_inst->seqNum);
+        int store_size = store_it->size();
 
         // Cache maintenance instructions go down via the store
         // path but they carry no data and they shouldn't be
@@ -757,7 +754,7 @@ LSQUnit<Impl>::read(LSQRequest *req, int load_idx)
                         req->mainRequest()->getSize());
 
                 DPRINTF(LSQUnit, "Forwarding from store idx %i to load to "
-                        "addr %#x\n", store_idx,
+                        "addr %#x\n", store_it._idx,
                         req->mainRequest()->getVaddr());
 
                 PacketPtr data_pkt = new Packet(req->mainRequest(),
@@ -816,7 +813,7 @@ LSQUnit<Impl>::read(LSQRequest *req, int load_idx)
                 // complete.
                 DPRINTF(LSQUnit, "Load-store forwarding mis-match. "
                         "Store idx %i to load addr %#x\n",
-                        store_idx, req->mainRequest()->getVaddr());
+                        store_it._idx, req->mainRequest()->getVaddr());
 
                 // Must delete request now that it wasn't handed off to
                 // memory.  This is quite ugly.  @todo: Figure out the
