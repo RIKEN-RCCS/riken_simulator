@@ -426,12 +426,11 @@ class LSQ {
         void
         packetSent()
         {
-            flags[(int)Flag::Retry] = 0;
             flags[(int)Flag::Sent] = 1;
         }
         /** Update the status to reflect that a packet was not sent.
          * When a packet fails to be sent, we mark the request as needing a
-         * retry.
+         * retry. Note that Retry flag is sticky.
          */
         void
         packetNotSent()
@@ -612,21 +611,6 @@ class LSQ {
         RequestPtr mainReq;
         PacketPtr _mainPacket;
 
-        /** Event to step between cache accesses.
-         * When a packet response arrives, if there are fragments to be sent,
-         * an instance of this event is scheduled to deal with the next
-         * fragment.
-         */
-        class CacheAccessEvent : public Event
-        {
-          protected:
-            SplitDataRequest& owner;
-          public:
-            CacheAccessEvent(SplitDataRequest& owner_) : owner(owner_) { }
-          void process() { owner.sendPacketToCache(); }
-        };
-
-        CacheAccessEvent cacheAccessEvent;
 
       public:
         SplitDataRequest(LSQUnit* port, const DynInstPtr& inst, bool isLoad,
@@ -639,8 +623,7 @@ class LSQ {
             numOutstandingPackets(0),
             numReceivedPackets(0),
             mainReq(nullptr),
-            _mainPacket(nullptr),
-            cacheAccessEvent(*this)
+            _mainPacket(nullptr)
         {
             flags[(int)Flag::IsSplit] = true;
         }

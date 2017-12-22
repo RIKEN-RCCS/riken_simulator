@@ -925,9 +925,6 @@ LSQ<Impl>::SplitDataRequest::recvTimingResp(PacketPtr pkt)
     assert(pktIdx < _packets.size());
     assert(pkt->req == _requests[pktIdx]);
     assert(pkt == _packets[pktIdx]);
-    /* We can clear the packet, as the instruction will be passed an
-     * artificial packet, unlike with the SingleDataRequest. */
-    _packets[pktIdx] = nullptr;
     numReceivedPackets++;
     state->outstanding--;
     if (numReceivedPackets == _packets.size()) {
@@ -944,9 +941,6 @@ LSQ<Impl>::SplitDataRequest::recvTimingResp(PacketPtr pkt)
         resp->senderState = _senderState;
         _port.completeDataAccess(resp);
         delete resp;
-    } else {
-        assert(!cacheAccessEvent.scheduled());
-        _port.schedule(cacheAccessEvent, curTick());
     }
     return true;
 }
@@ -957,16 +951,15 @@ LSQ<Impl>::SingleDataRequest::buildPackets()
 {
     assert(_senderState);
     /* Retries do not create new packets. */
-    if (flags[(int)Flag::Retry] == 0) {
+    if (_packets.size() == 0) {
         _packets.push_back(
                 isLoad()
                     ?  Packet::createRead(request())
                     :  Packet::createWrite(request()));
         _packets.back()->dataStatic(_inst->memData);
         _packets.back()->senderState = _senderState;
-    } else {
-        assert(_packets.size() == 1);
     }
+    assert(_packets.size() == 1);
 }
 
 template<class Impl>
@@ -975,7 +968,7 @@ LSQ<Impl>::SplitDataRequest::buildPackets()
 {
     /* Extra data?? */
     ptrdiff_t offset = 0;
-    if (flags[(int)Flag::Retry] == 0) {
+    if (_packets.size() == 0) {
         /* New stuff */
         if (isLoad()) {
             _mainPacket = Packet::createRead(mainReq);
@@ -997,9 +990,8 @@ LSQ<Impl>::SplitDataRequest::buildPackets()
             pkt->senderState = _senderState;
             _packets.push_back(pkt);
         }
-    } else {
-        assert(_packets.size() == _requests.size());
     }
+    assert(_packets.size() == _requests.size());
 }
 
 template<class Impl>
