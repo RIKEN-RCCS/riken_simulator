@@ -99,14 +99,13 @@ bool
 LSQUnit<Impl>::recvTimingResp(PacketPtr pkt)
 {
     auto senderState = dynamic_cast<LSQSenderState*>(pkt->senderState);
+    LSQRequest* req = senderState->request();
+    assert(req != nullptr);
     bool ret = true;
     /* Check that the request is still alive before any further action. */
     if (senderState->alive()) {
-        LSQRequest* req = senderState->request();
         ret = req->recvTimingResp(pkt);
     } else {
-        auto r = senderState->request();
-        assert(r != nullptr);
         senderState->outstanding--;
     }
     return ret;
