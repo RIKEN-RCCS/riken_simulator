@@ -378,11 +378,8 @@ LSQUnit<Impl>::checkSnoop(PacketPtr pkt)
     // Should only ever get invalidations in here
     assert(pkt->isInvalidate());
 
-    uint32_t load_idx = loadQueue.head();
     DPRINTF(LSQUnit, "Got snoop for address %#x\n", pkt->getAddr());
 
-    // Only Invalidate packet calls checkSnoop
-    assert(pkt->isInvalidate());
     for (int x = 0; x < cpu->numContexts(); x++) {
         ThreadContext *tc = cpu->getContext(x);
         bool no_squash = cpu->thread[x]->noSquashFromTC;
@@ -391,35 +388,31 @@ LSQUnit<Impl>::checkSnoop(PacketPtr pkt)
         cpu->thread[x]->noSquashFromTC = no_squash;
     }
 
-    Addr invalidate_addr = pkt->getAddr() & cacheBlockMask;
-
-    DynInstPtr ld_inst = loadQueue[load_idx].instruction();
-    if (ld_inst) {
-        Addr load_addr_low = ld_inst->physEffAddrLow & cacheBlockMask;
-        Addr load_addr_high = ld_inst->physEffAddrHigh & cacheBlockMask;
-
-        // Check that this snoop didn't just invalidate our lock flag
-        if (ld_inst->effAddrValid() && (load_addr_low == invalidate_addr
-                                        || load_addr_high == invalidate_addr)
-            && ld_inst->memReqFlags & Request::LLSC)
-            TheISA::handleLockedSnoopHit(ld_inst.get());
-    }
-
-    // If this is the only load in the LSQ we don't care
     if (loadQueue.empty())
         return;
 
-    loadQueue.increase(load_idx);
+    auto iter = loadQueue.begin();
+
+    Addr invalidate_addr = pkt->getAddr() & cacheBlockMask;
+
+    DynInstPtr ld_inst = iter->instruction();
+    assert(ld_inst);
+    Addr load_addr_low = ld_inst->physEffAddrLow & cacheBlockMask;
+    Addr load_addr_high = ld_inst->physEffAddrHigh & cacheBlockMask;
+
+    // Check that this snoop didn't just invalidate our lock flag
+    if (ld_inst->effAddrValid() && (load_addr_low == invalidate_addr
+                                    || load_addr_high == invalidate_addr)
+        && ld_inst->memReqFlags & Request::LLSC)
+        TheISA::handleLockedSnoopHit(ld_inst.get());
 
     bool force_squash = false;
 
-    while (load_idx != loadQueue.tail()) {
-        DynInstPtr ld_inst = loadQueue[load_idx].instruction();
-
-        if (!ld_inst->effAddrValid() || ld_inst->strictlyOrdered()) {
-            loadQueue.increase(load_idx);
+    while (++iter != loadQueue.end()) {
+        ld_inst = iter->instruction();
+        assert(ld_inst);
+        if (!ld_inst->effAddrValid() || ld_inst->strictlyOrdered())
             continue;
-        }
 
         Addr load_addr_low = ld_inst->physEffAddrLow & cacheBlockMask;
         Addr load_addr_high = ld_inst->physEffAddrHigh & cacheBlockMask;
@@ -457,7 +450,6 @@ LSQUnit<Impl>::checkSnoop(PacketPtr pkt)
                 ld_inst->hitExternalSnoop(true);
             }
         }
-        loadQueue.increase(load_idx);
     }
     return;
 }
