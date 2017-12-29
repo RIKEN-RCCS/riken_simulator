@@ -266,7 +266,7 @@ class LSQ {
             numTranslatedFragments(0),
             numInTranslationFragments(0),
             _port(*port), _inst(inst), _data(data),
-            _res(nullptr), _addr(addr), _size(size),
+            _res(res), _addr(addr), _size(size),
             _flags(flags_),
             _writeByteEnable(writeByteEnable),
             _numOutstandingPackets(0)
