@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 ARM Limited
+ * Copyright (c) 2018 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -724,6 +724,20 @@ class SveBinImmIdxUnpredOp : public ArmStaticInst {
             uint64_t _imm) :
         ArmStaticInst(mnem, _machInst, __opClass),
         dest(_dest), op1(_op1), imm(_imm)
+    {}
+
+    std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;
+};
+
+/// Unary unpredicated scalar to vector instruction
+class SveUnarySca2VecUnpredOp : public ArmStaticInst {
+  protected:
+    IntRegIndex dest, op1;
+
+    SveUnarySca2VecUnpredOp(const char* mnem, ExtMachInst _machInst,
+            OpClass __opClass, IntRegIndex _dest, IntRegIndex _op1) :
+        ArmStaticInst(mnem, _machInst, __opClass),
+        dest(_dest), op1(_op1)
     {}
 
     std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;

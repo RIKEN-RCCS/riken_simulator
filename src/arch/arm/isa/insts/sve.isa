@@ -1,4 +1,4 @@
-// Copyright (c) 2017 ARM Limited
+// Copyright (c) 2018 ARM Limited
 // All rights reserved
 //
 // The license below extends only to copyright in the software and shall
@@ -2612,6 +2612,33 @@ let {{
             substDict = {'targs': type, 'class_name': 'Sve' + Name}
             exec_output += SveOpExecDeclare.subst(substDict)
 
+    # Generate definition for shift & insert instructions
+    def sveShiftAndInsertInst(name, Name, opClass, types,
+            srcType = SrcRegType.Scalar, decoder = 'Generic'):
+        assert srcType in (SrcRegType.Vector, SrcRegType.Scalar)
+        global header_output, exec_output, decoders
+        code = sveEnabledCheckCode + '''
+        unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
+                xc->tcBase());'''
+        if srcType == SrcRegType.Scalar:
+            code += '''
+            auto& srcElem1 = XOp1;'''
+        else:
+            code += '''
+            auto& srcElem1 = AA64FpOp1;'''
+        code += '''
+        for (int i = eCount - 1; i > 0; --i) {
+            AA64FpDest_x[i] = AA64FpDestMerge_x[i-1];
+        }
+        AA64FpDest_x[0] = srcElem1;'''
+        iop = InstObjParams(name, 'Sve' + Name, 'SveUnarySca2VecUnpredOp',
+                {'code': code, 'op_class': opClass}, [])
+        header_output += SveUnaryUnpredOpDeclare.subst(iop)
+        exec_output += SveOpExecute.subst(iop)
+        for type in types:
+            substDict = {'targs': type, 'class_name': 'Sve' + Name}
+            exec_output += SveOpExecDeclare.subst(substDict)
+
     fpTypes = ('uint16_t', 'uint32_t', 'uint64_t')
     signedTypes = ('int8_t', 'int16_t', 'int32_t', 'int64_t')
     unsignedTypes = ('uint8_t', 'uint16_t', 'uint32_t', 'uint64_t')
@@ -3385,6 +3412,9 @@ let {{
     sveIndex(IndexFormat.RegImm)
     # INDEX (scalars)
     sveIndex(IndexFormat.RegReg)
+    # INSR (scalar)
+    sveShiftAndInsertInst('insr', 'Insr', 'SimdAluOp', unsignedTypes,
+            srcType = SrcRegType.Scalar)
     # LASTA (scalar)
     lastaCode = '''
         last++;
