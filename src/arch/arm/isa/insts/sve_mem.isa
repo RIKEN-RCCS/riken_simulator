@@ -244,6 +244,9 @@ let {{
                 memDataView[i] = byte;
             }
             '''
+            storeWrEnableCode = '''
+            auto wrEn = std::vector<bool>(eCount / 8, true);
+            '''
         else:
             loadMemAccCode = '''
             for (int i = 0; i < eCount; i++) {
@@ -254,6 +257,9 @@ let {{
             for (int i = 0; i < eCount; i++) {
                 memDataView[i] = AA64FpDest_x[i];
             }
+            '''
+            storeWrEnableCode = '''
+            auto wrEn = std::vector<bool>(sizeof(MemElemType) * eCount, true);
             '''
         loadIop = InstObjParams('ldr',
             'SveLdrPred' if isPred else 'SveLdrVec',
@@ -269,6 +275,7 @@ let {{
             'SveMemPredFillSpill' if isPred else 'SveMemVecFillSpill',
             {'tpl_header': '',
              'tpl_args': '',
+             'wren_code': storeWrEnableCode,
              'memacc_code': storeMemAccCode,
              'ea_code' : sveEnabledCheckCode + eaCode,
              'fa_code' : ''},
@@ -348,6 +355,9 @@ let {{
             }
         }
         '''
+        storeWrEnableCode = '''
+        auto wrEn = std::vector<bool>(sizeof(MemElemType) * eCount, true);
+        '''
         loadIop = InstObjParams('ld1',
             'SveContigLoadSI' if offsetIsImm else 'SveContigLoadSS',
             'SveContigMemSI' if offsetIsImm else 'SveContigMemSS',
@@ -362,6 +372,7 @@ let {{
             'SveContigMemSI' if offsetIsImm else 'SveContigMemSS',
             {'tpl_header': tplHeader,
              'tpl_args': tplArgs,
+             'wren_code': storeWrEnableCode,
              'memacc_code': storeMemAccCode,
              'ea_code' : sveEnabledCheckCode + eaCode,
              'fa_code' : ''},

@@ -239,7 +239,7 @@ def template SveContigStoreExecute {{
         TheISA::VecRegContainer memData;
         auto memDataView = memData.as<MemElemType>();
 
-        auto wrEn = std::vector<bool>(sizeof(MemElemType) * eCount, true);
+        %(wren_code)s;
 
         if (fault == NoFault) {
             %(memacc_code)s;
@@ -276,7 +276,7 @@ def template SveContigStoreInitiateAcc {{
         TheISA::VecRegContainer memData;
         auto memDataView = memData.as<MemElemType>();
 
-        auto wrEn = std::vector<bool>(sizeof(MemElemType) * eCount, true);
+        %(wren_code)s;
 
         if (fault == NoFault) {
             %(memacc_code)s;
