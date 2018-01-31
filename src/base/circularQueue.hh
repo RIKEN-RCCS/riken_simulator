@@ -595,14 +595,14 @@ class circularQueue : public std::vector<T>
     }
 
     /** Is the queue empty? */
-    bool empty() { return _empty; }
+    bool empty() const { return _empty; }
 
     /** Is the queue full?
      * A queue is full if the head is the 0^{th} element and the tail is
      * the (size-1)^{th} element, or if the head is the n^{th} element and
      * the tail the (n-1)^{th} element.
      */
-    bool full() {
+    bool full() const {
         return !_empty &&
             (_tail + 1 == _head || (_tail + 1 == _size && _head == 0));
     }
