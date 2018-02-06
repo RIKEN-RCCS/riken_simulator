@@ -637,8 +637,8 @@ LSQ<Impl>::dumpInsts() const
 template<class Impl>
 Fault
 LSQ<Impl>::pushRequest(const DynInstPtr& inst, bool isLoad, uint8_t *data,
-            unsigned int size, Addr addr, unsigned int flags, uint64_t *res,
-            const std::vector<bool>& writeByteEnable)
+                       unsigned int size, Addr addr, Request::Flags flags,
+                       uint64_t *res, const std::vector<bool>& writeByteEnable)
 {
     /* TODO: Revisit if this setRequest is needed */
     inst->setRequest();

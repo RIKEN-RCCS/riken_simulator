@@ -243,7 +243,7 @@ class LSQ {
         uint64_t* _res;
         const Addr _addr;
         const uint32_t _size;
-        const uint32_t _flags;
+        const Request::Flags _flags;
         std::vector<bool> _writeByteEnable;
         uint32_t _numOutstandingPackets;
       protected:
@@ -259,9 +259,11 @@ class LSQ {
             install();
         }
         LSQRequest(LSQUnit* port, const DynInstPtr& inst, bool isLoad,
-                const Addr& addr, const uint32_t& size, const uint32_t& flags_,
-                PacketDataPtr data = nullptr, uint64_t* res = nullptr,
-                const std::vector<bool>& writeByteEnable = std::vector<bool>())
+                   const Addr& addr, const uint32_t& size,
+                   const Request::Flags& flags_,
+                   PacketDataPtr data = nullptr, uint64_t* res = nullptr,
+                   const std::vector<bool>& writeByteEnable =
+                   std::vector<bool>())
             : _state(State::NotIssued), _senderState(nullptr),
             numTranslatedFragments(0),
             numInTranslationFragments(0),
@@ -553,9 +555,12 @@ class LSQ {
         using LSQRequest::_numOutstandingPackets;
       public:
         SingleDataRequest(LSQUnit* port, const DynInstPtr& inst, bool isLoad,
-            const Addr& addr, const uint32_t& size, const uint32_t& flags_,
-            PacketDataPtr data = nullptr, uint64_t* res = nullptr,
-            const std::vector<bool>& writeByteEnable = std::vector<bool>()) :
+                          const Addr& addr, const uint32_t& size,
+                          const Request::Flags& flags_,
+                          PacketDataPtr data = nullptr,
+                          uint64_t* res = nullptr,
+                          const std::vector<bool>& writeByteEnable =
+                          std::vector<bool>()) :
             LSQRequest(port, inst, isLoad, addr, size, flags_, data, res,
                        writeByteEnable)
         {
@@ -614,9 +619,11 @@ class LSQ {
 
       public:
         SplitDataRequest(LSQUnit* port, const DynInstPtr& inst, bool isLoad,
-            const Addr& addr, const uint32_t& size, const uint32_t& flags_,
-            PacketDataPtr data = nullptr, uint64_t* res = nullptr,
-            const std::vector<bool>& writeByteEnable = std::vector<bool>()) :
+                         const Addr& addr, const uint32_t& size,
+                         const Request::Flags & flags_,
+                         PacketDataPtr data = nullptr, uint64_t* res = nullptr,
+                         const std::vector<bool>& writeByteEnable =
+                         std::vector<bool>()) :
             LSQRequest(port, inst, isLoad, addr, size, flags_, data, res,
                        writeByteEnable),
             numFragments(0),
@@ -876,8 +883,8 @@ class LSQ {
     void recvTimingSnoopReq(PacketPtr pkt);
 
     Fault pushRequest(const DynInstPtr& inst, bool isLoad, uint8_t *data,
-            unsigned int size, Addr addr, unsigned int flags, uint64_t *res,
-            const std::vector<bool>& writeByteEnable);
+                      unsigned int size, Addr addr, Request::Flags flags,
+                      uint64_t *res, const std::vector<bool>& writeByteEnable);
 
     /** The CPU pointer. */
     O3CPU *cpu;
