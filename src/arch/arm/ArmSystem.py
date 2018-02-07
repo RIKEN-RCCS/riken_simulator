@@ -78,6 +78,8 @@ class ArmSystem(System):
         "Supported physical address range in bits when using AArch64 (ARMv8)")
     have_large_asid_64 = Param.Bool(False,
         "True if ASID is 16 bits in AArch64 (ARMv8)")
+    have_sve = Param.Bool(True,
+        "True if SVE is implemented (ARMv8)")
 
     m5ops_base = Param.Addr(0,
         "Base of the 64KiB PA range used for memory-mapped m5ops. Set to 0 "

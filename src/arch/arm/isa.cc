@@ -82,6 +82,7 @@ ISA::ISA(Params *p)
         haveLPAE = system->haveLPAE();
         haveVirtualization = system->haveVirtualization();
         haveLargeAsid64 = system->haveLargeAsid64();
+        haveSVE = system->haveSVE();
         physAddrRange64 = system->physAddrRange64();
     } else {
         highestELIs64 = true; // ArmSystem::highestELIs64 does the same
@@ -648,7 +649,8 @@ ISA::readMiscReg(int misc_reg, ThreadContext *tc)
         return 0x0000000000000002   // AArch{64,32} supported at EL0
              | 0x0000000000000020                             // EL1
              | (haveVirtualization ? 0x0000000000000200 : 0)  // EL2
-             | (haveSecurity       ? 0x0000000000002000 : 0); // EL3
+             | (haveSecurity       ? 0x0000000000002000 : 0)  // EL3
+             | (haveSVE            ? 0x0000000100000000 : 0); // SVE
       case MISCREG_ID_AA64PFR1_EL1:
         return 0; // bits [63:0] RES0 (reserved for future use)
 

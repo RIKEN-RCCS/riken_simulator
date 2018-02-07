@@ -117,6 +117,11 @@ class ArmSystem : public System
     const bool _haveLargeAsid64;
 
     /**
+     * True if SVE is implemented (ARMv8)
+     */
+    const bool _haveSVE;
+
+    /**
      * Range for memory-mapped m5 pseudo ops. The range will be
      * invalid/empty if disabled.
      */
@@ -201,6 +206,9 @@ class ArmSystem : public System
 
     /** Returns true if ASID is 16 bits in AArch64 (ARMv8) */
     bool haveLargeAsid64() const { return _haveLargeAsid64; }
+
+    /** Returns true if SVE is implemented (ARMv8) */
+    bool haveSVE() const { return _haveSVE; }
 
     /** Returns the supported physical address range in bits if the highest
      * implemented exception level is 64 bits (ARMv8) */
