@@ -122,6 +122,11 @@ class ArmSystem : public System
     const bool _haveSVE;
 
     /**
+     * SVE vector length in 128-bit units (ARMv8)
+     */
+    const uint8_t _sveVL;
+
+    /**
      * Range for memory-mapped m5 pseudo ops. The range will be
      * invalid/empty if disabled.
      */
@@ -209,6 +214,9 @@ class ArmSystem : public System
 
     /** Returns true if SVE is implemented (ARMv8) */
     bool haveSVE() const { return _haveSVE; }
+
+    /** Returns SVE vector length in 128-bit units (ARMv8) */
+    uint8_t sveVL() const { return _sveVL; }
 
     /** Returns the supported physical address range in bits if the highest
      * implemented exception level is 64 bits (ARMv8) */

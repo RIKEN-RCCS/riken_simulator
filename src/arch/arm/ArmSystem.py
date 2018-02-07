@@ -51,6 +51,8 @@ class ArmMachineType(Enum):
         'DTOnly' : -1,
     }
 
+class SveVectorLength(UInt8) :  min = 1; max = 16
+
 class ArmSystem(System):
     type = 'ArmSystem'
     cxx_header = "arch/arm/system.hh"
@@ -80,6 +82,7 @@ class ArmSystem(System):
         "True if ASID is 16 bits in AArch64 (ARMv8)")
     have_sve = Param.Bool(True,
         "True if SVE is implemented (ARMv8)")
+    sve_vl = Param.SveVectorLength(2, "SVE vector length")
 
     m5ops_base = Param.Addr(0,
         "Base of the 64KiB PA range used for memory-mapped m5ops. Set to 0 "

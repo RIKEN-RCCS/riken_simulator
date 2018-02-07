@@ -90,6 +90,7 @@ namespace ArmISA
         bool haveVirtualization;
         bool haveLargeAsid64;
         bool haveSVE;
+        uint8_t sveVL;
         uint8_t physAddrRange64;
 
         /** MiscReg metadata **/
@@ -648,6 +649,7 @@ namespace ArmISA
             SERIALIZE_SCALAR(haveVirtualization);
             SERIALIZE_SCALAR(haveLargeAsid64);
             SERIALIZE_SCALAR(haveSVE);
+            SERIALIZE_SCALAR(sveVL);
             SERIALIZE_SCALAR(physAddrRange64);
         }
         void unserialize(CheckpointIn &cp)
@@ -663,6 +665,7 @@ namespace ArmISA
             UNSERIALIZE_SCALAR(haveVirtualization);
             UNSERIALIZE_SCALAR(haveLargeAsid64);
             UNSERIALIZE_SCALAR(haveSVE);
+            UNSERIALIZE_SCALAR(sveVL);
             UNSERIALIZE_SCALAR(physAddrRange64);
         }
 

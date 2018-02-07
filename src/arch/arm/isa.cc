@@ -83,6 +83,7 @@ ISA::ISA(Params *p)
         haveVirtualization = system->haveVirtualization();
         haveLargeAsid64 = system->haveLargeAsid64();
         haveSVE = system->haveSVE();
+        sveVL = system->sveVL();
         physAddrRange64 = system->physAddrRange64();
     } else {
         highestELIs64 = true; // ArmSystem::highestELIs64 does the same
@@ -312,6 +313,7 @@ ISA::clear64(const ArmISAParams *p)
     // SVE
     miscRegs[MISCREG_ID_AA64ZFR0_EL1] = p->id_aa64zfr0_el1;
     miscRegs[MISCREG_ZIDR_EL1] = p->zidr_el1;
+    miscRegs[MISCREG_ZIDR_EL1] = sveVL - 1;
 
     // Enforce consistency with system-level settings...
 
