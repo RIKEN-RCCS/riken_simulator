@@ -51,6 +51,7 @@
 #include <queue>
 
 #include "arch/generic/debugfaults.hh"
+#include "arch/generic/vec_reg.hh"
 #include "arch/isa_traits.hh"
 #include "arch/locked_mem.hh"
 #include "arch/mmapped_ipr.hh"
@@ -85,6 +86,8 @@ class LSQUnit {
      * be a parametre of the lsq_unit / data cache */
     static constexpr auto lineWidth = 512;
 
+    static constexpr auto MaxDataBytes = MaxVecRegLenInBytes;
+
     typedef typename Impl::O3CPU O3CPU;
     typedef typename Impl::DynInstPtr DynInstPtr;
     typedef typename Impl::DynInstConstPtr DynInstConstPtr;
@@ -105,7 +108,7 @@ class LSQUnit {
         /** The request. */
         LSQRequest* req;
         /** The size of the operation. */
-        uint8_t _size;
+        uint32_t _size;
         /** Valid entry. */
         bool _valid;
       public:
@@ -145,8 +148,8 @@ class LSQUnit {
         /** Member accessors. */
         /** @{ */
         bool valid() const { return _valid; }
-        uint8_t& size() { return _size; }
-        const uint8_t& size() const { return _size; }
+        uint32_t& size() { return _size; }
+        const uint32_t& size() const { return _size; }
         const DynInstPtr& instruction() const { return inst; }
         /** @} */
     };
@@ -155,7 +158,7 @@ class LSQUnit {
     {
       private:
         /** The store data. */
-        char _data[64];  // TODO: 64 should become a parameter
+        char _data[MaxDataBytes];
         /** Whether or not the store can writeback. */
         bool _canWB;
         /** Whether or not the store is committed. */
@@ -663,7 +666,7 @@ LSQUnit<Impl>::read(LSQRequest *req, int load_idx)
     /* TODO: Check that split request don't mess with this. */
     if (req->mainRequest()->isMmappedIpr()) {
         assert(!load_inst->memData);
-        load_inst->memData = new uint8_t[64];
+        load_inst->memData = new uint8_t[MaxDataBytes];
 
         ThreadContext *thread = cpu->tcBase(lsqID);
         Cycles delay(0);

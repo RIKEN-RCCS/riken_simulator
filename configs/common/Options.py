@@ -292,7 +292,7 @@ def addCommonOptions(parser):
                       choices=["arm", "thumb", "aarch64"],
                       help="ARM instruction set.")
     parser.add_option("--arm-sve-vl", default="2", type="choice",
-                      choices=["1", "2", "4"],
+                      choices=["1", "2", "4", "8", "16"],
                       help="SVE vector length in quadwords (128-bit)")
 
 

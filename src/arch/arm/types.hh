@@ -736,7 +736,7 @@ namespace ArmISA
         }
     }
 
-    constexpr unsigned MaxSveVecLenInBits = 512;
+    constexpr unsigned MaxSveVecLenInBits = 2048;
     static_assert(MaxSveVecLenInBits >= 128 &&
                   MaxSveVecLenInBits <= 2048 &&
                   MaxSveVecLenInBits % 128 == 0,
