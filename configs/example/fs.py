@@ -104,7 +104,8 @@ def build_test_system(np):
                                  external_memory=
                                    options.external_memory_system,
                                  ruby=options.ruby,
-                                 security=options.enable_security_extensions)
+                                 security=options.enable_security_extensions,
+                                 sve_vl=options.arm_sve_vl)
         if options.enable_context_switch_stats_dump:
             test_sys.enable_context_switch_stats_dump = True
     else:
@@ -252,7 +253,8 @@ def build_drive_system(np):
     elif buildEnv['TARGET_ISA'] == 'arm':
         drive_sys = makeArmSystem(drive_mem_mode, options.machine_type, np,
                                   bm[1], options.dtb_filename, cmdline=cmdline,
-                                  ignore_dtb=options.generate_dtb)
+                                  ignore_dtb=options.generate_dtb,
+                                  sve_vl=options.arm_sve_vl)
 
     # Create a top-level voltage domain
     drive_sys.voltage_domain = VoltageDomain(voltage = options.sys_voltage)

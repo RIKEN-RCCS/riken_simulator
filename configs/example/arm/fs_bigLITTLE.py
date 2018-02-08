@@ -111,10 +111,11 @@ class Ex5LittleCluster(devices.CpuCluster):
         super(Ex5LittleCluster, self).__init__(system, num_cpus, cpu_clock,
                                          cpu_voltage, *cpu_config)
 
-def createSystem(caches, kernel, bootscript, disks=[]):
+def createSystem(caches, kernel, bootscript, sve_vl, disks=[]):
     sys = devices.SimpleSystem(caches, default_mem_size,
                                kernel=SysPaths.binary(kernel),
-                               readfile=bootscript)
+                               readfile=bootscript,
+                               sve_vl=sve_vl)
 
     sys.mem_ctrls = [ SimpleMemory(range=r, port=sys.membus.master)
                       for r in sys.mem_ranges ]
@@ -180,6 +181,10 @@ def addOptions(parser):
     parser.add_argument("--sim-quantum", type=str, default="1ms",
                         help="Simulation quantum for parallel simulation. " \
                         "Default: %(default)s")
+    parser.add_argument("--arm-sve-vl", default=2, type=int,
+                        choices=[1, 2, 4, 8, 16],
+                        help="SVE vector length in quadwords (128-bit)")
+
     return parser
 
 def build(options):
@@ -204,6 +209,7 @@ def build(options):
     system = createSystem(options.caches,
                           options.kernel,
                           options.bootscript,
+                          options.arm_sve_vl,
                           disks=disks)
 
     root.system = system
