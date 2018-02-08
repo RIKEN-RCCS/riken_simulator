@@ -1185,7 +1185,6 @@ namespace Aarch64
             break;
           case 0xC:
             if (!b13) {
-                // sve_int_perm_splice
                 uint8_t size = bits(machInst, 23, 22);
                 IntRegIndex pg = (IntRegIndex)(uint8_t) bits(machInst, 12, 10);
                 IntRegIndex zdn = (IntRegIndex)(uint8_t) bits(machInst, 4, 0);
@@ -1219,12 +1218,25 @@ namespace Aarch64
             break;
           case 0x4:
             if (!b13) {
-                // sve_int_perm_clast_zz
+                uint8_t AB = bits(machInst, 16);
+                uint8_t size = bits(machInst, 23, 22);
+                IntRegIndex pg = (IntRegIndex)(uint8_t) bits(machInst, 12, 10);
+                IntRegIndex zm = (IntRegIndex)(uint8_t) bits(machInst, 9, 5);
+                IntRegIndex zdn = (IntRegIndex)(uint8_t) bits(machInst, 4, 0);
+                if (!AB) {
+                    return decodeSveUnaryPredU<SveClastav>(size,
+                            machInst, zdn, zm, pg);
+                } else {
+                    return decodeSveUnaryPredU<SveClastbv>(size,
+                            machInst, zdn, zm, pg);
+                }
             }
             break;
           case 0x5:
             if (!b13) {
                 // sve_int_perm_clast_vz
+                // uint8_t AB = bits(machInst, 16);
+                // uint8_t size = bits(machInst, 23, 22);
             }
             break;
           case 0x8:
@@ -1245,7 +1257,6 @@ namespace Aarch64
             break;
         }
         if (bits(machInst, 20, 18) == 0x1 && !b13) {
-            // sve_int_perm_rev
             unsigned size = (unsigned) bits(machInst, 23, 22);
             IntRegIndex pg = (IntRegIndex)(uint8_t) bits(machInst, 12, 10);
             IntRegIndex zn = (IntRegIndex)(uint8_t) bits(machInst, 9, 5);

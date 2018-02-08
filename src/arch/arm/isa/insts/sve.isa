@@ -1,4 +1,4 @@
-// Copyright (c) 2018 ARM Limited
+// Copyright (c) 2017-2018 ARM Limited
 // All rights reserved
 //
 // The license below extends only to copyright in the software and shall
@@ -2267,7 +2267,7 @@ let {{
 
     # Generate definitions for scalar select instructions
     def sveSelectInst(name, Name, opClass, types, op, isCond,
-            decoder = 'Generic'):
+            destType = DestType.Scalar, decoder = 'Generic'):
         global header_output, exec_output, decoders
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
@@ -2278,13 +2278,34 @@ let {{
                 break;
             }
         }
-        Element destElem;
-        %(op)s
-        XDest = destElem;'''%{'op': op}
-        iop = InstObjParams(name, 'Sve' + Name, 'SveScalarSelectOp',
+        '''
+        if isCond:
+            code += '''
+        if (last >= 0) {'''
+        code += '''
+            Element destElem;
+            %(op)s'''%{'op': op}
+        if destType == DestType.Vector:
+            code += '''
+            for (unsigned i = 0; i < eCount; ++i)
+                AA64FpDest_x[i] = destElem;'''
+        elif destType == DestType.Scalar:
+            code += '''
+            XDest = destElem;'''
+        if isCond:
+            code += '''
+        }'''
+            if destType == DestType.Scalar:
+                code += ''' else {
+            XDest = (Element) XDest;
+        }'''
+        iop = InstObjParams(name, 'Sve' + Name, 'SveSelectOp',
                             {'code': code, 'op_class': opClass,
-                             'isCond': 'true' if isCond else 'false'}, [])
-        header_output += SveScalarSelectOpDeclare.subst(iop)
+                             'isCond': 'true' if isCond else 'false',
+                             'isScalar': 'true' if destType == DestType.Scalar
+                             else 'false'},
+                            [])
+        header_output += SveSelectOpDeclare.subst(iop)
         exec_output += SveOpExecute.subst(iop)
         for type in types:
             substDict = {'targs' : type,
@@ -2812,25 +2833,23 @@ let {{
             isFlagSetting = True, whenBrk = Break.Before)
     # CLASTA (scalar)
     clastaCode = '''
-        if (last < 0) {
-            destElem = XDest;
-        } else {
-            last++;
-            if (last >= eCount)
-                last = 0;
-            destElem = AA64FpOp1_x[last];
-        }'''
+        last++;
+        if (last >= eCount)
+            last = 0;
+        destElem = AA64FpOp1_x[last];'''
     sveSelectInst('clasta', 'Clasta', 'SimdAluOp', unsignedTypes, clastaCode,
-            isCond = True)
+            isCond = True, destType = DestType.Scalar)
+    # CLASTA (vector)
+    sveSelectInst('clasta', 'Clastav', 'SimdAluOp', unsignedTypes, clastaCode,
+            isCond = True, destType = DestType.Vector)
     # CLASTB (scalar)
     clastbCode = '''
-        if (last < 0) {
-            destElem = XDest;
-        } else {
-            destElem = AA64FpOp1_x[last];
-        }'''
+        destElem = AA64FpOp1_x[last];'''
     sveSelectInst('clastb', 'Clastb', 'SimdAluOp', unsignedTypes, clastbCode,
-            isCond = True)
+            isCond = True, destType = DestType.Scalar)
+    # CLASTB (vector)
+    sveSelectInst('clastb', 'Clastbv', 'SimdAluOp', unsignedTypes, clastbCode,
+            isCond = True, destType = DestType.Vector)
     # CLS
     clsCode = '''
         destElem = 0;

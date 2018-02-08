@@ -1,4 +1,4 @@
-// Copyright (c) 2017 ARM Limited
+// Copyright (c) 2018 ARM Limited
 // All rights reserved
 //
 // The license below extends only to copyright in the software and shall
@@ -719,7 +719,7 @@ class %(class_name)s : public %(base_class)s
 };
 }};
 
-def template SveScalarSelectOpDeclare {{
+def template SveSelectOpDeclare {{
 template <class _Element>
 class %(class_name)s : public %(base_class)s
 {
@@ -730,7 +730,7 @@ class %(class_name)s : public %(base_class)s
     %(class_name)s(ExtMachInst machInst, IntRegIndex _dest,
             IntRegIndex _op1, IntRegIndex _gp)
         : %(base_class)s("%(mnemonic)s", machInst, %(op_class)s, _dest,
-                _op1, _gp, %(isCond)s)
+                _op1, _gp, %(isCond)s, %(isScalar)s)
     {
         %(constructor)s;
         scalar_width = (sizeof(Element) == 8) ? 64 : 32;

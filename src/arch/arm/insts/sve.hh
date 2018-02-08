@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 ARM Limited
+ * Copyright (c) 2017-2018 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -569,20 +569,22 @@ class SvePartBrkPropOp : public ArmStaticInst {
 };
 
 /// Scalar element select SVE instruction.
-class SveScalarSelectOp : public ArmStaticInst {
+class SveSelectOp : public ArmStaticInst {
   protected:
     IntRegIndex dest;
     IntRegIndex op1;
     IntRegIndex gp;
     bool conditional;
+    bool scalar;
     size_t scalar_width;
 
-    SveScalarSelectOp(const char* mnem, ExtMachInst _machInst,
+    SveSelectOp(const char* mnem, ExtMachInst _machInst,
                       OpClass __opClass, IntRegIndex _dest,
                       IntRegIndex _op1, IntRegIndex _gp,
-                      bool _conditional) :
+                      bool _conditional, bool _scalar) :
         ArmStaticInst(mnem, _machInst, __opClass),
-        dest(_dest), op1(_op1), gp(_gp), conditional(_conditional)
+        dest(_dest), op1(_op1), gp(_gp), conditional(_conditional),
+        scalar(_scalar)
     {}
     std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;
 };
