@@ -646,15 +646,53 @@ class SvePredTestOp : public ArmStaticInst {
     std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;
 };
 
-/// SVE unary predicate instructions
-class SvePredUnaryOp : public ArmStaticInst {
+/// SVE unary predicate instructions with implicit source operand
+class SvePredUnaryWImplicitSrcOp : public ArmStaticInst {
   protected:
     IntRegIndex dest;
 
-    SvePredUnaryOp(const char* mnem, ExtMachInst _machInst, OpClass __opClass,
-                IntRegIndex _dest) :
+    SvePredUnaryWImplicitSrcOp(const char* mnem, ExtMachInst _machInst,
+                               OpClass __opClass, IntRegIndex _dest) :
         ArmStaticInst(mnem, _machInst, __opClass),
         dest(_dest)
+    {}
+    std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;
+};
+
+/// SVE unary predicate instructions, predicated, with implicit source operand
+class SvePredUnaryWImplicitSrcPredOp : public ArmStaticInst {
+  protected:
+    IntRegIndex dest;
+    IntRegIndex gp;
+
+    SvePredUnaryWImplicitSrcPredOp(const char* mnem, ExtMachInst _machInst,
+                                   OpClass __opClass, IntRegIndex _dest,
+                                   IntRegIndex _gp) :
+        ArmStaticInst(mnem, _machInst, __opClass),
+        dest(_dest), gp(_gp)
+    {}
+    std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;
+};
+
+/// SVE unary predicate instructions with implicit destination operand
+class SvePredUnaryWImplicitDstOp : public ArmStaticInst {
+  protected:
+    IntRegIndex op1;
+
+    SvePredUnaryWImplicitDstOp(const char* mnem, ExtMachInst _machInst,
+                               OpClass __opClass, IntRegIndex _op1) :
+        ArmStaticInst(mnem, _machInst, __opClass),
+        op1(_op1)
+    {}
+    std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;
+};
+
+/// SVE unary predicate instructions with implicit destination operand
+class SveWImplicitSrcDstOp : public ArmStaticInst {
+  protected:
+    SveWImplicitSrcDstOp(const char* mnem, ExtMachInst _machInst,
+                         OpClass __opClass) :
+        ArmStaticInst(mnem, _machInst, __opClass)
     {}
     std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;
 };

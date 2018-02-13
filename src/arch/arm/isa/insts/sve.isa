@@ -2459,18 +2459,48 @@ let {{
             substDict = {'targs': type, 'class_name': 'Sve' + Name}
             exec_output += SveOpExecDeclare.subst(substDict)
 
-    # Generate definition for SVE PFALSE instruction
-    def svePfalseInst(name, Name, opClass, decoder = 'Generic'):
+    # Generate definition for unary SVE predicate instructions with implicit
+    # source operand (PFALSE, RDFFR(S))
+    def svePredUnaryWImplicitSrcInst(name, Name, opClass, op,
+            predType=PredType.NONE, isFlagSetting=False, decoder='Generic'):
         global header_output, exec_output, decoders
-        code = sveEnabledCheckCode + '''
-        PDest_ub[0] = 0;
-        destPred.reset();'''
+        code = sveEnabledCheckCode + op
+        if isFlagSetting:
+            code += '''
+        CondCodesNZ = (destPred.firstActive(GpOp, eCount) << 1) |
+                      destPred.noneActive(GpOp, eCount);
+        CondCodesC = !destPred.lastActive(GpOp, eCount);
+        CondCodesV = 0;'''
         extraPrologCode = '''
-        auto& destPred = PDest;'''
-        iop = InstObjParams(name, 'Sve' + Name, 'SvePredUnaryOp',
+        auto& destPred M5_VAR_USED = PDest;'''
+        baseClass = ('SvePredUnaryWImplicitSrcOp' if predType == PredType.NONE
+                     else 'SvePredUnaryWImplicitSrcPredOp')
+        iop = InstObjParams(name, 'Sve' + Name, baseClass,
                 {'code': code, 'op_class': opClass}, [])
         iop.snippets['code'] = extraPrologCode + iop.snippets['code']
-        header_output += SvePredicateUnaryOpDeclare.subst(iop)
+        if predType == PredType.NONE:
+            header_output += SvePredUnaryOpWImplicitSrcDeclare.subst(iop)
+        else:
+            header_output += SvePredUnaryPredOpWImplicitSrcDeclare.subst(iop)
+        exec_output += SveNonTemplatedOpExecute.subst(iop)
+
+    # Generate definition for SVE instructions writing to the FFR (SETFFR,
+    # WRFFR)
+    def svePredWriteFfrInst(name, Name, opClass, op, isSetFfr,
+            decoder='Generic'):
+        global header_output, exec_output, decoders
+        code = sveEnabledCheckCode + op
+        extraPrologCode = '''
+        auto& destPred M5_VAR_USED = Ffr;'''
+        baseClass = ('SveWImplicitSrcDstOp' if isSetFfr
+                     else 'SvePredUnaryWImplicitDstOp')
+        iop = InstObjParams(name, 'Sve' + Name, baseClass,
+                {'code': code, 'op_class': opClass}, [])
+        iop.snippets['code'] = extraPrologCode + iop.snippets['code']
+        if isSetFfr:
+            header_output += SveOpWImplicitSrcDstDeclare.subst(iop)
+        else:
+            header_output += SvePredUnaryOpWImplicitDstDeclare.subst(iop)
         exec_output += SveNonTemplatedOpExecute.subst(iop)
 
     # Generate definition for SVE Ext instruction
@@ -3509,7 +3539,12 @@ let {{
     sveAssocReducInst('orv', 'Orv', 'SimdReduceAluOp', unsignedTypes,
                       orvCode, '0')
     # PFALSE
-    svePfalseInst('pfalse', 'Pfalse', 'SimdPredAluOp')
+    pfalseCode = '''
+        PDest_ub[0] = 0;
+        destPred.reset();
+    '''
+    svePredUnaryWImplicitSrcInst('pfalse', 'Pfalse', 'SimdPredAluOp',
+            pfalseCode)
     # PFIRST
     svePFirstInst('pfirst', 'Pfirst', 'SimdPredAluOp')
     # PNEXT
@@ -3531,6 +3566,30 @@ let {{
         destElem = reverseBits(srcElem1);'''
     sveUnaryInst('rbit', 'Rbit', 'SimdAluOp', unsignedTypes, rbitCode,
             predType=PredType.MERGE, srcRegType=SrcRegType.Vector)
+    # RDFFR, RDFFRS (predicated)
+    rdffrPredCode = '''
+        unsigned eCount = ArmStaticInst::getCurSveVecLen<uint8_t>(
+                xc->tcBase());
+        for (unsigned i = 0; i < eCount; i++) {
+            if (GpOp_ub[i]) {
+                PDest_ub[i] = Ffr_ub[i];
+            } else {
+                PDest_ub[i] = false;
+            }
+        }'''
+    svePredUnaryWImplicitSrcInst('rdffr', 'RdffrPred', 'SimdPredAluOp',
+            rdffrPredCode, PredType.ZERO, False)
+    svePredUnaryWImplicitSrcInst('rdffrs', 'RdffrsPred', 'SimdPredAluOp',
+            rdffrPredCode, PredType.ZERO, True)
+    # RDFFR (unpredicated)
+    rdffrUnpredCode = '''
+        unsigned eCount = ArmStaticInst::getCurSveVecLen<uint8_t>(
+                xc->tcBase());
+        for (unsigned i = 0; i < eCount; i++) {
+            PDest_ub[i] = Ffr_ub[i];
+        }'''
+    svePredUnaryWImplicitSrcInst('rdffr', 'RdffrUnpred', 'SimdPredAluOp',
+            rdffrUnpredCode)
     # RDVL
     rdvlCode = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<uint8_t>(
@@ -3618,6 +3677,11 @@ let {{
     # SEL (vectors)
     sveBinInst('sel', 'Sel', 'SimdAluOp', unsignedTypes, selCode,
                PredType.SELECT, False)
+    # SETFFR
+    setffrCode = '''
+        Ffr_ub[0] = true;
+        destPred.set();'''
+    svePredWriteFfrInst('setffr', 'Setffr', 'SimdPredAluOp', setffrCode, True)
     # SMAX (immediate)
     maxCode = 'destElem = (srcElem1 > srcElem2) ? srcElem1 : srcElem2;'
     sveWideImmInst('smax', 'SmaxImm', 'SimdCmpOp', signedTypes, maxCode)
@@ -4169,6 +4233,14 @@ let {{
     # WHILELT (64-bit)
     sveWhileInst('whilelt', 'Whilelt64', 'SimdCmpOp', signedTypes,
                  whileLTCode, SrcSize.Src64bit)
+    # WRFFR
+    wrffrCode = '''
+        unsigned eCount = ArmStaticInst::getCurSveVecLen<uint8_t>(
+                xc->tcBase());
+        for (unsigned i = 0; i < eCount; i++) {
+            Ffr_ub[i] = POp1_ub[i];
+        }'''
+    svePredWriteFfrInst('wrffr', 'Wrffr', 'SimdPredAluOp', wrffrCode, False)
     # ZIP1, ZIP2 (predicates)
     zipPredIterCode = '''
         constexpr unsigned sz = sizeof(Element);

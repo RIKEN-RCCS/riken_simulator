@@ -94,6 +94,11 @@ class PredRegT
     typename std::enable_if<Condition, void>::type
     reset() { container.reset(); }
 
+    /// Reset the register to an all-true value.
+    template<bool Condition = !Const>
+    typename std::enable_if<Condition, void>::type
+    set() { container.set(); }
+
     template<bool Condition = !Const>
     typename std::enable_if<Condition, MyClass&>::type
     operator=(const MyClass& that)
@@ -266,6 +271,13 @@ class PredRegContainer
     reset()
     {
         container.fill(false);
+    }
+
+    /// Sets the predicate register to an all-true value.
+    void
+    set()
+    {
+        container.fill(true);
     }
 
     /// Equality operator, required to compare thread contexts.

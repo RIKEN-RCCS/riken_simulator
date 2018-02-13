@@ -778,12 +778,54 @@ class %(class_name)s : public %(base_class)s
 };
 }};
 
-def template SvePredicateUnaryOpDeclare {{
+def template SvePredUnaryOpWImplicitSrcDeclare {{
 class %(class_name)s : public %(base_class)s
 {
   public:
     %(class_name)s(ExtMachInst machInst, IntRegIndex _dest)
         : %(base_class)s("%(mnemonic)s", machInst, %(op_class)s, _dest)
+    {
+        %(constructor)s;
+    }
+
+    Fault execute(ExecContext *, Trace::InstRecord *) const;
+};
+}};
+
+def template SvePredUnaryPredOpWImplicitSrcDeclare {{
+class %(class_name)s : public %(base_class)s
+{
+  public:
+    %(class_name)s(ExtMachInst machInst, IntRegIndex _dest, IntRegIndex _gp)
+        : %(base_class)s("%(mnemonic)s", machInst, %(op_class)s, _dest, _gp)
+    {
+        %(constructor)s;
+    }
+
+    Fault execute(ExecContext *, Trace::InstRecord *) const;
+};
+}};
+
+def template SvePredUnaryOpWImplicitDstDeclare {{
+class %(class_name)s : public %(base_class)s
+{
+  public:
+    %(class_name)s(ExtMachInst machInst, IntRegIndex _op1)
+        : %(base_class)s("%(mnemonic)s", machInst, %(op_class)s, _op1)
+    {
+        %(constructor)s;
+    }
+
+    Fault execute(ExecContext *, Trace::InstRecord *) const;
+};
+}};
+
+def template SveOpWImplicitSrcDstDeclare {{
+class %(class_name)s : public %(base_class)s
+{
+  public:
+    %(class_name)s(ExtMachInst machInst)
+        : %(base_class)s("%(mnemonic)s", machInst, %(op_class)s)
     {
         %(constructor)s;
     }

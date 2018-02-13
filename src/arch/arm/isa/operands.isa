@@ -532,6 +532,7 @@ def operands {{
     'POp1': predReg('op1'),
     'POp2': predReg('op2'),
     'PDest': predReg('dest'),
+    'Ffr': predReg('PREDREG_FFR'),
 
     #Abstracted control reg operands
     'MiscDest': cntrlReg('dest'),

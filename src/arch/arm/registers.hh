@@ -99,7 +99,8 @@ const int NumIntRegs = NUM_INTREGS;
 const int NumFloatRegs = NumFloatV8ArchRegs + NumFloatSpecialRegs;
 const int NumVecRegs = NumVecV8ArchRegs + NumVecSpecialRegs;
 const int NumCCRegs = NUM_CCREGS;
-const int NumPredRegs = 16;
+const int NumPredRegs = 17;  // P0-P15, FFR
+const int PREDREG_FFR = 16;
 const int NumMiscRegs = NUM_MISCREGS;
 
 #define ISA_HAS_CC_REGS

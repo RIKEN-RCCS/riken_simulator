@@ -1,4 +1,3 @@
-// Copyright (c) 2017 ARM Limited
 // All rights reserved
 //
 // The license below extends only to copyright in the software and shall
@@ -1624,13 +1623,26 @@ namespace Aarch64
     StaticInstPtr
     decodeSveReadPredFromFFRPred(ExtMachInst machInst)
     {
-        return new Unknown64(machInst);
+        if (bits(machInst, 23)) {
+            return new Unknown64(machInst);
+        }
+        IntRegIndex pd = (IntRegIndex)(uint8_t) bits(machInst, 3, 0);
+        IntRegIndex pg = (IntRegIndex)(uint8_t) bits(machInst, 8, 5);
+        if (bits(machInst, 22)) {
+            return new SveRdffrsPred(machInst, pd, pg);
+        } else {
+            return new SveRdffrPred(machInst, pd, pg);
+        }
     }  // decodeSveReadPredFromFFRPred
 
     StaticInstPtr
     decodeSveReadPredFromFFRUnpred(ExtMachInst machInst)
     {
-        return new Unknown64(machInst);
+        if (bits(machInst, 23, 22) != 0) {
+            return new Unknown64(machInst);
+        }
+        IntRegIndex pd = (IntRegIndex)(uint8_t) bits(machInst, 3, 0);
+        return new SveRdffrUnpred(machInst, pd);
     }  // decodeSveReadPredFromFFRUnpred
 
     StaticInstPtr
@@ -1807,11 +1819,11 @@ namespace Aarch64
                         bits(machInst, 4, 0) == 0x0) {
                     uint8_t opc = bits(machInst, 18, 16);
                     if (opc == 0x0) {
-                        // TODO: WRFFR
-                        return new NopInst(machInst);
+                        IntRegIndex pn = (IntRegIndex)(uint8_t)
+                            bits(machInst, 8, 5);
+                        return new SveWrffr(machInst, pn);
                     } else if (opc == 0x4 && bits(machInst, 8, 5) == 0x0) {
-                        // TODO: SETFFR
-                        return new NopInst(machInst);
+                        return new SveSetffr(machInst);
                     }
                 }
                 break;
