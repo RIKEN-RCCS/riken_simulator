@@ -661,6 +661,10 @@ LSQ<Impl>::pushRequest(const DynInstPtr& inst, bool isLoad, uint8_t *data,
         assert(req);
         req->taskId(cpu->taskId());
 
+        // There might be fault from a previous execution attempt if this is
+        // a strictly ordered load
+        inst->getFault() = NoFault;
+
         req->initiateTranslation();
     }
 
