@@ -47,14 +47,10 @@ The current limitations apply to the model:
     - INSR (SIMD&FP scalar)
     - LASTA (SIMD&FP scalar)
     - LASTB (SIMD&FP scalar)
-    - RDFFR (unpredicated)
-    - RDFFR, RDFFRS (predicated)
     - SDOT (indexed)
     - SDOT (vectors)
-    - SETFFR
     - UDOT (indexed)
     - UDOT (vectors)
-    - WRFFR
 
 Work is currently ongoing on the implementation of the instructions above, and
 priority is given to instructions that are more likely to be emitted by a
