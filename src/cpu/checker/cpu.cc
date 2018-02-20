@@ -300,7 +300,6 @@ CheckerCPU::writeMem(uint8_t *data, unsigned size,
         }
 
         frag_addr += frag_size;
-        data += frag_size;
    }
 
    if (!flags_match) {
