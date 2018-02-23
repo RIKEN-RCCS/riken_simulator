@@ -2644,11 +2644,11 @@ namespace Aarch64
                     uint8_t b14_13 = bits(machInst, 14, 13);
                     if (b14_13 == 0x2 && bits(machInst, 4) == 0) {
                         // TODO: SVE contiguous prefetch (scalar plus scalar)
-                        return new Unknown64(machInst);
+                        return new NopInst(machInst);
                     } else if (b14_13 == 0x3 && bits(machInst, 4) == 0) {
                         // TODO: SVE 32-bit gather prefetch (vector plus
                         // immediate)
-                        return new Unknown64(machInst);
+                        return new NopInst(machInst);
                     }
                 }
             }
@@ -2677,7 +2677,7 @@ namespace Aarch64
               case 0x0:
                 if (bits(machInst, 21) && bits(machInst, 4) == 0) {
                     // TODO: SVE 32-bit gather prefetch (vector plus immediate)
-                    break;
+                    return new NopInst(machInst);
                 }
                 break;
               case 0x1:
@@ -2924,7 +2924,7 @@ namespace Aarch64
             } else {
                 if (bits(machInst, 14, 13) == 0x3 && bits(machInst, 4) == 0) {
                     // TODO: SVE 64-bit gather prefetch (vector plus immediate)
-                    break;
+                    return new NopInst(machInst);
                 }
             }
             break;
@@ -2951,7 +2951,7 @@ namespace Aarch64
             } else if (bits(machInst, 4) == 0) {
                 // TODO: SVE 64-bit gather prefetch (scalar plus unpacked
                 // 32-bit scaled offsets)
-                return new Unknown64(machInst);
+                return new NopInst(machInst);
             }
             break;
           case 0x3:
@@ -2994,7 +2994,7 @@ namespace Aarch64
                 } else if (bits(machInst, 4) == 0) {
                     // TODO: SVE 64-bit gather prefetch (scalar plus 64-bit
                     // scaled offsets)
-                    break;
+                    return new NopInst(machInst);
                 }
             }
             break;
