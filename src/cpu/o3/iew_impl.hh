@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2013 ARM Limited
+ * Copyright (c) 2010-2013, 2018 ARM Limited
  * Copyright (c) 2013 Advanced Micro Devices, Inc.
  * All rights reserved.
  *
@@ -1433,11 +1433,14 @@ DefaultIEW<Impl>::writebackInsts()
             int dependents = instQueue.wakeDependents(inst);
 
             for (int i = 0; i < inst->numDestRegs(); i++) {
-                //mark as Ready
-                DPRINTF(IEW,"Setting Destination Register %i (%s)\n",
-                        inst->renamedDestRegIdx(i)->index(),
-                        inst->renamedDestRegIdx(i)->className());
-                scoreboard->setReg(inst->renamedDestRegIdx(i));
+                // Mark register as ready if not pinned
+                if (inst->renamedDestRegIdx(i)->
+                        getNumPinnedWritesToComplete() == 0) {
+                    DPRINTF(IEW,"Setting Destination Register %i (%s)\n",
+                            inst->renamedDestRegIdx(i)->index(),
+                            inst->renamedDestRegIdx(i)->className());
+                    scoreboard->setReg(inst->renamedDestRegIdx(i));
+                }
             }
 
             if (dependents) {

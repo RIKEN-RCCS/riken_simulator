@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2016-2017 ARM Limited
+ * Copyright (c) 2011, 2016-2018 ARM Limited
  * Copyright (c) 2013 Advanced Micro Devices, Inc.
  * All rights reserved
  *
@@ -65,20 +65,26 @@ using PhysRegIndex = short int;
 class PhysRegId : private RegId {
   private:
     PhysRegIndex flatIdx;
+    int numPinnedWritesToComplete;
 
   public:
-    explicit PhysRegId() : RegId(IntRegClass, -1), flatIdx(-1) {}
+    explicit PhysRegId() : RegId(IntRegClass, -1), flatIdx(-1),
+                           numPinnedWritesToComplete(0)
+    {}
 
     /** Scalar PhysRegId constructor. */
     explicit PhysRegId(RegClass _regClass, PhysRegIndex _regIdx,
               PhysRegIndex _flatIdx)
-        : RegId(_regClass, _regIdx), flatIdx(_flatIdx)
+        : RegId(_regClass, _regIdx), flatIdx(_flatIdx),
+          numPinnedWritesToComplete(0)
     {}
 
     /** Vector PhysRegId constructor (w/ elemIndex). */
     explicit PhysRegId(RegClass _regClass, PhysRegIndex _regIdx,
               ElemIndex elem_idx, PhysRegIndex flat_idx)
-        : RegId(_regClass, _regIdx, elem_idx), flatIdx(flat_idx) { }
+        : RegId(_regClass, _regIdx, elem_idx), flatIdx(flat_idx),
+          numPinnedWritesToComplete(0)
+    {}
 
     /** Visible RegId methods */
     /** @{ */
@@ -139,17 +145,35 @@ class PhysRegId : private RegId {
     /** Flat index accessor */
     const PhysRegIndex& flatIndex() const { return flatIdx; }
 
-    static PhysRegId elemId(const PhysRegId* vid, ElemIndex elem)
+    static PhysRegId elemId(PhysRegId* vid, ElemIndex elem)
     {
         assert(vid->isVectorPhysReg());
         return PhysRegId(VecElemClass, vid->index(), elem);
     }
+
+    int getNumPinnedWrites() const { return numPinnedWrites; }
+
+    void setNumPinnedWrites(int numWrites)
+    {
+        numPinnedWrites = numWrites;
+    }
+
+    void decrNumPinnedWrites() { --numPinnedWrites; }
+
+    int getNumPinnedWritesToComplete() const
+    {
+        return numPinnedWritesToComplete;
+    }
+
+    void setNumPinnedWritesToComplete(int numWrites)
+    {
+        numPinnedWritesToComplete = numWrites;
+    }
+
+    void decrNumPinnedWritesToComplete() { --numPinnedWritesToComplete; }
 };
 
-/** Constant pointer definition.
- * PhysRegIds only need to be created once and then we can just share
- * pointers */
-using PhysRegIdPtr = const PhysRegId*;
+using PhysRegIdPtr = PhysRegId*;
 
 /** Struct that defines the information passed from fetch to decode. */
 template<class Impl>

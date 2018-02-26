@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 ARM Limited
+ * Copyright (c) 2016-2018 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -77,23 +77,27 @@ const int NumRegClasses = MiscRegClass + 1;
  * index 3 is represented by Regid(IntRegClass, 3).
  */
 class RegId {
-  private:
+  protected:
     static const char* regClassStrings[];
     RegClass regClass;
     RegIndex regIdx;
     ElemIndex elemIdx;
     static constexpr size_t Scale = TheISA::NumVecElemPerVecReg;
+    int numPinnedWrites;
+
   public:
     RegId() {};
-    RegId(RegClass reg_class, RegIndex reg_idx)
-        : regClass(reg_class), regIdx(reg_idx), elemIdx(-1)
+    explicit RegId(RegClass reg_class, RegIndex reg_idx)
+        : regClass(reg_class), regIdx(reg_idx), elemIdx(-1),
+          numPinnedWrites(0)
     {
         panic_if(regClass == VecElemClass,
                 "Creating vector physical index w/o element index");
     }
 
     explicit RegId(RegClass reg_class, RegIndex reg_idx, ElemIndex elem_idx)
-        : regClass(reg_class), regIdx(reg_idx), elemIdx(elem_idx)
+        : regClass(reg_class), regIdx(reg_idx), elemIdx(elem_idx),
+          numPinnedWrites(0)
     {
         panic_if(regClass != VecElemClass,
                 "Creating non-vector physical index w/ element index");
@@ -180,6 +184,9 @@ class RegId {
     const RegClass& classValue() const { return regClass; }
     /** Return a const char* with the register class name. */
     const char* className() const { return regClassStrings[regClass]; }
+
+    int getNumPinnedWrites() const { return numPinnedWrites; }
+    void setNumPinnedWrites(int num_writes) { numPinnedWrites = num_writes; }
 
     friend std::ostream&
     operator<<(std::ostream& os, const RegId& rid) {

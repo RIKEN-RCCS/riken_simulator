@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 ARM Limited
+ * Copyright (c) 2016-2018 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -75,8 +75,8 @@ class PhysRegFile
     using VecMode = Enums::VecRegRenameMode;
     using PredRegContainer = TheISA::PredRegContainer;
   public:
-    using IdRange = std::pair<PhysIds::const_iterator,
-                              PhysIds::const_iterator>;
+    using IdRange = std::pair<PhysIds::iterator,
+                              PhysIds::iterator>;
   private:
     static constexpr auto NumVecElemPerVecReg = TheISA::NumVecElemPerVecReg;
 

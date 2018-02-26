@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2012, 2014-2016 ARM Limited
+ * Copyright (c) 2010-2012, 2014-2016, 2018 ARM Limited
  * Copyright (c) 2013 Advanced Micro Devices, Inc.
  * All rights reserved.
  *
@@ -1098,13 +1098,17 @@ DefaultRename<Impl>::renameDestRegs(const DynInstPtr &inst, ThreadID tid)
         typename RenameMap::RenameInfo rename_result;
 
         RegId flat_dest_regid = tc->flattenRegId(dest_reg);
+        flat_dest_regid.setNumPinnedWrites(dest_reg.getNumPinnedWrites());
 
         rename_result = map->rename(flat_dest_regid);
 
         inst->flattenDestReg(dest_idx, flat_dest_regid);
 
-        // Mark Scoreboard entry as not ready
-        scoreboard->unsetReg(rename_result.first);
+        if (rename_result.first->getNumPinnedWrites() == 0) {
+            // Mark scoreboard entry as not ready (only once for pinned
+            // registers)
+            scoreboard->unsetReg(rename_result.first);
+        }
 
         DPRINTF(Rename, "[tid:%u]: Renaming arch reg %i (%s) to physical "
                 "reg %i (%i).\n", tid, dest_reg.index(),
