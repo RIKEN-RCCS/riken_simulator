@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012, 2016-2017 ARM Limited
+ * Copyright (c) 2011-2012, 2016-2018 ARM Limited
  * Copyright (c) 2013 Advanced Micro Devices, Inc.
  * All rights reserved
  *
@@ -128,6 +128,10 @@ class SimpleThread : public ThreadState
     /** Did this instruction execute or is it predicated false */
     bool predicate;
 
+    /** True if the memory access should be skipped for this instruction
+     * Write back is still performed through completeAcc() */
+    bool memAccPredicate;
+
   public:
     std::string name() const
     {
@@ -209,6 +213,8 @@ class SimpleThread : public ThreadState
     BaseTLB *getDTBPtr() { return dtb; }
 
     CheckerCPU *getCheckerCpuPtr() { return NULL; }
+
+    TheISA::ISA *getIsaPtr() { return isa; }
 
     TheISA::Decoder *getDecoderPtr() { return &decoder; }
 
@@ -528,6 +534,16 @@ class SimpleThread : public ThreadState
     void setPredicate(bool val)
     {
         predicate = val;
+    }
+
+    bool readMemAccPredicate()
+    {
+        return memAccPredicate;
+    }
+
+    void setMemAccPredicate(bool val)
+    {
+        memAccPredicate = val;
     }
 
     MiscReg

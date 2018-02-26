@@ -43,7 +43,6 @@
 #ifndef __ARCH_ARM_ISA_HH__
 #define __ARCH_ARM_ISA_HH__
 
-#include "arch/arm/insts/static_inst.hh"
 #include "arch/arm/isa_device.hh"
 #include "arch/arm/miscregs.hh"
 #include "arch/arm/registers.hh"
@@ -637,6 +636,8 @@ namespace ArmISA
             upper += S && miscRegInfo[upper][MISCREG_BANKED_CHILD];
             return std::make_pair(lower, upper);
         }
+
+        int getCurSveVecLenInBits() const;
 
         void serialize(CheckpointOut &cp) const
         {

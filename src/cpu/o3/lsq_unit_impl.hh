@@ -1,6 +1,6 @@
 
 /*
- * Copyright (c) 2010-2014, 2017 ARM Limited
+ * Copyright (c) 2010-2014, 2017-2018 ARM Limited
  * Copyright (c) 2013 Advanced Micro Devices, Inc.
  * All rights reserved
  *
@@ -548,6 +548,16 @@ LSQUnit<Impl>::executeLoad(const DynInstPtr &inst)
     assert(!inst->isSquashed());
 
     load_fault = inst->initiateAcc();
+
+    if (!inst->readMemAccPredicate()) {
+        assert(load_fault == NoFault);
+        assert(inst->readPredicate());
+        inst->setExecuted();
+        inst->completeAcc(nullptr);
+        iewStage->instToCommit(inst);
+        iewStage->activityThisCycle();
+        return NoFault;
+    }
 
     if (inst->isTranslationDelayed() &&
         load_fault == NoFault)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2017 ARM Limited
+ * Copyright (c) 2010-2018 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -745,6 +745,8 @@ ISA::setMiscReg(int misc_reg, const MiscReg &val, ThreadContext *tc)
         PCState pc = tc->pcState();
         pc.nextThumb(cpsr.t);
         pc.nextJazelle(cpsr.j);
+
+        tc->getDecoderPtr()->setSveLen((getCurSveVecLenInBits() >> 7) - 1);
 
         // Follow slightly different semantics if a CheckerCPU object
         // is connected
@@ -1781,6 +1783,11 @@ ISA::setMiscReg(int misc_reg, const MiscReg &val, ThreadContext *tc)
           case MISCREG_CNTVOFF_EL2 ... MISCREG_CNTPS_CVAL_EL1:
             getGenericTimer(tc).setMiscReg(misc_reg, newVal);
             break;
+          case MISCREG_ZCR_EL3:
+          case MISCREG_ZCR_EL2:
+          case MISCREG_ZCR_EL1:
+            tc->getDecoderPtr()->setSveLen((getCurSveVecLenInBits() >> 7) - 1);
+            break;
         }
     }
     setMiscRegNoEffect(misc_reg, newVal);
@@ -1887,6 +1894,39 @@ ISA::getGenericTimer(ThreadContext *tc)
 
     timer.reset(new GenericTimerISA(*generic_timer, tc->contextId()));
     return *timer.get();
+}
+
+int
+ISA::getCurSveVecLenInBits() const
+{
+    uint64_t len = miscRegs[MISCREG_ZIDR_EL1] & 0xf;
+    if (!FullSystem) {
+        return (len + 1) * 128;
+    }
+    CPSR cpsr = miscRegs[MISCREG_CPSR];
+    ExceptionLevel el = (ExceptionLevel) (uint8_t) cpsr.el;
+    switch (el) {
+      case EL3:
+        len = std::min(len, miscRegs[MISCREG_ZCR_EL3] & 0xf);
+        break;
+      case EL2:
+        if (haveSecurity) {
+            len = std::min(len, miscRegs[MISCREG_ZCR_EL3] & 0xf);
+        }
+        len = std::min(len, miscRegs[MISCREG_ZCR_EL2] & 0xf);
+        break;
+      case EL1:
+      case EL0:
+        if (haveSecurity) {
+            len = std::min(len, miscRegs[MISCREG_ZCR_EL3] & 0xf);
+        }
+        if (haveVirtualization) {
+            len = std::min(len, miscRegs[MISCREG_ZCR_EL2] & 0xf);
+        }
+        len = std::min(len, miscRegs[MISCREG_ZCR_EL1] & 0xf);
+        break;
+    }
+    return (len + 1) * 128;
 }
 
 }  // namespace ArmISA

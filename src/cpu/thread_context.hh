@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012, 2016-2017 ARM Limited
+ * Copyright (c) 2011-2012, 2016-2018 ARM Limited
  * Copyright (c) 2013 Advanced Micro Devices, Inc.
  * All rights reserved
  *
@@ -58,6 +58,7 @@
 namespace TheISA
 {
     class Decoder;
+    class ISA;
 }
 class BaseCPU;
 class BaseTLB;
@@ -143,6 +144,8 @@ class ThreadContext
     virtual BaseTLB *getDTBPtr() = 0;
 
     virtual CheckerCPU *getCheckerCpuPtr() = 0;
+
+    virtual TheISA::ISA *getIsaPtr() = 0;
 
     virtual TheISA::Decoder *getDecoderPtr() = 0;
 
@@ -411,6 +414,8 @@ class ProxyThreadContext : public ThreadContext
 
     CheckerCPU *getCheckerCpuPtr() { return actualTC->getCheckerCpuPtr(); }
 
+    TheISA::ISA *getIsaPtr() { return actualTC->getIsaPtr(); }
+
     TheISA::Decoder *getDecoderPtr() { return actualTC->getDecoderPtr(); }
 
     System *getSystemPtr() { return actualTC->getSystemPtr(); }
@@ -571,6 +576,11 @@ class ProxyThreadContext : public ThreadContext
 
     void setPredicate(bool val)
     { actualTC->setPredicate(val); }
+
+    bool readMemAccPredicate() { return actualTC->readMemAccPredicate(); }
+
+    void setMemAccPredicate(bool val)
+    { actualTC->setMemAccPredicate(val); }
 
     MiscReg readMiscRegNoEffect(int misc_reg) const
     { return actualTC->readMiscRegNoEffect(misc_reg); }

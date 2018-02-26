@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012, 2016-2017 ARM Limited
+ * Copyright (c) 2011-2012, 2016-2018 ARM Limited
  * Copyright (c) 2013 Advanced Micro Devices, Inc.
  * All rights reserved
  *
@@ -120,6 +120,8 @@ class CheckerThreadContext : public ThreadContext
     {
         return checkerCPU;
     }
+
+    TheISA::ISA *getIsaPtr() { return actualTC->getIsaPtr(); }
 
     TheISA::Decoder *getDecoderPtr() { return actualTC->getDecoderPtr(); }
 

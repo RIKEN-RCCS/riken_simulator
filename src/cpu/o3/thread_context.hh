@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012, 2016-2017 ARM Limited
+ * Copyright (c) 2011-2012, 2016-2018 ARM Limited
  * Copyright (c) 2013 Advanced Micro Devices, Inc.
  * All rights reserved
  *
@@ -90,6 +90,12 @@ class O3ThreadContext : public ThreadContext
     getDecoderPtr()
     {
         return cpu->fetch.decoder[thread->threadId()];
+    }
+
+    TheISA::ISA *
+    getIsaPtr()
+    {
+        return cpu->isa[thread->threadId()];
     }
 
     /** Returns a pointer to this CPU. */

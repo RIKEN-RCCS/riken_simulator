@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2013, 2016-2017 ARM Limited
+ * Copyright (c) 2011, 2013, 2016-2018 ARM Limited
  * Copyright (c) 2013 Advanced Micro Devices, Inc.
  * All rights reserved.
  *
@@ -136,6 +136,7 @@ class BaseDynInst : public ExecContext, public RefCounted
         EffAddrValid,
         RecordResult,
         Predicate,
+        MemAccPredicate,
         PredTaken,
         IsStrictlyOrdered,
         ReqMade,
@@ -867,6 +868,16 @@ class BaseDynInst : public ExecContext, public RefCounted
         if (traceData) {
             traceData->setPredicate(val);
         }
+    }
+
+    bool readMemAccPredicate() const
+    {
+        return instFlags[MemAccPredicate];
+    }
+
+    void setMemAccPredicate(bool val)
+    {
+        instFlags[MemAccPredicate] = val;
     }
 
     /** Sets the ASID. */

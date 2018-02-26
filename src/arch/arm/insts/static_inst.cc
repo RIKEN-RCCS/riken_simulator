@@ -44,6 +44,7 @@
 #include "arch/arm/insts/static_inst.hh"
 
 #include "arch/arm/faults.hh"
+#include "arch/arm/isa.hh"
 #include "base/condcodes.hh"
 #include "base/cprintf.hh"
 #include "base/loader/symtab.hh"
@@ -1135,38 +1136,7 @@ ArmStaticInst::generalExceptionsToAArch64(ThreadContext *tc,
 int
 ArmStaticInst::getCurSveVecLenInBits(ThreadContext *tc)
 {
-    uint64_t len = tc->readMiscReg(MISCREG_ZIDR_EL1) & 0xf;
-    if (!FullSystem) {
-        return (len + 1) * 128;
-    }
-    CPSR cpsr = tc->readMiscRegNoEffect(MISCREG_CPSR);
-    ExceptionLevel el = (ExceptionLevel) (uint8_t) cpsr.el;
-    switch (el) {
-      case EL3:
-        len = std::min(len, tc->readMiscRegNoEffect(MISCREG_ZCR_EL3) & 0xf);
-        break;
-      case EL2:
-        if (ArmSystem::haveSecurity(tc)) {
-            len = std::min(len,
-                    tc->readMiscRegNoEffect(MISCREG_ZCR_EL3) & 0xf);
-        }
-        len = std::min(len, tc->readMiscRegNoEffect(MISCREG_ZCR_EL2) & 0xf);
-        break;
-      case EL1:
-      case EL0:
-        if (ArmSystem::haveSecurity(tc)) {
-            len = std::min(len,
-                    tc->readMiscRegNoEffect(MISCREG_ZCR_EL3) & 0xf);
-        }
-        if (ArmSystem::haveVirtualization(tc)) {
-            len = std::min(len,
-                    tc->readMiscRegNoEffect(MISCREG_ZCR_EL2) & 0xf);
-        }
-        len = std::min(len, tc->readMiscRegNoEffect(MISCREG_ZCR_EL1) & 0xf);
-        break;
-    }
-    return (len + 1) * 128;
+    return tc->getIsaPtr()->getCurSveVecLenInBits();
 }
-
 
 }
