@@ -804,7 +804,9 @@ ISA::setMiscReg(int misc_reg, const MiscReg &val, ThreadContext *tc)
                 CPACR cpacrMask = 0;
                 cpacrMask.tta = ones;
                 cpacrMask.fpen = ones;
-                cpacrMask.zen = ones;
+                if (haveSVE) {
+                    cpacrMask.zen = ones;
+                }
                 newVal &= cpacrMask;
                 DPRINTF(MiscRegs, "Writing misc reg %s: %#x\n",
                         miscRegName[misc_reg], newVal);
@@ -817,10 +819,17 @@ ISA::setMiscReg(int misc_reg, const MiscReg &val, ThreadContext *tc)
                 cptrMask.tcpac = ones;
                 cptrMask.tta = ones;
                 cptrMask.tfp = ones;
+                if (haveSVE) {
+                    cptrMask.tz = ones;
+                }
                 newVal &= cptrMask;
                 cptrMask = 0;
                 cptrMask.res1_13_12_el2 = ones;
-                cptrMask.res1_9_0_el2 = ones;
+                cptrMask.res1_7_0_el2 = ones;
+                if (!haveSVE) {
+                    cptrMask.res1_8_el2 = ones;
+                }
+                cptrMask.res1_9_el2 = ones;
                 newVal |= cptrMask;
                 DPRINTF(MiscRegs, "Writing misc reg %s: %#x\n",
                         miscRegName[misc_reg], newVal);
@@ -833,6 +842,9 @@ ISA::setMiscReg(int misc_reg, const MiscReg &val, ThreadContext *tc)
                 cptrMask.tcpac = ones;
                 cptrMask.tta = ones;
                 cptrMask.tfp = ones;
+                if (haveSVE) {
+                    cptrMask.ez = ones;
+                }
                 newVal &= cptrMask;
                 DPRINTF(MiscRegs, "Writing misc reg %s: %#x\n",
                         miscRegName[misc_reg], newVal);

@@ -1895,9 +1895,11 @@ namespace ArmISA
         Bitfield<20> tta;
         Bitfield<13, 12> res1_13_12_el2;
         Bitfield<10> tfp;
+        Bitfield<9> res1_9_el2;
+        Bitfield<8> res1_8_el2;
         Bitfield<8> ez;  // SVE (CPTR_EL3)
         Bitfield<8> tz;  // SVE (CPTR_EL2)
-        Bitfield<9, 0> res1_9_0_el2;
+        Bitfield<7, 0> res1_7_0_el2;
    EndBitUnion(CPTR)
 
     BitUnion64(ZCR)

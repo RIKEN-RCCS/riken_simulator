@@ -969,7 +969,7 @@ ArmStaticInst::checkSveTrap(ThreadContext *tc, CPSR cpsr) const
 
     if (ArmSystem::haveSecurity(tc)) {
         CPTR cptrEnCheck = tc->readMiscReg(MISCREG_CPTR_EL3);
-        if (cptrEnCheck.ez)
+        if (!cptrEnCheck.ez)
             return sveAccessTrap(EL3);
     }
 
