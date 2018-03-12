@@ -2635,9 +2635,6 @@ namespace Aarch64
                     uint8_t dtype = (bits(machInst, 24, 23) << 1) |
                                     bits(machInst, 14);
                     uint8_t ff = bits(machInst, 13);
-                    if (ff) {
-                        return new Unknown64(machInst);
-                    }
                     return decodeSveGatherLoadVIInsts(
                         dtype, machInst, zt, pg, zn, imm, true, ff);
                 } else {
@@ -2666,9 +2663,6 @@ namespace Aarch64
                                 bits(machInst, 14);
                 uint8_t xs = bits(machInst, 22);
                 uint8_t ff = bits(machInst, 13);
-                if (ff) {
-                    return new Unknown64(machInst);
-                }
                 return decodeSveGatherLoadSVInsts(
                         dtype, machInst, zt, pg, rn, zm,
                         true, true, xs, false, ff);
@@ -2694,19 +2688,20 @@ namespace Aarch64
                              bits(machInst, 12, 10);
                     uint8_t xs = bits(machInst, 22);
                     uint8_t ff = bits(machInst, 13);
-                    if (ff) {
-                        return new Unknown64(machInst);
-                    }
                     if (bits(machInst, 14)) {
-                        return new SveIndexedMemSV<uint32_t, uint16_t,
-                                                   SveGatherLoadSVMicroop>(
-                            "ld1", machInst, MemReadOp, zt, pg, rn, zm,
-                            true, xs, true);
+                        return
+                           new SveIndexedMemSV<uint32_t, uint16_t,
+                                               SveGatherLoadSVMicroop,
+                                               SveFirstFaultWritebackMicroop>(
+                            ff ? "ldff1" : "ld1", machInst, MemReadOp, zt, pg,
+                            rn, zm, true, xs, true, ff);
                     } else {
-                        return new SveIndexedMemSV<int32_t, int16_t,
-                                                   SveGatherLoadSVMicroop>(
-                            "ld1", machInst, MemReadOp, zt, pg, rn, zm,
-                            true, xs, true);
+                        return
+                           new SveIndexedMemSV<int32_t, int16_t,
+                                               SveGatherLoadSVMicroop,
+                                               SveFirstFaultWritebackMicroop>(
+                            ff ? "ldff1" : "ld1", machInst, MemReadOp, zt, pg,
+                            rn, zm, true, xs, true, ff);
                     }
                 }
                 break;
@@ -2724,13 +2719,11 @@ namespace Aarch64
                              bits(machInst, 12, 10);
                     uint8_t xs = bits(machInst, 22);
                     uint8_t ff = bits(machInst, 13);
-                    if (ff) {
-                        return new Unknown64(machInst);
-                    }
                     return new SveIndexedMemSV<uint32_t, uint32_t,
-                                               SveGatherLoadSVMicroop>(
-                        "ld1", machInst, MemReadOp, zt, pg, rn, zm,
-                        true, xs, true);
+                                               SveGatherLoadSVMicroop,
+                                               SveFirstFaultWritebackMicroop>(
+                        ff ? "ldff1" : "ld1", machInst, MemReadOp, zt, pg, rn,
+                        zm, true, xs, true, ff);
                 }
                 break;
               case 0x3:
@@ -2896,9 +2889,6 @@ namespace Aarch64
                                 bits(machInst, 14);
                 uint8_t xs = bits(machInst, 22);
                 uint8_t ff = bits(machInst, 13);
-                if (ff) {
-                    return new Unknown64(machInst);
-                }
                 return decodeSveGatherLoadSVInsts(
                         dtype, machInst, zt, pg, rn, zm,
                         false, true, xs, false, ff);
@@ -2915,9 +2905,6 @@ namespace Aarch64
                 uint8_t dtype = (bits(machInst, 24, 23) << 1) |
                                 bits(machInst, 14);
                 uint8_t ff = bits(machInst, 13);
-                if (ff) {
-                    return new Unknown64(machInst);
-                }
                 return decodeSveGatherLoadSVInsts(
                         dtype, machInst, zt, pg, rn, zm,
                         false, false, false, false, ff);
@@ -2942,9 +2929,6 @@ namespace Aarch64
                                 bits(machInst, 14);
                 uint8_t xs = bits(machInst, 22);
                 uint8_t ff = bits(machInst, 13);
-                if (ff) {
-                    return new Unknown64(machInst);
-                }
                 return decodeSveGatherLoadSVInsts(
                         dtype, machInst, zt, pg, rn, zm,
                         false, true, xs, true, ff);
@@ -2965,9 +2949,6 @@ namespace Aarch64
                 uint8_t dtype = (bits(machInst, 24, 23) << 1) |
                                 bits(machInst, 14);
                 uint8_t ff = bits(machInst, 13);
-                if (ff) {
-                    return new Unknown64(machInst);
-                }
                 return decodeSveGatherLoadVIInsts(
                     dtype, machInst, zt, pg, zn, imm, false, ff);
             } else {
@@ -2985,9 +2966,6 @@ namespace Aarch64
                     uint8_t dtype = (bits(machInst, 24, 23) << 1) |
                                     bits(machInst, 14);
                     uint8_t ff = bits(machInst, 13);
-                    if (ff) {
-                        return new Unknown64(machInst);
-                    }
                     return decodeSveGatherLoadSVInsts(
                             dtype, machInst, zt, pg, rn, zm,
                             false, false, false, true, ff);

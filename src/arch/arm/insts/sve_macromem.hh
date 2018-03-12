@@ -46,7 +46,8 @@
 namespace ArmISA {
 
 template <typename RegElemType, typename MemElemType,
-          template <typename, typename> class MicroopType>
+          template <typename, typename> class MicroopType,
+          template <typename> class FirstFaultWritebackMicroopType>
 class SveIndexedMemVI : public PredMacroOp
 {
   protected:
@@ -58,23 +59,28 @@ class SveIndexedMemVI : public PredMacroOp
   public:
     SveIndexedMemVI(const char *mnem, ExtMachInst machInst, OpClass __opClass,
                     IntRegIndex _dest, IntRegIndex _gp, IntRegIndex _base,
-                    uint64_t _imm)
+                    uint64_t _imm, bool firstFault)
         : PredMacroOp(mnem, machInst, __opClass),
           dest(_dest), gp(_gp), base(_base), imm(_imm)
     {
-        numMicroops = ((machInst.sveLen + 1) * 16) / sizeof(RegElemType);
+        int num_elems = ((machInst.sveLen + 1) * 16) / sizeof(RegElemType);
+        numMicroops = firstFault ? num_elems + 1 : num_elems;
 
         microOps = new StaticInstPtr[numMicroops];
 
         StaticInstPtr *uop = microOps;
 
-        for (int i = 0; i < numMicroops; i++, uop++) {
+        for (int i = 0; i < num_elems; i++, uop++) {
             *uop = new MicroopType<RegElemType, MemElemType>(
                 mnem, machInst, __opClass, _dest, _gp, _base, _imm, i,
-                numMicroops);
+                num_elems, firstFault);
         }
+        if (firstFault)
+            *uop = new FirstFaultWritebackMicroopType<RegElemType>(
+                mnem, machInst, __opClass, num_elems, this);
+        else
+            --uop;
 
-        --uop;
         (*uop)->setLastMicroop();
         microOps[0]->setFirstMicroop();
 
@@ -111,7 +117,8 @@ class SveIndexedMemVI : public PredMacroOp
 };
 
 template <typename RegElemType, typename MemElemType,
-          template <typename, typename> class MicroopType>
+          template <typename, typename> class MicroopType,
+          template <typename> class FirstFaultWritebackMicroopType>
 class SveIndexedMemSV : public PredMacroOp
 {
   protected:
@@ -128,25 +135,32 @@ class SveIndexedMemSV : public PredMacroOp
     SveIndexedMemSV(const char *mnem, ExtMachInst machInst, OpClass __opClass,
                     IntRegIndex _dest, IntRegIndex _gp, IntRegIndex _base,
                     IntRegIndex _offset, bool _offsetIs32,
-                    bool _offsetIsSigned, bool _offsetIsScaled)
+                    bool _offsetIsSigned, bool _offsetIsScaled,
+                    bool firstFault)
         : PredMacroOp(mnem, machInst, __opClass),
           dest(_dest), gp(_gp), base(_base), offset(_offset),
           offsetIs32(_offsetIs32), offsetIsSigned(_offsetIsSigned),
           offsetIsScaled(_offsetIsScaled)
     {
-        numMicroops = ((machInst.sveLen + 1) * 16) / sizeof(RegElemType);
+        int num_elems = ((machInst.sveLen + 1) * 16) / sizeof(RegElemType);
+        numMicroops = firstFault ? num_elems + 1 : num_elems;
 
         microOps = new StaticInstPtr[numMicroops];
 
         StaticInstPtr *uop = microOps;
 
-        for (int i = 0; i < numMicroops; i++, uop++) {
+        for (int i = 0; i < num_elems; i++, uop++) {
             *uop = new MicroopType<RegElemType, MemElemType>(
                 mnem, machInst, __opClass, _dest, _gp, _base, _offset,
-                _offsetIs32, _offsetIsSigned, _offsetIsScaled, i, numMicroops);
+                _offsetIs32, _offsetIsSigned, _offsetIsScaled, i, num_elems,
+                firstFault);
         }
+        if (firstFault)
+            *uop = new FirstFaultWritebackMicroopType<RegElemType>(
+                mnem, machInst, __opClass, num_elems, this);
+        else
+            --uop;
 
-        --uop;
         (*uop)->setLastMicroop();
         microOps[0]->setFirstMicroop();
 

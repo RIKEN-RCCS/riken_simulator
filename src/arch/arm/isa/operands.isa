@@ -555,6 +555,8 @@ def operands {{
     'POp2': predReg('op2'),
     'PDest': predReg('dest'),
     'Ffr': predReg('PREDREG_FFR'),
+    'FfrAux': predReg('PREDREG_FFR'),
+    'PUreg0': predReg('PREDREG_UREG0'),
 
     #Abstracted control reg operands
     'MiscDest': cntrlReg('dest'),

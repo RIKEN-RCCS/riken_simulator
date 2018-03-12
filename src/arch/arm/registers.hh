@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2011, 2014, 2016-2017 ARM Limited
+ * Copyright (c) 2010-2011, 2014, 2016-2018 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -99,8 +99,9 @@ const int NumIntRegs = NUM_INTREGS;
 const int NumFloatRegs = NumFloatV8ArchRegs + NumFloatSpecialRegs;
 const int NumVecRegs = NumVecV8ArchRegs + NumVecSpecialRegs;
 const int NumCCRegs = NUM_CCREGS;
-const int NumPredRegs = 17;  // P0-P15, FFR
+const int NumPredRegs = 18;  // P0-P15, FFR, UREG0
 const int PREDREG_FFR = 16;
+const int PREDREG_UREG0 = 17;
 const int NumMiscRegs = NUM_MISCREGS;
 
 #define ISA_HAS_CC_REGS
