@@ -82,7 +82,8 @@ class ArmSystem(System):
         "True if ASID is 16 bits in AArch64 (ARMv8)")
     have_sve = Param.Bool(True,
         "True if SVE is implemented (ARMv8)")
-    sve_vl = Param.SveVectorLength(2, "SVE vector length")
+    sve_vl = Param.SveVectorLength(1,
+        "SVE vector length in quadwords (128-bit)")
 
     m5ops_base = Param.Addr(0,
         "Base of the 64KiB PA range used for memory-mapped m5ops. Set to 0 "
