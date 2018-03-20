@@ -63,18 +63,42 @@ class SveIndexedMemVI : public PredMacroOp
         : PredMacroOp(mnem, machInst, __opClass),
           dest(_dest), gp(_gp), base(_base), imm(_imm)
     {
+        bool isLoad = (__opClass == MemReadOp);
+        assert(!firstFault || isLoad);
+
         int num_elems = ((machInst.sveLen + 1) * 16) / sizeof(RegElemType);
-        numMicroops = firstFault ? num_elems + 1 : num_elems;
+
+        numMicroops = num_elems;
+        if (isLoad) {
+            if (firstFault) {
+                numMicroops += 2;
+            } else {
+                numMicroops++;
+            }
+        }
 
         microOps = new StaticInstPtr[numMicroops];
 
         StaticInstPtr *uop = microOps;
 
+        if (isLoad) {
+            // The first microop of a gather load copies the source vector
+            // register used for address calculation to an auxiliary register,
+            // with all subsequent microops reading from the latter.  This is
+            // needed to properly handle cases where the source vector
+            // register is the same as the destination register
+            *uop = new ArmISAInst::SveGatherLoadCpySrcVecMicroop(
+                mnem, machInst, _base, this);
+            uop++;
+        }
+
         for (int i = 0; i < num_elems; i++, uop++) {
             *uop = new MicroopType<RegElemType, MemElemType>(
-                mnem, machInst, __opClass, _dest, _gp, _base, _imm, i,
+                mnem, machInst, __opClass, _dest, _gp,
+                isLoad ? (IntRegIndex) VECREG_UREG0 : _base, _imm, i,
                 num_elems, firstFault);
         }
+
         if (firstFault)
             *uop = new FirstFaultWritebackMicroopType<RegElemType>(
                 mnem, machInst, __opClass, num_elems, this);
@@ -142,19 +166,42 @@ class SveIndexedMemSV : public PredMacroOp
           offsetIs32(_offsetIs32), offsetIsSigned(_offsetIsSigned),
           offsetIsScaled(_offsetIsScaled)
     {
+        bool isLoad = (__opClass == MemReadOp);
+        assert(!firstFault || isLoad);
+
         int num_elems = ((machInst.sveLen + 1) * 16) / sizeof(RegElemType);
-        numMicroops = firstFault ? num_elems + 1 : num_elems;
+
+        numMicroops = num_elems;
+        if (isLoad) {
+            if (firstFault) {
+                numMicroops += 2;
+            } else {
+                numMicroops++;
+            }
+        }
 
         microOps = new StaticInstPtr[numMicroops];
 
         StaticInstPtr *uop = microOps;
 
+        if (isLoad) {
+            // The first microop of a gather load copies the source vector
+            // register used for address calculation to an auxiliary register,
+            // with all subsequent microops reading from the latter.  This is
+            // needed to properly handle cases where the source vector
+            // register is the same as the destination register
+            *uop = new ArmISAInst::SveGatherLoadCpySrcVecMicroop(
+                mnem, machInst, _offset, this);
+            uop++;
+        }
+
         for (int i = 0; i < num_elems; i++, uop++) {
             *uop = new MicroopType<RegElemType, MemElemType>(
-                mnem, machInst, __opClass, _dest, _gp, _base, _offset,
-                _offsetIs32, _offsetIsSigned, _offsetIsScaled, i, num_elems,
-                firstFault);
+                mnem, machInst, __opClass, _dest, _gp, _base,
+                isLoad ? (IntRegIndex) VECREG_UREG0 : _offset, _offsetIs32,
+                _offsetIsSigned, _offsetIsScaled, i, num_elems, firstFault);
         }
+
         if (firstFault)
             *uop = new FirstFaultWritebackMicroopType<RegElemType>(
                 mnem, machInst, __opClass, num_elems, this);

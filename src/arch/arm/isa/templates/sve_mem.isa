@@ -452,7 +452,7 @@ def template SveIndexedMemVIMicroopDeclare {{
             if (imm != 0) {
                 ccprintf(ss, ", #%d", imm * sizeof(MemElemType));
             }
-            ccprintf(ss, "] (uop%d)", elemIndex);
+            ccprintf(ss, "] (uop elem %d tfer)", elemIndex);
             return ss.str();
         }
     };
@@ -531,7 +531,7 @@ def template SveIndexedMemSVMicroopDeclare {{
             printIntReg(ss, base);
             ccprintf(ss, ", ");
             printVecReg(ss, offset, true);
-            ccprintf(ss, "] (uop%d)", elemIndex);
+            ccprintf(ss, "] (uop elem %d tfer)", elemIndex);
             return ss.str();
         }
     };
@@ -734,7 +734,7 @@ def template SveFirstFaultWritebackMicroopDeclare {{
         {
             std::stringstream ss;
             ccprintf(ss, "%s", macroOp->disassemble(pc, symtab));
-            ccprintf(ss, " (uop%d)", numElems);
+            ccprintf(ss, " (uop ffr wb)");
             return ss.str();
         }
     };
@@ -763,5 +763,52 @@ def template SveFirstFaultWritebackMicroopExecute {{
             }
         }
         return NoFault;
+    }
+}};
+
+def template SveGatherLoadCpySrcVecMicroopDeclare {{
+    class SveGatherLoadCpySrcVecMicroop : public MicroOp
+    {
+      protected:
+        IntRegIndex op1;
+
+        StaticInst *macroOp;
+
+      public:
+        SveGatherLoadCpySrcVecMicroop(const char* mnem, ExtMachInst machInst,
+            IntRegIndex _op1, StaticInst *_macroOp)
+            : MicroOp(mnem, machInst, SimdAluOp), op1(_op1), macroOp(_macroOp)
+        {
+            %(constructor)s;
+        }
+
+        Fault execute(ExecContext *, Trace::InstRecord *) const;
+
+        std::string
+        generateDisassembly(Addr pc, const SymbolTable *symtab) const
+        {
+            std::stringstream ss;
+            ccprintf(ss, "%s", macroOp->disassemble(pc, symtab));
+            ccprintf(ss, " (uop src vec cpy)");
+            return ss.str();
+        }
+    };
+}};
+
+def template SveGatherLoadCpySrcVecMicroopExecute {{
+    Fault SveGatherLoadCpySrcVecMicroop::execute(ExecContext *xc,
+            Trace::InstRecord *traceData) const
+    {
+        Fault fault = NoFault;
+        %(op_decl)s;
+        %(op_rd)s;
+
+        %(code)s;
+        if (fault == NoFault)
+        {
+            %(op_wb)s;
+        }
+
+        return fault;
     }
 }};

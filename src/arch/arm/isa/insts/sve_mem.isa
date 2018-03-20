@@ -903,6 +903,22 @@ let {{
                          'class_name' : 'SveFirstFaultWritebackMicroop' }
             exec_output += SveOpExecDeclare.subst(substDict)
 
+    def emitSveGatherLoadCpySrcVecMicroop():
+        global header_output, exec_output, decoders
+        code = sveEnabledCheckCode + '''
+        unsigned eCount = ArmStaticInst::getCurSveVecLen<uint8_t>(
+                xc->tcBase());
+        for (unsigned i = 0; i < eCount; i++) {
+            AA64FpUreg0_ub[i] = AA64FpOp1_ub[i];
+        }'''
+        iop = InstObjParams('ld1',
+            'SveGatherLoadCpySrcVecMicroop',
+            'MicroOp',
+            {'code': code},
+            ['IsMicroop'])
+        header_output += SveGatherLoadCpySrcVecMicroopDeclare.subst(iop)
+        exec_output += SveGatherLoadCpySrcVecMicroopExecute.subst(iop)
+
     # LD1[S]{B,H,W,D} (scalar plus immediate)
     # ST1[S]{B,H,W,D} (scalar plus immediate)
     emitSveContigMemInsts(True)
@@ -927,5 +943,8 @@ let {{
 
     # FFR write microop for gather loads
     emitSveFirstFaultWritebackMicroop()
+
+    # Source vector copy microop for gather loads
+    emitSveGatherLoadCpySrcVecMicroop()
 
 }};

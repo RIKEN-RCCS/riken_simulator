@@ -549,6 +549,17 @@ def operands {{
         'AA64FpOffsetQ':  vectorRegElem('0', 'tud', zeroing = True)
     }),
 
+    'AA64FpUreg0': vectorReg('VECREG_UREG0',
+    {
+        'AA64FpUreg0P0': vectorRegElem('0'),
+        'AA64FpUreg0P1': vectorRegElem('1'),
+        'AA64FpUreg0P2': vectorRegElem('2'),
+        'AA64FpUreg0P3': vectorRegElem('3'),
+        'AA64FpUreg0S':  vectorRegElem('0', 'sf', zeroing = True),
+        'AA64FpUreg0D':  vectorRegElem('0', 'df', zeroing = True),
+        'AA64FpUreg0Q':  vectorRegElem('0', 'tud', zeroing = True)
+    }),
+
     # Predicate register operands
     'GpOp': predReg('gp'),
     'POp1': predReg('op1'),
