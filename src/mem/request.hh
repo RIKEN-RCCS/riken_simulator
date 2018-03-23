@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013,2017 ARM Limited
+ * Copyright (c) 2012-2013,2017-2018 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -318,7 +318,7 @@ class Request
     unsigned _size;
 
     /** Byte-enable mask for writes. */
-    std::vector<bool> _writeByteEnable;
+    std::vector<bool> _byteEnable;
 
     /** The requestor ID which is unique in the system for all ports
      * that are capable of issuing a transaction
@@ -436,7 +436,7 @@ class Request
 
     Request(int asid, Addr vaddr, unsigned size, Flags flags, MasterID mid,
             Addr pc, ContextID cid,
-            const std::vector<bool>& writeByteEnable = std::vector<bool>())
+            const std::vector<bool>& byteEnable = std::vector<bool>())
         : _paddr(0), _size(0),
           _masterId(invldMasterId), _time(0),
           _taskId(ContextSwitchTaskId::Unknown), _asid(0), _vaddr(0),
@@ -444,7 +444,7 @@ class Request
           _reqInstSeqNum(0), atomicOpFunctor(nullptr), translateDelta(0),
           accessDelta(0), depth(0)
     {
-        setVirt(asid, vaddr, size, flags, mid, pc, writeByteEnable);
+        setVirt(asid, vaddr, size, flags, mid, pc, byteEnable);
         setContext(cid);
     }
 
@@ -480,16 +480,16 @@ class Request
     void
     setVirt(int asid, Addr vaddr, unsigned size, Flags flags, MasterID mid,
             Addr pc,
-            const std::vector<bool>& writeByteEnable = std::vector<bool>())
+            const std::vector<bool>& byteEnable = std::vector<bool>())
     {
-        assert(writeByteEnable.empty() || writeByteEnable.size() == size);
+        assert(byteEnable.empty() || byteEnable.size() == size);
 
         _asid = asid;
         _vaddr = vaddr;
         _size = size;
         _masterId = mid;
         _pc = pc;
-        _writeByteEnable = writeByteEnable;
+        _byteEnable = byteEnable;
         _time = curTick();
 
         _flags.clear(~STICKY_FLAGS);
@@ -532,13 +532,13 @@ class Request
         req1->_size = split_addr - _vaddr;
         req2->_vaddr = split_addr;
         req2->_size = _size - req1->_size;
-        if (!_writeByteEnable.empty()) {
-            req1->_writeByteEnable = std::vector<bool>(
-                _writeByteEnable.begin(),
-                _writeByteEnable.begin() + req1->_size);
-            req2->_writeByteEnable = std::vector<bool>(
-                _writeByteEnable.begin() + req1->_size,
-                _writeByteEnable.end());
+        if (!_byteEnable.empty()) {
+            req1->_byteEnable = std::vector<bool>(
+                _byteEnable.begin(),
+                _byteEnable.begin() + req1->_size);
+            req2->_byteEnable = std::vector<bool>(
+                _byteEnable.begin() + req1->_size,
+                _byteEnable.end());
         }
     }
 
@@ -592,9 +592,9 @@ class Request
     }
 
     const std::vector<bool>&
-    getWriteByteEnable() const
+    getByteEnable() const
     {
-        return _writeByteEnable;
+        return _byteEnable;
     }
 
     /** Accessor for time. */

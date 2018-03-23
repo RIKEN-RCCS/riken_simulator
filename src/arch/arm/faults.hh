@@ -429,6 +429,7 @@ class AbortFault : public ArmFaultVals<T>
     bool isStage2() const override { return stage2; }
     void annotate(ArmFault::AnnotationIDs id, uint64_t val) override;
     bool isMMUFault() const;
+    bool getFaultVAddr(Addr &va) const override;
 };
 
 class PrefetchAbort : public AbortFault<PrefetchAbort>

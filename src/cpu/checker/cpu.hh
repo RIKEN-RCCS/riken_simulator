@@ -546,7 +546,9 @@ class CheckerCPU : public BaseCPU, public ExecContext
     }
 
     Fault readMem(Addr addr, uint8_t *data, unsigned size,
-                  Request::Flags flags) override;
+                  Request::Flags flags,
+                  const std::vector<bool>& byteEnable = std::vector<bool>())
+        override;
     Fault writeMem(uint8_t *data, unsigned size, Addr addr,
                    Request::Flags flags, uint64_t *res,
                    const std::vector<bool>& byteEnable = std::vector<bool>())

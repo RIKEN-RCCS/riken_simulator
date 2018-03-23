@@ -1,6 +1,6 @@
 /*
  * Copyright 2014 Google, Inc.
- * Copyright (c) 2012-2013,2015,2017 ARM Limited
+ * Copyright (c) 2012-2013,2015,2017-2018 ARM Limited
  * All rights reserved.
  *
  * The license below extends only to copyright in the software and shall
@@ -326,7 +326,8 @@ AtomicSimpleCPU::AtomicCPUDPort::recvFunctionalSnoop(PacketPtr pkt)
 
 Fault
 AtomicSimpleCPU::readMem(Addr addr, uint8_t * data, unsigned size,
-                         Request::Flags flags)
+                         Request::Flags flags,
+                         const std::vector<bool>& byteEnable)
 {
     SimpleExecContext& t_info = *threadInfo[curThread];
     SimpleThread* thread = t_info.thread;
@@ -344,22 +345,41 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data, unsigned size,
     Addr frag_addr = addr;
     int frag_size = 0;
     int size_left = size;
+    bool predicate;
+    Fault fault = NoFault;
 
     while (1) {
+        predicate = true;
         frag_size = std::min(
             cacheLineSize() - addrBlockOffset(frag_addr, cacheLineSize()),
             (Addr) size_left);
         size_left -= frag_size;
 
-        req->setVirt(0, frag_addr, frag_size, flags, dataMasterId(),
-                     thread->pcState().instAddr());
+        if (!byteEnable.empty()) {
+            // Set up byte-enable mask for the current fragment
+            auto it_start = byteEnable.begin() + (size - (frag_size +
+                                                          size_left));
+            auto it_end = byteEnable.begin() + (size - size_left);
+            if (isAnyActiveElement(it_start, it_end))
+                req->setVirt(0, frag_addr, frag_size, flags, dataMasterId(),
+                             thread->pcState().instAddr(),
+                             std::vector<bool>(it_start, it_end));
+            else
+                predicate = false;
+
+        } else {
+            req->setVirt(0, frag_addr, frag_size, flags, dataMasterId(),
+                         thread->pcState().instAddr());
+        }
 
         // translate to physical address
-        Fault fault = thread->dtb->translateAtomic(req, thread->getTC(),
-                                                   BaseTLB::Read);
+        if (predicate)
+            fault = thread->dtb->translateAtomic(req, thread->getTC(),
+                                                 BaseTLB::Read);
 
         // Now do the access.
-        if (fault == NoFault && !req->getFlags().isSet(Request::NO_ACCESS)) {
+        if (predicate && fault == NoFault &&
+            !req->getFlags().isSet(Request::NO_ACCESS)) {
             Packet pkt(req, Packet::makeReadCmd(req));
             pkt.dataStatic(data);
 
@@ -410,7 +430,8 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data, unsigned size,
 
 Fault
 AtomicSimpleCPU::initiateMemRead(Addr addr, unsigned size,
-                                 Request::Flags flags)
+                                 Request::Flags flags,
+                                 const std::vector<bool>& byteEnable)
 {
     panic("initiateMemRead() is for timing accesses, and should "
           "never be called on AtomicSimpleCPU.\n");
@@ -446,8 +467,11 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size, Addr addr,
     int frag_size = 0;
     int size_left = size;
     int curr_frag_id = 0;
+    bool predicate;
+    Fault fault = NoFault;
 
     while (1) {
+        predicate = true;
         frag_size = std::min(
             cacheLineSize() - addrBlockOffset(frag_addr, cacheLineSize()),
             (Addr) size_left);
@@ -458,21 +482,24 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size, Addr addr,
             auto it_start = byteEnable.begin() + (size - (frag_size +
                                                           size_left));
             auto it_end = byteEnable.begin() + (size - size_left);
-
-            req->setVirt(0, frag_addr, frag_size, flags, dataMasterId(),
-                         thread->pcState().instAddr(),
-                         std::vector<bool>(it_start, it_end));
+            if (isAnyActiveElement(it_start, it_end))
+                req->setVirt(0, frag_addr, frag_size, flags, dataMasterId(),
+                             thread->pcState().instAddr(),
+                             std::vector<bool>(it_start, it_end));
+            else
+                predicate = false;
         } else {
             req->setVirt(0, frag_addr, frag_size, flags, dataMasterId(),
                          thread->pcState().instAddr());
         }
 
         // translate to physical address
-        Fault fault = thread->dtb->translateAtomic(req, thread->getTC(),
-                                                   BaseTLB::Write);
+        if (predicate)
+            fault = thread->dtb->translateAtomic(req, thread->getTC(),
+                                                 BaseTLB::Write);
 
         // Now do the access.
-        if (fault == NoFault) {
+        if (predicate && fault == NoFault) {
             bool do_access = true;  // flag to suppress cache access
 
             if (req->isLLSC()) {
@@ -523,6 +550,7 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size, Addr addr,
         if (fault != NoFault || size_left == 0)
         {
             if (req->isLockedRMW() && fault == NoFault) {
+                assert(byteEnable.empty());
                 assert(locked && curr_frag_id == 0);
                 locked = false;
             }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012,2015 ARM Limited
+ * Copyright (c) 2011-2012,2015,2018 ARM Limited
  * Copyright (c) 2013 Advanced Micro Devices, Inc.
  * All rights reserved
  *
@@ -143,10 +143,14 @@ class BaseSimpleCPU : public BaseCPU
     void startup() override;
 
     virtual Fault readMem(Addr addr, uint8_t* data, unsigned size,
-                          Request::Flags flags) = 0;
+                          Request::Flags flags,
+                          const std::vector<bool>& byteEnable =
+                          std::vector<bool>()) = 0;
 
     virtual Fault initiateMemRead(Addr addr, unsigned size,
-                                  Request::Flags flags) = 0;
+                                  Request::Flags flags,
+                                  const std::vector<bool>& byteEnable =
+                                  std::vector<bool>()) = 0;
 
     virtual Fault writeMem(uint8_t* data, unsigned size, Addr addr,
             Request::Flags flags, uint64_t* res,

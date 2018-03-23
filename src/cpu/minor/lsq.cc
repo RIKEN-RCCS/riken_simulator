@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014,2017 ARM Limited
+ * Copyright (c) 2013-2014,2017-2018 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -395,7 +395,7 @@ LSQ::SplitDataRequest::makeFragmentRequests()
     /* Just past the last address in the request */
     Addr end_addr = base_addr + whole_size;
 
-    auto& writeByteEnable = request.getWriteByteEnable();
+    auto& writeByteEnable = request.getByteEnable();
 
     for (unsigned int fragment_index = 0; fragment_index < numFragments;
          fragment_index++)
@@ -483,7 +483,7 @@ LSQ::SplitDataRequest::makeFragmentPackets()
 
         PacketPtr fragment_packet =
             makePacketForRequest(*fragment, isLoad, this, request_data,
-                                 fragment->getWriteByteEnable());
+                                 fragment->getByteEnable());
 
         fragmentPackets.push_back(fragment_packet);
         /* Accumulate flags in parent request */

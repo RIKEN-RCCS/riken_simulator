@@ -247,7 +247,8 @@ class ExecContext {
      * should never be called).
      */
     virtual Fault readMem(Addr addr, uint8_t *data, unsigned int size,
-                          Request::Flags flags)
+            Request::Flags flags,
+            const std::vector<bool>& byteEnable = std::vector<bool>())
     {
         panic("ExecContext::readMem() should be overridden\n");
     }
@@ -260,7 +261,8 @@ class ExecContext {
      * should never be called).
      */
     virtual Fault initiateMemRead(Addr addr, unsigned int size,
-                                  Request::Flags flags)
+            Request::Flags flags,
+            const std::vector<bool>& byteEnable = std::vector<bool>())
     {
         panic("ExecContext::initiateMemRead() should be overridden\n");
     }

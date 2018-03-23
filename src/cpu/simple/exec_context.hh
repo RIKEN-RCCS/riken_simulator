@@ -445,15 +445,19 @@ class SimpleExecContext : public ExecContext {
 
 
     Fault readMem(Addr addr, uint8_t *data, unsigned int size,
-                  Request::Flags flags) override
+                  Request::Flags flags,
+                  const std::vector<bool>& byteEnable = std::vector<bool>())
+        override
     {
-        return cpu->readMem(addr, data, size, flags);
+        return cpu->readMem(addr, data, size, flags, byteEnable);
     }
 
     Fault initiateMemRead(Addr addr, unsigned int size,
-                          Request::Flags flags) override
+                          Request::Flags flags,
+                          const std::vector<bool>& byteEnable =
+                          std::vector<bool>()) override
     {
-        return cpu->initiateMemRead(addr, size, flags);
+        return cpu->initiateMemRead(addr, size, flags, byteEnable);
     }
 
     Fault writeMem(uint8_t *data, unsigned int size, Addr addr,

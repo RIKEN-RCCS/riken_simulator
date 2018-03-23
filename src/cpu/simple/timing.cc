@@ -1,6 +1,6 @@
 /*
  * Copyright 2014 Google, Inc.
- * Copyright (c) 2010-2013,2015,2017 ARM Limited
+ * Copyright (c) 2010-2013,2015,2017-2018 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -416,7 +416,8 @@ TimingSimpleCPU::buildSplitPacket(PacketPtr &pkt1, PacketPtr &pkt2,
 
 Fault
 TimingSimpleCPU::readMem(Addr addr, uint8_t *data,
-                         unsigned size, Request::Flags flags)
+                         unsigned size, Request::Flags flags,
+                         const std::vector<bool>& byteEnable)
 {
     panic("readMem() is for atomic accesses, and should "
           "never be called on TimingSimpleCPU.\n");
@@ -424,7 +425,8 @@ TimingSimpleCPU::readMem(Addr addr, uint8_t *data,
 
 Fault
 TimingSimpleCPU::initiateMemRead(Addr addr, unsigned size,
-                                 Request::Flags flags)
+                                 Request::Flags flags,
+                                 const std::vector<bool>& byteEnable)
 {
     SimpleExecContext &t_info = *threadInfo[curThread];
     SimpleThread* thread = t_info.thread;
@@ -439,7 +441,7 @@ TimingSimpleCPU::initiateMemRead(Addr addr, unsigned size,
         traceData->setMem(addr, size, flags);
 
     RequestPtr req = new Request(asid, addr, size, flags, dataMasterId(), pc,
-                                 thread->contextId());
+                                 thread->contextId(), byteEnable);
 
     req->taskId(taskId());
 

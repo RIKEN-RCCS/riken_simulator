@@ -89,13 +89,11 @@ output header {{
     StaticInstPtr
     decodeSveContigLoadSIInsts(uint8_t dtype, ExtMachInst machInst,
                                IntRegIndex zt, IntRegIndex pg, IntRegIndex rn,
-                               uint64_t imm, bool firstFaulting,
+                               uint64_t imm, bool nonFaulting,
                                bool replicate = false)
     {
-        assert(!(replicate && firstFaulting));
-
-        const char* mn = replicate ? "ld1r" :
-                                     (firstFaulting ? "ldff1" : "ld1");
+        assert(!(nonFaulting && replicate));
+        const char* mn = replicate ? "ld1r" : (nonFaulting ? "ldnf1" : "ld1");
         switch (dtype) {
           case 0x0:
             return new Base<uint8_t, uint8_t>(mn, machInst, zt, pg, rn, imm);
@@ -543,6 +541,9 @@ let {{
         int memAccessSize = %(memacc_size)s;
         EA = XBase + ((int64_t) imm * %(memacc_size)s)''' % {
             'memacc_size': 'eCount / 8' if isPred else 'eCount'}
+        loadRdEnableCode = '''
+        auto rdEn = std::vector<bool>();
+        '''
         if isPred:
             loadMemAccCode = '''
             int index = 0;
@@ -589,6 +590,8 @@ let {{
              'tpl_args': '',
              'memacc_code': loadMemAccCode,
              'ea_code' : sveEnabledCheckCode + eaCode,
+             'rden_code' : loadRdEnableCode,
+             'fault_code' : '',
              'fa_code' : ''},
             ['IsMemRef', 'IsLoad'])
         storeIop = InstObjParams('str',
@@ -671,6 +674,11 @@ let {{
     # Generates definitions for SVE contiguous loads
     def emitSveContigMemInsts(offsetIsImm):
         global header_output, exec_output, decoders
+        # First-faulting instructions only have a scalar plus scalar form,
+        # while non-faulting instructions only a scalar plus immediate form, so
+        # `offsetIsImm` is used to determine which class of instructions is
+        # generated
+        firstFaulting = not offsetIsImm
         tplHeader = 'template <class RegElemType, class MemElemType>'
         tplArgs = '<RegElemType, MemElemType>'
         eaCode = SPAlignmentCheckCode + '''
@@ -680,6 +688,16 @@ let {{
             eaCode += '((int64_t) this->imm * eCount * sizeof(MemElemType))'
         else:
             eaCode += '(XOffset * sizeof(MemElemType));'
+        loadRdEnableCode = '''
+        auto rdEn = std::vector<bool>(sizeof(MemElemType) * eCount, true);
+        for (int i = 0; i < eCount; i++) {
+            if (!GpOp_x[i]) {
+                for (int j = 0; j < sizeof(MemElemType); j++) {
+                    rdEn[sizeof(MemElemType) * i + j] = false;
+                }
+            }
+        }
+        '''
         loadMemAccCode = '''
         for (int i = 0; i < eCount; i++) {
             if (GpOp_x[i]) {
@@ -704,13 +722,54 @@ let {{
         storeWrEnableCode = '''
         auto wrEn = std::vector<bool>(sizeof(MemElemType) * eCount, true);
         '''
+        ffrReadBackCode = '''
+        auto& firstFaultReg = Ffr;'''
+        fautlingLoadmemAccCode = '''
+        for (int i = 0; i < eCount; i++) {
+            if (GpOp_x[i] && firstFaultReg[i]) {
+                AA64FpDest_x[i] = memDataView[i];
+            } else {
+                AA64FpDest_x[i] = 0;
+            }
+        }
+        '''
+        nonFaultingCode = 'true ||'
+        faultCode = '''
+        Addr fault_addr;
+        if (fault == NoFault || fault->getFaultVAddr(fault_addr)) {
+            unsigned fault_elem_index;
+            if (fault != NoFault) {
+                assert(fault_addr >= EA);
+                fault_elem_index = (fault_addr - EA) / sizeof(MemElemType);
+            } else {
+                fault_elem_index = eCount + 1;
+            }
+            int first_active_index;
+            for (first_active_index = 0;
+                 first_active_index < eCount && !(GpOp_x[first_active_index]);
+                 first_active_index++);
+            if (%s first_active_index != fault_elem_index) {
+                for (int i = 0; i < eCount; i++)
+                    if (i < fault_elem_index)
+                        Ffr_x[i] = FfrAux_x[i];
+                    else
+                        Ffr_x[i] = 0;
+                if (first_active_index >= fault_elem_index)
+                    xc->setMemAccPredicate(false);
+                  fault = NoFault;
+            }
+        }
+        ''' % ('' if firstFaulting else nonFaultingCode)
+
         loadIop = InstObjParams('ld1',
             'SveContigLoadSI' if offsetIsImm else 'SveContigLoadSS',
             'SveContigMemSI' if offsetIsImm else 'SveContigMemSS',
             {'tpl_header': tplHeader,
              'tpl_args': tplArgs,
+             'rden_code' : loadRdEnableCode,
              'memacc_code': loadMemAccCode,
              'ea_code' : sveEnabledCheckCode + eaCode,
+             'fault_code' : '',
              'fa_code' : ''},
             ['IsMemRef', 'IsLoad'])
         storeIop = InstObjParams('st1',
@@ -723,19 +782,38 @@ let {{
              'ea_code' : sveEnabledCheckCode + eaCode,
              'fa_code' : ''},
             ['IsMemRef', 'IsStore'])
+        faultIop = InstObjParams('ldff1' if firstFaulting else 'ldnf1',
+            'SveContigFFLoadSS' if firstFaulting else 'SveContigNFLoadSI',
+            'SveContigMemSS' if firstFaulting else 'SveContigMemSI',
+            {'tpl_header': tplHeader,
+             'tpl_args': tplArgs,
+             'rden_code' : loadRdEnableCode,
+             'memacc_code': fautlingLoadmemAccCode,
+             'ea_code' : sveEnabledCheckCode + eaCode,
+             'fault_code' : faultCode,
+             'fa_code' : ''},
+            ['IsMemRef', 'IsLoad'])
+        faultIop.snippets['memacc_code'] = (ffrReadBackCode +
+                                           faultIop.snippets['memacc_code'])
         if offsetIsImm:
             header_output += SveContigMemSIOpDeclare.subst(loadIop)
             header_output += SveContigMemSIOpDeclare.subst(storeIop)
+            header_output += SveContigMemSIOpDeclare.subst(faultIop)
         else:
             header_output += SveContigMemSSOpDeclare.subst(loadIop)
             header_output += SveContigMemSSOpDeclare.subst(storeIop)
+            header_output += SveContigMemSSOpDeclare.subst(faultIop)
         exec_output += (
             SveContigLoadExecute.subst(loadIop) +
             SveContigLoadInitiateAcc.subst(loadIop) +
             SveContigLoadCompleteAcc.subst(loadIop) +
             SveContigStoreExecute.subst(storeIop) +
             SveContigStoreInitiateAcc.subst(storeIop) +
-            SveContigStoreCompleteAcc.subst(storeIop))
+            SveContigStoreCompleteAcc.subst(storeIop) +
+            SveContigLoadExecute.subst(faultIop) +
+            SveContigLoadInitiateAcc.subst(faultIop) +
+            SveContigLoadCompleteAcc.subst(faultIop))
+
         for args in loadTplArgs:
             substDict = {'tpl_args': '<%s>' % ', '.join(args),
                          'class_name': 'SveContigLoadSI' if offsetIsImm
@@ -746,6 +824,12 @@ let {{
                          'class_name': 'SveContigStoreSI' if offsetIsImm
                                        else 'SveContigStoreSS'}
             exec_output += SveContigMemExecDeclare.subst(substDict)
+        for args in loadTplArgs:
+            substDict = {'tpl_args': '<%s>' % ', '.join(args),
+                         'class_name': 'SveContigFFLoadSS' if firstFaulting
+                                       else 'SveContigNFLoadSI'}
+            exec_output += SveContigMemExecDeclare.subst(substDict)
+
 
     # Generates definitions for SVE load-and-replicate instructions
     def emitSveLoadAndRepl():
@@ -921,9 +1005,11 @@ let {{
 
     # LD1[S]{B,H,W,D} (scalar plus immediate)
     # ST1[S]{B,H,W,D} (scalar plus immediate)
+    # LDNF1[S]{B,H,W,D} (scalar plus immediate)
     emitSveContigMemInsts(True)
     # LD1[S]{B,H,W,D} (scalar plus scalar)
     # ST1[S]{B,H,W,D} (scalar plus scalar)
+    # LDFF1[S]{B,H,W,D} (scalar plus vector)
     emitSveContigMemInsts(False)
 
     # LD1R[S]{B,H,W,D}
@@ -936,15 +1022,16 @@ let {{
 
     # LD1[S]{B,H,W,D} (vector plus immediate)
     # ST1[S]{B,H,W,D} (vector plus immediate)
+    # LDFF1[S]{B,H,W,D} (scalar plus immediate)
     emitSveIndexedMemMicroops(IndexedAddrForm.VEC_PLUS_IMM)
     # LD1[S]{B,H,W,D} (scalar plus vector)
     # ST1[S]{B,H,W,D} (scalar plus vector)
+    # LDFF1[S]{B,H,W,D} (scalar plus vector)
     emitSveIndexedMemMicroops(IndexedAddrForm.SCA_PLUS_VEC)
 
-    # FFR write microop for gather loads
+    # FFR writeback microop for gather loads
     emitSveFirstFaultWritebackMicroop()
 
     # Source vector copy microop for gather loads
     emitSveGatherLoadCpySrcVecMicroop()
-
 }};

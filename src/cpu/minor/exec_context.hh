@@ -105,10 +105,12 @@ class ExecContext : public ::ExecContext
 
     Fault
     initiateMemRead(Addr addr, unsigned int size,
-                    Request::Flags flags) override
+                    Request::Flags flags,
+                    const std::vector<bool>& byteEnable = std::vector<bool>())
+        override
     {
         execute.getLSQ().pushRequest(inst, true /* load */, nullptr,
-            size, addr, flags, NULL);
+                                     size, addr, flags, nullptr, byteEnable);
         return NoFault;
     }
 

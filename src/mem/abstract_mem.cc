@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2012,2017 ARM Limited
+ * Copyright (c) 2010-2012,2017-2018 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -410,7 +410,7 @@ AbstractMemory::access(PacketPtr pkt)
             if (pmemAddr) {
                 if (pkt->isMaskedWrite()) {
                     for (int i = 0; i < pkt->getSize(); i++) {
-                        if (pkt->req->getWriteByteEnable()[i]) {
+                        if (pkt->req->getByteEnable()[i]) {
                             hostAddr[i] = pkt->getConstPtr<uint8_t>()[i];
                         }
                     }
@@ -452,7 +452,7 @@ AbstractMemory::functionalAccess(PacketPtr pkt)
         if (pmemAddr) {
             if (pkt->isMaskedWrite()) {
                 for (int i = 0; i < pkt->getSize(); i++) {
-                    if (pkt->req->getWriteByteEnable()[i]) {
+                    if (pkt->req->getByteEnable()[i]) {
                         hostAddr[i] = pkt->getConstPtr<uint8_t>()[i];
                     }
                 }

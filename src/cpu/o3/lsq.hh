@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012, 2014 ARM Limited
+ * Copyright (c) 2011-2012, 2014, 2018 ARM Limited
  * Copyright (c) 2013 Advanced Micro Devices, Inc.
  * All rights reserved
  *
@@ -219,6 +219,7 @@ class LSQ {
             Complete,
             Squashed,
             Fault,
+            PartialFault,
         };
         State _state;
         LSQSenderState* _senderState;
@@ -244,7 +245,7 @@ class LSQ {
         const Addr _addr;
         const uint32_t _size;
         const Request::Flags _flags;
-        std::vector<bool> _writeByteEnable;
+        std::vector<bool> _byteEnable;
         uint32_t _numOutstandingPackets;
       protected:
         LSQUnit* lsqUnit() { return &_port; }
@@ -262,7 +263,7 @@ class LSQ {
                    const Addr& addr, const uint32_t& size,
                    const Request::Flags& flags_,
                    PacketDataPtr data = nullptr, uint64_t* res = nullptr,
-                   const std::vector<bool>& writeByteEnable =
+                   const std::vector<bool>& byteEnable =
                    std::vector<bool>())
             : _state(State::NotIssued), _senderState(nullptr),
             numTranslatedFragments(0),
@@ -270,7 +271,7 @@ class LSQ {
             _port(*port), _inst(inst), _data(data),
             _res(res), _addr(addr), _size(size),
             _flags(flags_),
-            _writeByteEnable(writeByteEnable),
+            _byteEnable(byteEnable),
             _numOutstandingPackets(0)
         {
             flags[(int)Flag::IsLoad] = isLoad;
@@ -369,10 +370,10 @@ class LSQ {
         void
         setVirt(int asid, Addr vaddr, unsigned size, Request::Flags flags_,
                 MasterID mid, Addr pc,
-                const std::vector<bool>& writeByteEnable = std::vector<bool>())
+                const std::vector<bool>& byteEnable = std::vector<bool>())
         {
             request()->setVirt(asid, vaddr, size, flags_, mid, pc,
-                               writeByteEnable);
+                               byteEnable);
         }
 
         void taskId(const uint32_t& v)
@@ -471,6 +472,13 @@ class LSQ {
             return flags[(int)Flag::Sent];
         }
 
+        bool
+        isMemAccessRequired()
+        {
+            return (_state == State::Request ||
+                    (_state == State::PartialFault && isLoad()));
+        }
+
         /** Free the LSQResources.
          * Notify the sender state that the request it points to is not valid
          * anymore. Understand if the request is orphan (self-managed) and if
@@ -538,11 +546,17 @@ class LSQ {
          * declaration of the names in the parent class. */
         using Flag = typename LSQRequest::Flag;
         using State = typename LSQRequest::State;
+        using LSQRequest::_addr;
         using LSQRequest::_fault;
+        using LSQRequest::_flags;
+        using LSQRequest::_size;
+        using LSQRequest::_byteEnable;
+        using LSQRequest::_requests;
         using LSQRequest::_inst;
         using LSQRequest::_packets;
         using LSQRequest::_port;
         using LSQRequest::_res;
+        using LSQRequest::_taskId;
         using LSQRequest::_senderState;
         using LSQRequest::_state;
         using LSQRequest::flags;
@@ -559,17 +573,10 @@ class LSQ {
                           const Request::Flags& flags_,
                           PacketDataPtr data = nullptr,
                           uint64_t* res = nullptr,
-                          const std::vector<bool>& writeByteEnable =
+                          const std::vector<bool>& byteEnable =
                           std::vector<bool>()) :
             LSQRequest(port, inst, isLoad, addr, size, flags_, data, res,
-                       writeByteEnable)
-        {
-            LSQRequest::_requests.push_back(
-                    new Request(inst->getASID(), addr, size, flags_,
-                    inst->masterId(), inst->instAddr(), inst->contextId(),
-                    writeByteEnable));
-            LSQRequest::_requests.back()->setReqInstSeqNum(inst->seqNum);
-        }
+                       byteEnable) {}
         inline virtual ~SingleDataRequest() {}
         virtual void initiateTranslation();
         virtual void finish(const Fault &fault, RequestPtr req,
@@ -595,6 +602,7 @@ class LSQ {
         using LSQRequest::_port;
         using LSQRequest::_requests;
         using LSQRequest::_res;
+        using LSQRequest::_byteEnable;
         using LSQRequest::_senderState;
         using LSQRequest::_size;
         using LSQRequest::_state;
@@ -616,16 +624,15 @@ class LSQ {
         RequestPtr mainReq;
         PacketPtr _mainPacket;
 
-
       public:
         SplitDataRequest(LSQUnit* port, const DynInstPtr& inst, bool isLoad,
                          const Addr& addr, const uint32_t& size,
                          const Request::Flags & flags_,
                          PacketDataPtr data = nullptr, uint64_t* res = nullptr,
-                         const std::vector<bool>& writeByteEnable =
+                         const std::vector<bool>& byteEnable =
                          std::vector<bool>()) :
             LSQRequest(port, inst, isLoad, addr, size, flags_, data, res,
-                       writeByteEnable),
+                       byteEnable),
             numFragments(0),
             numOutstandingPackets(0),
             numReceivedPackets(0),
@@ -884,7 +891,7 @@ class LSQ {
 
     Fault pushRequest(const DynInstPtr& inst, bool isLoad, uint8_t *data,
                       unsigned int size, Addr addr, Request::Flags flags,
-                      uint64_t *res, const std::vector<bool>& writeByteEnable);
+                      uint64_t *res, const std::vector<bool>& byteEnable);
 
     /** The CPU pointer. */
     O3CPU *cpu;

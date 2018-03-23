@@ -151,13 +151,15 @@ def template SveContigLoadExecute {{
         TheISA::VecRegContainer memData;
         auto memDataView = memData.as<MemElemType>();
 
-        if (fault == NoFault) {
-            fault = xc->readMem(EA, memData.raw_ptr<uint8_t>(), memAccessSize,
-                this->memAccessFlags);
-            %(memacc_code)s;
-        }
+        %(rden_code)s;
+
+        fault = xc->readMem(EA, memData.raw_ptr<uint8_t>(), memAccessSize,
+            this->memAccessFlags, rdEn);
+
+        %(fault_code)s;
 
         if (fault == NoFault) {
+            %(memacc_code)s;
             %(op_wb)s;
         }
 
@@ -178,13 +180,14 @@ def template SveContigLoadInitiateAcc {{
 
         %(op_src_decl)s;
         %(op_rd)s;
-
         %(ea_code)s;
 
-        if (fault == NoFault) {
-            fault = xc->initiateMemRead(EA, memAccessSize,
-                this->memAccessFlags);
-        }
+        %(rden_code)s;
+
+        fault = xc->initiateMemRead(EA, memAccessSize, this->memAccessFlags,
+            rdEn);
+
+        %(fault_code)s;
 
         return fault;
     }
@@ -195,7 +198,6 @@ def template SveContigLoadCompleteAcc {{
     Fault %(class_name)s%(tpl_args)s::completeAcc(PacketPtr pkt,
         ExecContext *xc, Trace::InstRecord *traceData) const
     {
-        Fault fault = NoFault;
         bool aarch64 M5_VAR_USED = true;
         unsigned eCount = ArmStaticInst::getCurSveVecLen<RegElemType>(
             xc->tcBase());
@@ -206,18 +208,15 @@ def template SveContigLoadCompleteAcc {{
         TheISA::VecRegContainer memData;
         auto memDataView = memData.as<MemElemType>();
 
-        memcpy(memData.raw_ptr<uint8_t>(), pkt->getPtr<uint8_t>(),
-            pkt->getSize());
-
-        if (fault == NoFault) {
-            %(memacc_code)s;
+        if (xc->readMemAccPredicate()) {
+            memcpy(memData.raw_ptr<uint8_t>(), pkt->getPtr<uint8_t>(),
+                   pkt->getSize());
         }
 
-        if (fault == NoFault) {
-            %(op_wb)s;
-        }
+        %(memacc_code)s;
+        %(op_wb)s;
 
-        return fault;
+        return NoFault;
     }
 }};
 

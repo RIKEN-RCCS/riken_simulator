@@ -306,7 +306,8 @@ class BaseDynInst : public ExecContext, public RefCounted
         cpu->demapPage(vaddr, asn);
     }
 
-    Fault initiateMemRead(Addr addr, unsigned size, Request::Flags flags);
+    Fault initiateMemRead(Addr addr, unsigned size, Request::Flags flags,
+            const std::vector<bool>& byteEnable = std::vector<bool>());
 
     Fault writeMem(uint8_t *data, unsigned size, Addr addr,
             Request::Flags flags, uint64_t *res,
@@ -934,11 +935,12 @@ class BaseDynInst : public ExecContext, public RefCounted
 template<class Impl>
 Fault
 BaseDynInst<Impl>::initiateMemRead(Addr addr, unsigned size,
-                                   Request::Flags flags)
+                                   Request::Flags flags,
+                                   const std::vector<bool>& byteEnable)
 {
     return cpu->pushRequest(
             dynamic_cast<typename DynInstPtr::ptr_type>(this),
-            /* ld */ true, nullptr, size, addr, flags, nullptr);
+            /* ld */ true, nullptr, size, addr, flags, nullptr, byteEnable);
 }
 
 template<class Impl>

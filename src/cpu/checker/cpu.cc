@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011,2013,2017 ARM Limited
+ * Copyright (c) 2011,2013,2017-2018 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -144,7 +144,8 @@ CheckerCPU::unserialize(CheckpointIn &cp)
 
 Fault
 CheckerCPU::readMem(Addr addr, uint8_t *data, unsigned size,
-                    Request::Flags flags)
+                    Request::Flags flags,
+                    const std::vector<bool>& byteEnable)
 {
     Fault fault = NoFault;
     bool checked_flags = false;
@@ -154,21 +155,38 @@ CheckerCPU::readMem(Addr addr, uint8_t *data, unsigned size,
     Addr frag_addr = addr;
     int frag_size = 0;
     int size_left = size;
+    bool predicate;
 
     // Need to account for multiple accesses like the Atomic and TimingSimple
     while (1) {
+        predicate = true;
         frag_size = std::min(
             cacheLineSize() - addrBlockOffset(frag_addr, cacheLineSize()),
             (Addr) size_left);
         size_left -= frag_size;
 
-        memReq = new Request(0, frag_addr, frag_size, flags, masterId,
-                             thread->pcState().instAddr(), tc->contextId());
-
+        if (!byteEnable.empty()) {
+            // Set up byte-enable mask for the current fragment
+            auto it_start = byteEnable.cbegin() + (size - (frag_size +
+                                                          size_left));
+            auto it_end = byteEnable.cbegin() + (size - size_left);
+            if (isAnyActiveElement(it_start, it_end))
+                memReq = new Request(0, frag_addr, frag_size, flags, masterId,
+                                     thread->pcState().instAddr(),
+                                     tc->contextId(),
+                                     std::vector<bool>(it_start, it_end));
+            else
+                predicate = false;
+        } else {
+            memReq = new Request(0, frag_addr, frag_size, flags, masterId,
+                                 thread->pcState().instAddr(),
+                                 tc->contextId());
+        }
         // translate to physical address
-        fault = dtb->translateFunctional(memReq, tc, BaseTLB::Read);
+        if (predicate)
+            fault = dtb->translateFunctional(memReq, tc, BaseTLB::Read);
 
-        if (!checked_flags && fault == NoFault && unverifiedReq) {
+        if (predicate && !checked_flags && fault == NoFault && unverifiedReq) {
             flags_match = checkFlags(unverifiedReq, memReq->getVaddr(),
                                      memReq->getPaddr(), memReq->getFlags());
             pAddr = memReq->getPaddr();
@@ -176,7 +194,7 @@ CheckerCPU::readMem(Addr addr, uint8_t *data, unsigned size,
         }
 
         // Now do the access
-        if (fault == NoFault &&
+        if (predicate && fault == NoFault &&
             !memReq->getFlags().isSet(Request::NO_ACCESS)) {
             PacketPtr pkt = Packet::createRead(memReq);
 
@@ -246,9 +264,11 @@ CheckerCPU::writeMem(uint8_t *data, unsigned size,
     Addr frag_addr = addr;
     int frag_size = 0;
     int size_left = size;
+    bool predicate;
 
     // Need to account for a multiple access like Atomic and Timing CPUs
     while (1) {
+        predicate = true;
         frag_size = std::min(
             cacheLineSize() - addrBlockOffset(frag_addr, cacheLineSize()),
             (Addr) size_left);
@@ -256,13 +276,16 @@ CheckerCPU::writeMem(uint8_t *data, unsigned size,
 
         if (!byteEnable.empty()) {
             // Set up byte-enable mask for the current fragment
-            auto it_start = byteEnable.begin() + (size - (frag_size +
+            auto it_start = byteEnable.cbegin() + (size - (frag_size +
                                                           size_left));
-            auto it_end = byteEnable.begin() + (size - size_left);
-
-            memReq = new Request(0, frag_addr, frag_size, flags, masterId,
-                                 thread->pcState().instAddr(), tc->contextId(),
-                                 std::vector<bool>(it_start, it_end));
+            auto it_end = byteEnable.cbegin() + (size - size_left);
+            if (isAnyActiveElement(it_start, it_end))
+                memReq = new Request(0, frag_addr, frag_size, flags, masterId,
+                                     thread->pcState().instAddr(),
+                                     tc->contextId(),
+                                     std::vector<bool>(it_start, it_end));
+            else
+                predicate = false;
         } else {
             memReq = new Request(0, frag_addr, frag_size, flags, masterId,
                                  thread->pcState().instAddr(),
@@ -270,9 +293,10 @@ CheckerCPU::writeMem(uint8_t *data, unsigned size,
         }
 
         // translate to physical address
-        fault = dtb->translateFunctional(memReq, tc, BaseTLB::Write);
+        if (predicate)
+            fault = dtb->translateFunctional(memReq, tc, BaseTLB::Write);
 
-        if (!checked_flags && fault == NoFault && unverifiedReq) {
+        if (predicate && !checked_flags && fault == NoFault && unverifiedReq) {
            flags_match = checkFlags(unverifiedReq, memReq->getVaddr(),
                                     memReq->getPaddr(), memReq->getFlags());
            pAddr = memReq->getPaddr();
@@ -288,7 +312,8 @@ CheckerCPU::writeMem(uint8_t *data, unsigned size,
          */
         bool was_prefetch = memReq->isPrefetch();
 
-        delete memReq;
+        if (predicate)
+            delete memReq;
 
         //If we don't need to access a second cache line, stop now.
         if (fault != NoFault || size_left == 0)

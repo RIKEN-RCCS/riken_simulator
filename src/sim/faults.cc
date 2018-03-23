@@ -49,6 +49,11 @@ void FaultBase::invoke(ThreadContext * tc, const StaticInstPtr &inst)
     }
 }
 
+bool FaultBase::getFaultVAddr(Addr &va) const
+{
+    return false;
+}
+
 void UnimpFault::invoke(ThreadContext * tc, const StaticInstPtr &inst)
 {
     panic("Unimpfault: %s\n", panicStr.c_str());
@@ -76,7 +81,22 @@ void GenericPageTableFault::invoke(ThreadContext *tc, const StaticInstPtr &inst)
 
 }
 
-void GenericAlignmentFault::invoke(ThreadContext *tc, const StaticInstPtr &inst)
+bool
+GenericPageTableFault::getFaultVAddr(Addr &va) const
+{
+    va = vaddr;
+    return true;
+}
+
+void
+GenericAlignmentFault::invoke(ThreadContext *tc, const StaticInstPtr &inst)
 {
     panic("Alignment fault when accessing virtual address %#x\n", vaddr);
+}
+
+bool
+GenericAlignmentFault::getFaultVAddr(Addr &va) const
+{
+    va = vaddr;
+    return true;
 }

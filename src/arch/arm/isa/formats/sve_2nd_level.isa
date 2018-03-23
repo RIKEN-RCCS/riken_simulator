@@ -2786,7 +2786,18 @@ namespace Aarch64
     StaticInstPtr
     decodeSveContigFFLoadSS(ExtMachInst machInst)
     {
-        return new Unknown64(machInst);
+        IntRegIndex zt = (IntRegIndex) (uint8_t) bits(machInst, 4, 0);
+        IntRegIndex rn = makeSP((IntRegIndex) (uint8_t) bits(machInst, 9, 5));
+        IntRegIndex rm = makeSP(
+            (IntRegIndex) (uint8_t) bits(machInst, 20, 16));
+        IntRegIndex pg = (IntRegIndex) (uint8_t) bits(machInst, 12, 10);
+
+        if (rm == 0x1f) {
+            return new Unknown64(machInst);
+        }
+
+        return decodeSveContigLoadSSInsts<SveContigFFLoadSS>(
+            bits(machInst, 24, 21), machInst, zt, pg, rn, rm, true);
     }  // decodeSveContigFFLoadSS
 
     StaticInstPtr
@@ -2804,7 +2815,13 @@ namespace Aarch64
     StaticInstPtr
     decodeSveContigNFLoadSI(ExtMachInst machInst)
     {
-        return new Unknown64(machInst);
+        IntRegIndex zt = (IntRegIndex) (uint8_t) bits(machInst, 4, 0);
+        IntRegIndex rn = makeSP((IntRegIndex) (uint8_t) bits(machInst, 9, 5));
+        uint64_t imm = sext<4>(bits(machInst, 19, 16));
+        IntRegIndex pg = (IntRegIndex) (uint8_t) bits(machInst, 12, 10);
+
+        return decodeSveContigLoadSIInsts<SveContigNFLoadSI>(
+            bits(machInst, 24, 21), machInst, zt, pg, rn, imm, true);
     }  // decodeSveContigNFLoadSI
 
     StaticInstPtr

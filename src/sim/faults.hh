@@ -47,6 +47,7 @@ class FaultBase
     virtual FaultName name() const = 0;
     virtual void invoke(ThreadContext * tc, const StaticInstPtr &inst =
                         StaticInst::nullStaticInstPtr);
+    virtual bool getFaultVAddr(Addr &va) const;
 };
 
 class UnimpFault : public FaultBase
@@ -97,6 +98,7 @@ class GenericPageTableFault : public FaultBase
     GenericPageTableFault(Addr va) : vaddr(va) {}
     void invoke(ThreadContext * tc, const StaticInstPtr &inst =
                 StaticInst::nullStaticInstPtr);
+    bool getFaultVAddr(Addr &va) const override;
 };
 
 class GenericAlignmentFault : public FaultBase
@@ -108,6 +110,7 @@ class GenericAlignmentFault : public FaultBase
     GenericAlignmentFault(Addr va) : vaddr(va) {}
     void invoke(ThreadContext * tc, const StaticInstPtr &inst =
                 StaticInst::nullStaticInstPtr);
+    bool getFaultVAddr(Addr &va) const override;
 };
 
 #endif // __FAULTS_HH__
