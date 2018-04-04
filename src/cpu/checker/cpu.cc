@@ -187,7 +187,7 @@ CheckerCPU::readMem(Addr addr, uint8_t *data, unsigned size,
                 dcachePort->sendFunctional(pkt);
             } else {
                 // Assume the data is correct if it's an uncached access
-                memcpy(data, unverifiedMemData, size);
+                memcpy(data, unverifiedMemData, frag_size);
             }
 
             delete memReq;
