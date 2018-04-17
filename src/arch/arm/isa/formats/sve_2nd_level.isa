@@ -2747,6 +2747,10 @@ namespace Aarch64
                     uint64_t imm = sext<9>((bits(machInst, 21, 16) << 3) |
                                            bits(machInst, 12, 10));
                     return new SveLdrVec(machInst, zt, rn, imm);
+                } else if (bits(machInst, 22) == 1 &&
+                           bits(machInst, 4) == 0) {
+                    // TODO: SVE contiguous prefetch (scalar plus immediate)
+                    return new NopInst(machInst);
                 }
                 break;
             }
