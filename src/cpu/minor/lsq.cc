@@ -241,16 +241,24 @@ LSQ::SingleDataRequest::startAddrTranslation()
     ThreadContext *thread = port.cpu.getContext(
         inst->id.threadId);
 
-    port.numAccessesInDTLB++;
+    const auto &byteEnable = request.getByteEnable();
+    if (byteEnable.size() == 0 ||
+        isAnyActiveElement(byteEnable.cbegin(), byteEnable.cend())) {
+        port.numAccessesInDTLB++;
 
-    setState(LSQ::LSQRequest::InTranslation);
+        setState(LSQ::LSQRequest::InTranslation);
 
-    DPRINTFS(MinorMem, (&port), "Submitting DTLB request\n");
-    /* Submit the translation request.  The response will come through
-     *  finish/markDelayed on the LSQRequest as it bears the Translation
-     *  interface */
-    thread->getDTBPtr()->translateTiming(
-        &request, thread, this, (isLoad ? BaseTLB::Read : BaseTLB::Write));
+        DPRINTFS(MinorMem, (&port), "Submitting DTLB request\n");
+        /* Submit the translation request.  The response will come through
+         *  finish/markDelayed on the LSQRequest as it bears the Translation
+         *  interface */
+        thread->getDTBPtr()->translateTiming(
+            &request, thread, this, (isLoad ? BaseTLB::Read : BaseTLB::Write));
+    } else {
+        SimpleThread &thread = *(port.cpu.threads[inst->id.threadId]);
+        thread.setMemAccPredicate(false);
+        setState(LSQ::LSQRequest::Complete);
+    }
 }
 
 void
@@ -396,6 +404,7 @@ LSQ::SplitDataRequest::makeFragmentRequests()
     Addr end_addr = base_addr + whole_size;
 
     auto& writeByteEnable = request.getByteEnable();
+    unsigned int num_disabled_fragments = 0;
 
     for (unsigned int fragment_index = 0; fragment_index < numFragments;
          fragment_index++)
@@ -417,6 +426,7 @@ LSQ::SplitDataRequest::makeFragmentRequests()
         }
 
         Request *fragment = new Request();
+        bool disabled_fragment = false;
 
         fragment->setContext(request.contextId());
         if (writeByteEnable.empty()) {
@@ -430,27 +440,39 @@ LSQ::SplitDataRequest::makeFragmentRequests()
                 (fragment_addr - base_addr);
             auto it_end = writeByteEnable.begin() +
                 (fragment_addr - base_addr) + fragment_size;
-            fragment->setVirt(0 /* asid */,
-                fragment_addr, fragment_size, request.getFlags(),
-                request.masterId(),
-                request.getPC(),
-                std::vector<bool>(it_start, it_end));
+            if (isAnyActiveElement(it_start, it_end)) {
+                fragment->setVirt(0 /* asid */,
+                    fragment_addr, fragment_size, request.getFlags(),
+                    request.masterId(),
+                    request.getPC(),
+                    std::vector<bool>(it_start, it_end));
+            } else {
+                disabled_fragment = true;
+            }
         }
 
-        DPRINTFS(MinorMem, (&port), "Generating fragment addr: 0x%x size: %d"
-            " (whole request addr: 0x%x size: %d) %s\n",
-            fragment_addr, fragment_size, base_addr, whole_size,
-            (is_last_fragment ? "last fragment" : ""));
+        if (!disabled_fragment) {
+            DPRINTFS(MinorMem, (&port), "Generating fragment addr: 0x%x"
+                " size: %d (whole request addr: 0x%x size: %d) %s\n",
+                fragment_addr, fragment_size, base_addr, whole_size,
+                (is_last_fragment ? "last fragment" : ""));
+
+            fragmentRequests.push_back(fragment);
+        } else {
+            num_disabled_fragments++;
+            delete fragment;
+        }
 
         fragment_addr += fragment_size;
-
-        fragmentRequests.push_back(fragment);
     }
+    assert(numFragments >= num_disabled_fragments);
+    numFragments -= num_disabled_fragments;
 }
 
 void
 LSQ::SplitDataRequest::makeFragmentPackets()
 {
+    assert(numFragments > 0);
     Addr base_addr = request.getVaddr();
 
     DPRINTFS(MinorMem, (&port), "Making packets for request: %s\n", *inst);
@@ -500,22 +522,27 @@ LSQ::SplitDataRequest::makeFragmentPackets()
 void
 LSQ::SplitDataRequest::startAddrTranslation()
 {
-    setState(LSQ::LSQRequest::InTranslation);
-
     makeFragmentRequests();
 
-    numInTranslationFragments = 0;
-    numTranslatedFragments = 0;
+    if (numFragments > 0) {
+        setState(LSQ::LSQRequest::InTranslation);
+        numInTranslationFragments = 0;
+        numTranslatedFragments = 0;
 
-    /* @todo, just do these in sequence for now with
-     * a loop of:
-     * do {
-     *  sendNextFragmentToTranslation ; translateTiming ; finish
-     * } while (numTranslatedFragments != numFragments);
-     */
+        /* @todo, just do these in sequence for now with
+         * a loop of:
+         * do {
+         *  sendNextFragmentToTranslation ; translateTiming ; finish
+         * } while (numTranslatedFragments != numFragments);
+         */
 
-    /* Do first translation */
-    sendNextFragmentToTranslation();
+        /* Do first translation */
+        sendNextFragmentToTranslation();
+    } else {
+        SimpleThread &thread = *(port.cpu.threads[inst->id.threadId]);
+        thread.setMemAccPredicate(false);
+        setState(LSQ::LSQRequest::Complete);
+    }
 }
 
 PacketPtr
