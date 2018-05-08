@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 ARM Limited
+ * Copyright (c) 2013-2014, 2018 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -145,14 +145,11 @@ class LSQ : public Named
         /** The underlying request of this LSQRequest */
         Request request;
 
-        /** Fault generated performing this request */
-        Fault fault;
-
         /** Res from pushRequest */
         uint64_t *res;
 
         /** Byte-enable mask for writes */
-        std::vector<bool> writeByteEnable;
+        std::vector<bool> byteEnable;
 
         /** Was skipped.  Set to indicate any reason (faulted, bad
          *  stream sequence number, in a fault shadow) that this
@@ -162,6 +159,9 @@ class LSQ : public Named
         /** This in an access other than a normal cacheable load
          *  that's visited the memory system */
         bool issuedToMemory;
+
+        /** Address translation is delayed due to table walk */
+        bool isTranslationDelayed;
 
         enum LSQRequestState
         {
@@ -189,12 +189,19 @@ class LSQ : public Named
 
       protected:
         /** BaseTLB::Translation interface */
-        void markDelayed() { }
+        void markDelayed() { isTranslationDelayed = true; }
+
+        /** Instructions may want to suppress translation faults (e.g.
+         non-faulting vector loads).*/
+         void tryToSuppressFault();
+
+        void disableMemAccess();
+        void completeDisabledMemAccess();
 
       public:
         LSQRequest(LSQ &port_, MinorDynInstPtr inst_, bool isLoad_,
             PacketDataPtr data_ = NULL, uint64_t *res_ = NULL,
-            const std::vector<bool>& writeByteEnable_ = std::vector<bool>());
+            const std::vector<bool>& byteEnable_ = std::vector<bool>());
 
         virtual ~LSQRequest();
 
@@ -276,7 +283,7 @@ class LSQ : public Named
     {
       protected:
         /** TLB interace */
-        void finish(const Fault &fault_, RequestPtr request_,
+        void finish(const Fault &fault, RequestPtr request_,
                     ThreadContext *tc, BaseTLB::Mode mode)
         { }
 
@@ -337,7 +344,7 @@ class LSQ : public Named
     {
       protected:
         /** TLB interace */
-        void finish(const Fault &fault_, RequestPtr request_,
+        void finish(const Fault &fault, RequestPtr request_,
                     ThreadContext *tc, BaseTLB::Mode mode);
 
         /** Has my only packet been sent to the memory system but has not
@@ -371,8 +378,8 @@ class LSQ : public Named
       public:
         SingleDataRequest(LSQ &port_, MinorDynInstPtr inst_,
             bool isLoad_, PacketDataPtr data_ = NULL, uint64_t *res_ = NULL,
-            const std::vector<bool>& writeByteEnable_ = std::vector<bool>()) :
-            LSQRequest(port_, inst_, isLoad_, data_, res_, writeByteEnable_),
+            const std::vector<bool>& byteEnable_ = std::vector<bool>()) :
+            LSQRequest(port_, inst_, isLoad_, data_, res_, byteEnable_),
             packetInFlight(false),
             packetSent(false)
         { }
@@ -418,7 +425,7 @@ class LSQ : public Named
         SplitDataRequest(LSQ &port_, MinorDynInstPtr inst_,
             bool isLoad_, PacketDataPtr data_ = NULL,
             uint64_t *res_ = NULL,
-            const std::vector<bool>& writeByteEnable_ = std::vector<bool>());
+            const std::vector<bool>& byteEnable_ = std::vector<bool>());
 
         ~SplitDataRequest();
 
@@ -447,7 +454,8 @@ class LSQ : public Named
         { return numIssuedFragments != numRetiredFragments; }
 
         /** Have we stepped past the end of fragmentPackets? */
-        bool sentAllPackets() { return numIssuedFragments == numFragments; }
+        bool sentAllPackets()
+        { return numIssuedFragments == numTranslatedFragments; }
 
         /** For loads, paste the response data into the main
          *  response packet */
@@ -704,10 +712,10 @@ class LSQ : public Named
 
     /** Single interface for readMem/writeMem to issue requests into
      *  the LSQ */
-    void pushRequest(MinorDynInstPtr inst, bool isLoad, uint8_t *data,
+    Fault pushRequest(MinorDynInstPtr inst, bool isLoad, uint8_t *data,
             unsigned int size, Addr addr, Request::Flags flags,
             uint64_t *res,
-            const std::vector<bool>& writeByteEnable = std::vector<bool>());
+            const std::vector<bool>& byteEnable = std::vector<bool>());
 
     /** Push a predicate failed-representing request into the queues just
      *  to maintain commit order */
@@ -729,7 +737,7 @@ class LSQ : public Named
  *  pushed into the packet as senderState */
 PacketPtr makePacketForRequest(Request &request, bool isLoad,
     Packet::SenderState *sender_state = NULL, PacketDataPtr data = NULL,
-    const std::vector<bool>& writeByteEnable = std::vector<bool>());
+    const std::vector<bool>& byteEnable = std::vector<bool>());
 }
 
 #endif /* __CPU_MINOR_NEW_LSQ_HH__ */

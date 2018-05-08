@@ -336,19 +336,19 @@ Execute::handleMemResponse(MinorDynInstPtr inst,
      *  context predicate, otherwise, it will be set to false */
     bool use_context_predicate = true;
 
-    if (response->fault != NoFault) {
+    if (inst->translationFault != NoFault) {
         /* Invoke memory faults. */
         DPRINTF(MinorMem, "Completing fault from DTLB access: %s\n",
-            response->fault->name());
+            inst->translationFault->name());
 
         if (inst->staticInst->isPrefetch()) {
             DPRINTF(MinorMem, "Not taking fault on prefetch: %s\n",
-                response->fault->name());
+                inst->translationFault->name());
 
             /* Don't assign to fault */
         } else {
             /* Take the fault raised during the TLB/memory access */
-            fault = response->fault;
+            fault = inst->translationFault;
 
             fault->invoke(thread, inst->staticInst);
         }
@@ -465,10 +465,8 @@ Execute::executeMemRefInst(MinorDynInstPtr inst, BranchData &branch,
 
         Fault init_fault = inst->staticInst->initiateAcc(&context,
             inst->traceData);
+        inst->translationFault = init_fault;
 
-        if (init_fault == NoFault && !context.readMemAccPredicate()) {
-            inst->staticInst->completeAcc(nullptr, &context, inst->traceData);
-        }
         if (init_fault != NoFault) {
             DPRINTF(MinorExecute, "Fault on memory inst: %s"
                 " initiateAcc: %s\n", *inst, init_fault->name());
@@ -476,18 +474,25 @@ Execute::executeMemRefInst(MinorDynInstPtr inst, BranchData &branch,
         } else {
             /* Only set this if the instruction passed its
              * predicate */
+            if (!context.readMemAccPredicate()) {
+                DPRINTF(MinorMem, "No memory access for inst: %s\n", *inst);
+
+                inst->staticInst->completeAcc(nullptr, &context,
+                                              inst->traceData);
+                assert(context.readPredicate());
+            }
             passed_predicate = context.readPredicate();
 
             /* Set predicate in tracing */
             if (inst->traceData)
                 inst->traceData->setPredicate(passed_predicate);
 
-            /* If the instruction didn't pass its predicate (and so will not
-             *  progress from here)  Try to branch to correct and branch
-             *  mis-prediction. */
-            if (!passed_predicate) {
-                /* Leave it up to commit to handle the fault */
+            if (!inst->inLSQ) {
+                /* The instruction does not make it into the LSQ yet (due
+                 * to predication). We still need a matching request for
+                 * the commit */
                 lsq.pushFailedRequest(inst);
+                inst->inLSQ = true;
             }
         }
 
@@ -922,17 +927,15 @@ Execute::commitInst(MinorDynInstPtr inst, bool early_memory_issue,
                 /* Don't execute the fault, just stall the instruction
                  *  until it gets to the head of inFlightInsts */
                 inst->canEarlyIssue = false;
-                /* Not completed as we'll come here again to pick up
-                *  the fault when we get to the end of the FU */
-                completed_inst = false;
+                fault = NoFault;
             } else {
                 DPRINTF(MinorExecute, "Fault in execute: %s\n",
                     fault->name());
                 fault->invoke(thread, NULL);
 
                 tryToBranch(inst, fault, branch);
-                completed_inst = true;
             }
+            completed_inst = true;
         } else {
             completed_inst = completed_mem_inst;
         }
@@ -1312,8 +1315,8 @@ Execute::commit(ThreadID thread_id, bool only_commit_microops, bool discard,
 
         /* Mark the mem inst as being in the LSQ */
         if (issued_mem_ref) {
+            assert(inst->inLSQ);
             inst->fuIndex = 0;
-            inst->inLSQ = true;
         }
 
         /* Pop issued (to LSQ) and discarded mem refs from the inFUMemInsts

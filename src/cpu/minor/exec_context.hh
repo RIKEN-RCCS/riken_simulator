@@ -110,9 +110,9 @@ class ExecContext : public ::ExecContext
                     const std::vector<bool>& byteEnable = std::vector<bool>())
         override
     {
-        execute.getLSQ().pushRequest(inst, true /* load */, nullptr,
-                                     size, addr, flags, nullptr, byteEnable);
-        return NoFault;
+        return execute.getLSQ().pushRequest(inst, true /* load */, nullptr,
+                                            size, addr, flags, nullptr,
+                                            byteEnable);
     }
 
     Fault
@@ -122,9 +122,8 @@ class ExecContext : public ::ExecContext
         override
     {
         assert(byteEnable.empty() || byteEnable.size() == size);
-        execute.getLSQ().pushRequest(inst, false /* store */, data,
+        return execute.getLSQ().pushRequest(inst, false /* store */, data,
             size, addr, flags, res, byteEnable);
-        return NoFault;
     }
 
     IntReg
