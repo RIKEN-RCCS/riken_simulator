@@ -693,6 +693,7 @@ LSQ<Impl>::pushRequest(const DynInstPtr& inst, bool isLoad, uint8_t *data,
             if (fault != NoFault)
                 inst->getFault() = fault;
         } else if (isLoad) {
+            inst->setMemAccPredicate(false);
             // Commit will have to clean up whatever happened.  Set this
             // instruction as executed.
             inst->setExecuted();
