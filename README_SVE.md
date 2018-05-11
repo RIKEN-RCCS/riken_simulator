@@ -24,21 +24,16 @@ $ ./build/ARM/gem5.opt configs/example/se.py \
 The current limitations apply to the model:
 
 - Unimplemented instructions:
-  - Load/store structures ({LD,ST}{2,3,4}{B,H,W,D})
-  - First-fault (LDFF1xx) and non-fault (LDNF1xx) loads
   - Non-temporal loads/stores ({LD,ST}NT1xx)
   - Data-processing instructions:
     - CLASTA (SIMD&FP scalar)
-    - CLASTA (vectors)
     - CLASTB (SIMD&FP scalar)
-    - CLASTB (vectors)
     - FADDA
     - FCADD
     - FCMLA (indexed)
     - FCMLA (vectors)
     - FMLA (indexed)
     - FMUL (indexed)
-    - INSR (scalar)
     - INSR (SIMD&FP scalar)
     - LASTA (SIMD&FP scalar)
     - LASTB (SIMD&FP scalar)
@@ -46,12 +41,9 @@ The current limitations apply to the model:
     - SDOT (vectors)
     - UDOT (indexed)
     - UDOT (vectors)
-  - MinorCPU is still missing support for gather/scatter loads/store
+  - MinorCPU still lacks support for gather/scatter loads/stores, and
+    first-fault (LDFF1xx) and non-fault (LDNF1xx) loads
   - SVE prefetch instructions are treated as no-ops
-
-Work is currently ongoing on the implementation of the instructions above, and
-priority is given to instructions that are more likely to be emitted by a
-vectorizing compiler, i.e. load/store structures, and first-fault loads.
 
 If you encounter further issues, please contact:
 Giacomo Gabrielli <Giacomo.Gabrielli@arm.com>
