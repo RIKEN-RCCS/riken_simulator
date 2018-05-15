@@ -41,8 +41,6 @@ The current limitations apply to the model:
     - SDOT (vectors)
     - UDOT (indexed)
     - UDOT (vectors)
-  - MinorCPU still lacks support for gather/scatter loads/stores, and
-    first-fault (LDFF1xx) and non-fault (LDNF1xx) loads
   - SVE prefetch instructions are treated as no-ops
 
 If you encounter further issues, please contact:
