@@ -745,6 +745,41 @@ class SveUnarySca2VecUnpredOp : public ArmStaticInst {
     std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;
 };
 
+/// SVE dot product instruction (indexed)
+class SveDotProdIdxOp : public ArmStaticInst {
+  protected:
+    IntRegIndex dest, op1, op2;
+    uint64_t imm;
+    uint8_t esize;
+
+  public:
+    SveDotProdIdxOp(const char* mnem, ExtMachInst _machInst,
+            OpClass __opClass, IntRegIndex _dest, IntRegIndex _op1,
+            IntRegIndex _op2, uint64_t _imm) :
+        ArmStaticInst(mnem, _machInst, __opClass),
+        dest(_dest), op1(_op1), op2(_op2), imm(_imm)
+    {}
+
+    std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;
+};
+
+/// SVE dot product instruction (vectors)
+class SveDotProdOp : public ArmStaticInst {
+  protected:
+    IntRegIndex dest, op1, op2;
+    uint8_t esize;
+
+  public:
+    SveDotProdOp(const char* mnem, ExtMachInst _machInst,
+            OpClass __opClass, IntRegIndex _dest, IntRegIndex _op1,
+            IntRegIndex _op2) :
+        ArmStaticInst(mnem, _machInst, __opClass),
+        dest(_dest), op1(_op1), op2(_op2)
+    {}
+
+    std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;
+};
+
 /// Returns the symbolic name associated with pattern `imm` for PTRUE(S)
 /// instructions.
 std::string sveDisasmPredCountImm(uint8_t imm);

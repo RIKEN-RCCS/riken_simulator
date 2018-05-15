@@ -1,4 +1,4 @@
-// Copyright (c) 2017 ARM Limited
+// Copyright (c) 2017-2018 ARM Limited
 // All rights reserved
 //
 // The license below extends only to copyright in the software and shall
@@ -70,6 +70,9 @@ namespace Aarch64
     StaticInstPtr decodeSveIntCmpSca(ExtMachInst machInst);
     StaticInstPtr decodeSveIntWideImmUnpred(ExtMachInst machInst);
 
+    StaticInstPtr decodeSveMultiplyAddUnpred(ExtMachInst machInst);
+    StaticInstPtr decodeSveMultiplyIndexed(ExtMachInst machInst);
+
     StaticInstPtr decodeSveFpFastReduc(ExtMachInst machInst);
     StaticInstPtr decodeSveFpUnaryUnpred(ExtMachInst machInst);
     StaticInstPtr decodeSveFpCmpZero(ExtMachInst machInst);
@@ -107,7 +110,11 @@ namespace Aarch64
                                       bits(machInst, 13);
                     switch (b_15_13) {
                       case 0x0:
-                        return decodeSveIntArithBinPred(machInst);
+                        if (bits(machInst, 30)) {
+                            return decodeSveMultiplyAddUnpred(machInst);
+                        } else {
+                            return decodeSveIntArithBinPred(machInst);
+                        }
                       case 0x1:
                         return decodeSveIntReduc(machInst);
                       case 0x2:
@@ -127,7 +134,11 @@ namespace Aarch64
                     if (b_13) {
                         return decodeSveIntLogUnpred(machInst);
                     } else {
-                        return decodeSveIntArithUnpred(machInst);
+                        if (bits(machInst, 30)) {
+                            return decodeSveMultiplyIndexed(machInst);
+                        } else {
+                            return decodeSveIntArithUnpred(machInst);
+                        }
                     }
                   case 0x1:
                     if (b_13) {

@@ -708,6 +708,37 @@ SveUnarySca2VecUnpredOp::generateDisassembly(Addr pc,
 }
 
 std::string
+SveDotProdIdxOp::generateDisassembly(Addr pc,
+        const SymbolTable *symtab) const
+{
+    std::stringstream ss;
+    printMnemonic(ss, "", false);
+    printVecReg(ss, dest, true);
+    ccprintf(ss, ", ");
+    printVecReg(ss, op1, true);
+    ccprintf(ss, ", ");
+    printVecReg(ss, op2, true);
+    ccprintf(ss, "[");
+    ccprintf(ss, "%lu", imm);
+    ccprintf(ss, "]");
+    return ss.str();
+}
+
+std::string
+SveDotProdOp::generateDisassembly(Addr pc,
+        const SymbolTable *symtab) const
+{
+    std::stringstream ss;
+    printMnemonic(ss, "", false);
+    printVecReg(ss, dest, true);
+    ccprintf(ss, ", ");
+    printVecReg(ss, op1, true);
+    ccprintf(ss, ", ");
+    printVecReg(ss, op2, true);
+    return ss.str();
+}
+
+std::string
 sveDisasmPredCountImm(uint8_t imm)
 {
     switch (imm) {
