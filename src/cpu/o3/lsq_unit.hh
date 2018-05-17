@@ -241,7 +241,7 @@ class LSQUnit {
      * @todo: Move the number of used ports up to the LSQ level so it can
      * be shared by all LSQ units.
      */
-    void tick() { usedStorePorts = 0; }
+    void tick() { usedPorts = 0; }
 
     /** Inserts an instruction. */
     void insert(const DynInstPtr &inst);
@@ -500,10 +500,13 @@ class LSQUnit {
 
     /// @todo Consider moving to a more advanced model with write vs read ports
     /** The number of cache ports available each cycle (stores only). */
-    int cacheStorePorts;
+    int cachePorts;
 
     /** The number of used cache ports in this cycle by stores. */
-    int usedStorePorts;
+    int usedPorts;
+
+    /** Number of port used when store is issued*/
+    int storePortUsageRatio;
 
     //list<InstSeqNum> mshrSeqNums;
 
@@ -836,6 +839,7 @@ LSQUnit<Impl>::read(LSQRequest *req, int load_idx)
     if (!load_inst->memData) {
         load_inst->memData = new uint8_t[req->mainRequest()->getSize()];
     }
+
 
     // For now, load throughput is constrained by the number of
     // load FUs only, and loads do not consume a cache port (only

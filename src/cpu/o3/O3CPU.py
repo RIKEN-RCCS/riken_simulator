@@ -66,8 +66,8 @@ class DerivO3CPU(BaseCPU):
 
     activity = Param.Unsigned(0, "Initial count")
 
-    cacheStorePorts = Param.Unsigned(200, "Cache Ports. "
-          "Constrains stores only. Loads are constrained by load FUs.")
+    cachePorts = Param.Unsigned(200, "Cache Ports.")
+    storePortUsageRatio = Param.Unsigned(1, "Port usage for store")
 
     decodeToFetchDelay = Param.Cycles(1, "Decode to fetch delay")
     renameToFetchDelay = Param.Cycles(1 ,"Rename to fetch delay")
