@@ -258,7 +258,8 @@ class O3_ARM_PostK_3(DerivO3CPU):
 
 # Instruction Cache
 class O3_ARM_PostK_ICache(Cache):
-    #hit_latency = 1
+    tag_latency = 1
+    data_latency = 1
     response_latency = 1
     mshrs = 2
     tgts_per_mshr = 8
@@ -269,7 +270,8 @@ class O3_ARM_PostK_ICache(Cache):
 
 # Data Cache
 class O3_ARM_PostK_DCache(Cache):
-    #hit_latency = 5
+    tag_latency = 5
+    data_latency = 5
     response_latency = 5
     mshrs = 21
     tgts_per_mshr = 32
@@ -285,7 +287,8 @@ class O3_ARM_PostK_DCache(Cache):
 # TLB Cache
 # Use a cache as a L2 TLB
 class O3_ARM_PostK_WalkCache(Cache):
-    #hit_latency = 4
+    tag_latency = 4
+    data_latency = 4
     response_latency = 4
     mshrs = 6
     tgts_per_mshr = 8
@@ -298,7 +301,8 @@ class O3_ARM_PostK_WalkCache(Cache):
 
 # L2 Cache
 class O3_ARM_PostK_L2(Cache):
-    #hit_latency = 35
+    tag_latency = 35
+    data_latency = 35
     response_latency = 35
     mshrs = 64
     tgts_per_mshr = 12
