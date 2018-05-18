@@ -65,6 +65,16 @@ def config_cache(options, system):
         dcache_class, icache_class, l2_cache_class, walk_cache_class = \
             O3_ARM_v7a_DCache, O3_ARM_v7a_ICache, O3_ARM_v7aL2, \
             O3_ARM_v7aWalkCache
+    elif options.cpu_type == "O3_ARM_PostK_3":
+        try:
+            from cores.arm.O3_PostK import *
+        except:
+            print("postk_detailed is unavailable."
+                  "Did you compile the O3 model?")
+            sys.exit(1)
+        dcache_class, icache_class, l2_cache_class, walk_cache_class = \
+            O3_ARM_PostK_DCache, O3_ARM_PostK_ICache, O3_ARM_PostK_L2, \
+            O3_ARM_PostK_WalkCache
     else:
         dcache_class, icache_class, l2_cache_class, walk_cache_class = \
             L1_DCache, L1_ICache, L2Cache, None
