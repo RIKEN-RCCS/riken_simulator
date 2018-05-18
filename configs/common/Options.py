@@ -291,7 +291,7 @@ def addCommonOptions(parser):
     parser.add_option("--arm-iset", default="arm", type="choice",
                       choices=["arm", "thumb", "aarch64"],
                       help="ARM instruction set.")
-    parser.add_option("--arm-sve-vl", default="2", type="choice",
+    parser.add_option("--arm-sve-vl", default="8", type="choice",
                       choices=["1", "2", "4", "8", "16"],
                       help="SVE vector length in quadwords (128-bit)")
 
