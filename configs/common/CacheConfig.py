@@ -98,17 +98,20 @@ def config_cache(options, system):
         # are not connected using addTwoLevelCacheHierarchy. Use the
         # same clock as the CPUs.
         num_bank = 2**options.l2_bankbit
-        l2size= str(convert.toMemorySize(options.l2_size) / num_bank) + 'B'
+
         system.tol2bus = L2XBar(clk_domain = system.cpu_clk_domain)
         system.l2s = [ l2_cache_class(clk_domain=system.cpu_clk_domain,
-                                      size=l2size,
+                                      size=options.l2_size,
                                       assoc=options.l2_assoc)
                        for x in range(num_bank)]
         for i in range (num_bank):
             system.l2s[i].cpu_side = system.tol2bus.master
             system.l2s[i].mem_side = system.membus.slave
             system.l2s[i].addr_ranges = AddrRange(0, size=options.mem_size,
-                                                  intlvHighBit = 10,
+                                                  intlvHighBit = int
+                                                  (system.cache_line_size).
+                                                  bit_length()-2 +
+                                                  options.l2_bankbit,
                                                   intlvBits =
                                                   options.l2_bankbit,
                                                   intlvMatch = i)
