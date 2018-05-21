@@ -168,9 +168,8 @@ LSQUnit<Impl>::init(O3CPU *cpu_ptr, IEW *iew_ptr, DerivO3CPUParams *params,
 
     depCheckShift = params->LSQDepCheckShift;
     checkLoads = params->LSQCheckLoads;
-    cachePorts = params->cachePorts;
+    cacheStorePorts = params->cacheStorePorts;
     needsTSO = params->needsTSO;
-    storePortUsageRatio = params->storePortUsageRatio;
 
     resetState();
 }
@@ -185,7 +184,7 @@ LSQUnit<Impl>::resetState()
 
     storeWBIt = storeQueue.begin();
 
-    usedPorts = 0;
+    usedStorePorts = 0;
 
     retryPkt = NULL;
     memDepViolator = NULL;
@@ -730,7 +729,7 @@ LSQUnit<Impl>::writebackStores()
            storeWBIt->valid() &&
            storeWBIt->canWB() &&
            ((!needsTSO) || (!storeInFlight)) &&
-           usedPorts < cachePorts) {
+           usedStorePorts < cacheStorePorts) {
 
         if (isStoreBlocked) {
             DPRINTF(LSQUnit, "Unable to write back any more stores, cache"
@@ -748,7 +747,7 @@ LSQUnit<Impl>::writebackStores()
             continue;
         }
 
-        ++usedPorts;
+        ++usedStorePorts;
 
         if (storeWBIt->instruction()->isDataPrefetch()) {
             storeWBIt++;
@@ -849,7 +848,7 @@ LSQUnit<Impl>::writebackStores()
     }
 
     // Not sure this should set it to 0.
-    usedPorts = 0;
+    usedStorePorts = 0;
 
     assert(stores >= 0 && storesToWB >= 0);
 }
@@ -1065,12 +1064,9 @@ template <class Impl>
 bool
 LSQUnit<Impl>::trySendPacket(bool isLoad, PacketPtr data_pkt)
 {
-    if (usedPorts < cachePorts) {
-        if (!isLoad){
-            usedPorts += storePortUsageRatio;
-        }else{
-            usedPorts ++;
-        }
+    if (isLoad || usedStorePorts < cacheStorePorts) {
+        if (!isLoad)
+            ++usedStorePorts;
         auto state = dynamic_cast<LSQSenderState*>(data_pkt->senderState);
         state->outstanding++;
         if (!dcachePort->sendTimingReq(data_pkt)) {
