@@ -46,6 +46,7 @@ from __future__ import print_function
 import m5
 from m5.objects import *
 from Caches import *
+from m5.util import *
 
 def config_cache(options, system):
     if options.external_memory_system and (options.caches or options.l2cache):
@@ -96,13 +97,21 @@ def config_cache(options, system):
         # Provide a clock for the L2 and the L1-to-L2 bus here as they
         # are not connected using addTwoLevelCacheHierarchy. Use the
         # same clock as the CPUs.
-        system.l2 = l2_cache_class(clk_domain=system.cpu_clk_domain,
-                                   size=options.l2_size,
-                                   assoc=options.l2_assoc)
-
+        num_bank = 2**options.l2_bankbit
+        l2size= str(convert.toMemorySize(options.l2_size) / num_bank) + 'B'
         system.tol2bus = L2XBar(clk_domain = system.cpu_clk_domain)
-        system.l2.cpu_side = system.tol2bus.master
-        system.l2.mem_side = system.membus.slave
+        system.l2s = [ l2_cache_class(clk_domain=system.cpu_clk_domain,
+                                      size=l2size,
+                                      assoc=options.l2_assoc)
+                       for x in range(num_bank)]
+        for i in range (num_bank):
+            system.l2s[i].cpu_side = system.tol2bus.master
+            system.l2s[i].mem_side = system.membus.slave
+            system.l2s[i].addr_ranges = AddrRange(0, size=options.mem_size,
+                                                  intlvHighBit = 10,
+                                                  intlvBits =
+                                                  options.l2_bankbit,
+                                                  intlvMatch = i)
 
     if options.memchecker:
         system.memchecker = MemChecker()
