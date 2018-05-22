@@ -465,7 +465,18 @@ Execute::executeMemRefInst(MinorDynInstPtr inst, BranchData &branch,
 
         Fault init_fault = inst->staticInst->initiateAcc(&context,
             inst->traceData);
-        inst->translationFault = init_fault;
+
+        if (inst->inLSQ) {
+            if (init_fault != NoFault) {
+                assert(inst->translationFault != NoFault);
+                // Translation faults are dealt with in handleMemResponse()
+                init_fault = NoFault;
+            } else {
+                // If we have a translation fault then it got suppressed  by
+                // initateAcc()
+                inst->translationFault = NoFault;
+            }
+        }
 
         if (init_fault != NoFault) {
             DPRINTF(MinorExecute, "Fault on memory inst: %s"
@@ -921,25 +932,27 @@ Execute::commitInst(MinorDynInstPtr inst, bool early_memory_issue,
             predicate_passed, fault);
 
         if (completed_mem_inst && fault != NoFault) {
+            assert(!inst->inLSQ);
             if (early_memory_issue) {
                 DPRINTF(MinorExecute, "Fault in early executing inst: %s\n",
                     fault->name());
                 /* Don't execute the fault, just stall the instruction
                  *  until it gets to the head of inFlightInsts */
                 inst->canEarlyIssue = false;
-                fault = NoFault;
+                completed_inst = false;
             } else {
                 DPRINTF(MinorExecute, "Fault in execute: %s\n",
                     fault->name());
                 fault->invoke(thread, NULL);
 
                 tryToBranch(inst, fault, branch);
+                completed_inst = true;
             }
-            completed_inst = true;
+            completed_mem_issue = false;
         } else {
             completed_inst = completed_mem_inst;
+            completed_mem_issue = completed_inst;
         }
-        completed_mem_issue = completed_inst;
     } else if (inst->isInst() && inst->staticInst->isMemBarrier() &&
         !lsq.canPushIntoStoreBuffer())
     {

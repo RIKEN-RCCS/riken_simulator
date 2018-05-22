@@ -76,12 +76,20 @@ LSQ::LSQRequest::LSQRequest(LSQ &port_, MinorDynInstPtr inst_, bool isLoad_,
 void
 LSQ::LSQRequest::tryToSuppressFault()
 {
-    ExecContext context(port.cpu,
-                        *(port.cpu.threads[inst->id.threadId]),
-                        port.execute,
-                        inst);
+    SimpleThread &thread = *port.cpu.threads[inst->id.threadId];
+    TheISA::PCState old_pc = thread.pcState();
+    ExecContext context(port.cpu, thread, port.execute, inst);
+    Fault M5_VAR_USED fault = inst->translationFault;
+
     // Give the instruction a chance to suppress a translation fault
     inst->translationFault = inst->staticInst->initiateAcc(&context, nullptr);
+    if (inst->translationFault == NoFault) {
+        DPRINTFS(MinorMem, (&port),
+                 "Translation fault suppressed for inst:%s\n", *inst);
+    } else {
+        assert(inst->translationFault == fault);
+    }
+    thread.pcState(old_pc);
 }
 
 void
@@ -94,12 +102,18 @@ LSQ::LSQRequest::disableMemAccess()
 void
 LSQ::LSQRequest::completeDisabledMemAccess()
 {
-    ExecContext context(port.cpu,
-                        *(port.cpu.threads[inst->id.threadId]),
-                        port.execute,
-                        inst);
-    // Give the instruction a chance to suppress a translation fault
+    DPRINTFS(MinorMem, (&port), "Complete disabled mem access for inst:%s\n",
+             *inst);
+
+    SimpleThread &thread = *port.cpu.threads[inst->id.threadId];
+    TheISA::PCState old_pc = thread.pcState();
+
+    ExecContext context(port.cpu, thread, port.execute, inst);
+
+    context.setMemAccPredicate(false);
     inst->staticInst->completeAcc(nullptr, &context, inst->traceData);
+
+    thread.pcState(old_pc);
 }
 
 LSQ::AddrRangeCoverage
@@ -258,10 +272,12 @@ LSQ::SingleDataRequest::finish(const Fault &fault, RequestPtr request_,
         inst->translationFault = fault;
         if (isTranslationDelayed) {
             tryToSuppressFault();
-            if (inst->translationFault == NoFault)
+            if (inst->translationFault == NoFault) {
                 completeDisabledMemAccess();
+                setState(Complete);
+            }
         }
-        setState(Complete);
+        setState(Translated);
     } else {
         setState(Translated);
         makePacket();
@@ -331,23 +347,27 @@ LSQ::SplitDataRequest::finish(const Fault &fault, RequestPtr request_,
 
     if (fault != NoFault) {
         /* tryToSendToTransfers will handle the fault */
+        inst->translationFault = fault;
+
         DPRINTFS(MinorMem, (&port), "Faulting translation for fragment:"
             " %d of request: %s\n",
             expected_fragment_index, *inst);
 
-        inst->translationFault = fault;
         if (expected_fragment_index > 0 || isTranslationDelayed)
             tryToSuppressFault();
         if (expected_fragment_index == 0) {
-            if (isTranslationDelayed && inst->translationFault == NoFault)
+            if (isTranslationDelayed && inst->translationFault == NoFault) {
                 completeDisabledMemAccess();
-            setState(Complete);
+                setState(Complete);
+            } else {
+                setState(Translated);
+            }
         } else if (inst->translationFault == NoFault) {
             setState(Translated);
             numTranslatedFragments--;
             makeFragmentPackets();
         } else {
-            setState(Complete);
+            setState(Translated);
         }
         port.tryToSendToTransfers(this);
     } else if (numTranslatedFragments == numFragments) {
@@ -984,10 +1004,6 @@ LSQ::tryToSendToTransfers(LSQRequestPtr request)
         return;
     }
 
-    // Any faulting request is expected to be marked as Complete and handled
-    // above
-    assert(request->inst->translationFault == NoFault);
-
     if (!execute.instIsRightStream(request->inst)) {
         /* Wrong stream, try to abort the transfer but only do so if
          *  there are no packets in flight */
@@ -1001,6 +1017,18 @@ LSQ::tryToSendToTransfers(LSQRequestPtr request)
             request->setSkipped();
             moveFromRequestsToTransfers(request);
         }
+        return;
+    }
+
+    if (request->inst->translationFault != NoFault) {
+        if (request->inst->staticInst->isPrefetch()) {
+            DPRINTF(MinorMem, "Not signalling fault for faulting prefetch\n");
+        }
+        DPRINTF(MinorMem, "Moving faulting request into the transfers"
+            " queue\n");
+        request->setState(LSQRequest::Complete);
+        request->setSkipped();
+        moveFromRequestsToTransfers(request);
         return;
     }
 
