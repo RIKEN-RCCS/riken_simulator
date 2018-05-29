@@ -301,8 +301,12 @@ class LSQUnit {
     /** Returns the number of free LQ entries. */
     unsigned numFreeLoadEntries();
 
+    unsigned getLoadEntries();
+
     /** Returns the number of free SQ entries. */
     unsigned numFreeStoreEntries();
+
+    unsigned getStoreEntries();
 
     /** Returns the number of loads in the LQ. */
     int numLoads() { return loads; }

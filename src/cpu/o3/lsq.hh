@@ -788,6 +788,8 @@ class LSQ {
     /** Returns the number of free load entries. */
     unsigned numFreeLoadEntries();
 
+    void printLSQEntries();
+
     /** Returns the number of free store entries. */
     unsigned numFreeStoreEntries();
 

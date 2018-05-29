@@ -283,6 +283,13 @@ ROB<Impl>::retireHead(ThreadID tid)
 }
 
 template <class Impl>
+unsigned
+ROB<Impl>::getROBEntries()
+{
+    return threadEntries[0];
+}
+
+template <class Impl>
 bool
 ROB<Impl>::isHeadReady(ThreadID tid)
 {

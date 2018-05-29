@@ -52,6 +52,7 @@
 #include "debug/Drain.hh"
 #include "debug/Fetch.hh"
 #include "debug/LSQ.hh"
+#include "debug/LSQEntries.hh"
 #include "debug/Writeback.hh"
 #include "params/DerivO3CPU.hh"
 
@@ -379,6 +380,20 @@ LSQ<Impl>::numStores()
     }
 
     return total;
+}
+
+template<class Impl>
+void
+LSQ<Impl>::printLSQEntries()
+{
+    list<ThreadID>::iterator threads = activeThreads->begin();
+    list<ThreadID>::iterator end = activeThreads->end();
+    while (threads != end) {
+        ThreadID tid = *threads++;
+        DPRINTF(LSQEntries, "LSQ: %d: %d: %d: %d\n",
+                maxLQEntries, thread[tid].getLoadEntries(),
+                maxSQEntries, thread[tid].getStoreEntries());
+    }
 }
 
 template<class Impl>

@@ -64,6 +64,7 @@
 #include "debug/Drain.hh"
 #include "debug/ExecFaulting.hh"
 #include "debug/O3PipeView.hh"
+#include "debug/ROBEntries.hh"
 #include "params/DerivO3CPU.hh"
 #include "sim/faults.hh"
 #include "sim/full_system.hh"
@@ -725,6 +726,9 @@ DefaultCommit<Impl>::tick()
     }
 
     updateStatus();
+
+    DPRINTF(ROBEntries, "ROB: %d: %d\n", rob->getMaxEntries(0),
+            rob->getROBEntries());
 }
 
 template <class Impl>

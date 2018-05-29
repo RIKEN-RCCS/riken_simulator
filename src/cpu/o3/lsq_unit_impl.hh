@@ -358,6 +358,13 @@ LSQUnit<Impl>::numFreeLoadEntries()
         return loadQueue.size() - loads;
 }
 
+template<class Impl>
+unsigned
+LSQUnit<Impl>::getLoadEntries()
+{
+    return loads;
+}
+
 template <class Impl>
 unsigned
 LSQUnit<Impl>::numFreeStoreEntries()
@@ -368,7 +375,14 @@ LSQUnit<Impl>::numFreeStoreEntries()
                 1 + storeQueue.size(), stores);
         return storeQueue.size() - stores;
 
- }
+}
+
+template<class Impl>
+unsigned
+LSQUnit<Impl>::getStoreEntries()
+{
+    return stores;
+}
 
 template <class Impl>
 void

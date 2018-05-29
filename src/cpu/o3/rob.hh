@@ -153,6 +153,8 @@ class ROB
      */
     void retireHead(ThreadID tid);
 
+    unsigned getROBEntries();
+
     /** Is the oldest instruction across all threads ready. */
 //    bool isHeadReady();
 

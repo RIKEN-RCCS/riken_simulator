@@ -1578,6 +1578,8 @@ DefaultIEW<Impl>::tick()
         DPRINTF(Activity, "Activity this cycle.\n");
         cpu->activityThisCycle();
     }
+
+    ldstQueue.printLSQEntries();
 }
 
 template <class Impl>
