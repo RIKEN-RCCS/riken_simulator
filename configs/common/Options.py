@@ -312,6 +312,8 @@ def addSEOptions(parser):
                       help="Redirect stdout to a file.")
     parser.add_option("--errout", default="",
                       help="Redirect stderr to a file.")
+    parser.add_option("--stat-dump-period", action="store", type="int",
+                      default=0, help="Stat dump period")
 
 def addFSOptions(parser):
     from FSConfig import os_types

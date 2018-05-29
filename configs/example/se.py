@@ -52,6 +52,7 @@ import m5
 from m5.defines import buildEnv
 from m5.objects import *
 from m5.util import addToPath, fatal, warn
+from m5.stats import periodicStatDump
 
 addToPath('../')
 
@@ -286,6 +287,8 @@ else:
     system.system_port = system.membus.slave
     CacheConfig.config_cache(options, system)
     MemConfig.config_mem(options, system)
+if options.stat_dump_period != 0 :
+    periodicStatDump(options.stat_dump_period)
 
 root = Root(full_system = False, system = system)
 Simulation.run(options, root, system, FutureClass)
