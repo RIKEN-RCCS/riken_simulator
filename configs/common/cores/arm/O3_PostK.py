@@ -250,7 +250,7 @@ class O3_ARM_PostK_3(DerivO3CPU):
     #numPhysMaskRegs = 48
     numIQEntries = 64 #128 #64
     numROBEntries = 128 #256 #128
-    cacheStorePorts=2
+    cacheStorePorts=200
     #storePortUsageRatio = 2
 
     switched_out = False
