@@ -264,6 +264,13 @@ def scriptCheckpoints(options, maxtick, cptdir):
 
     return exit_event
 
+def scriptStatEvents(options):
+    for tick in options.stat_events.split(","):
+        tick = int(tick)
+        print(tick)
+        m5.stats.schedEvent(True, True, tick, 0)
+    return
+
 def benchCheckpoints(options, maxtick, cptdir):
     exit_event = m5.simulate(maxtick - m5.curTick())
     exit_cause = exit_event.getCause()
@@ -684,6 +691,8 @@ def run(options, root, testsys, cpu_class):
             cptdir = m5.options.outdir
         else:
             cptdir = getcwd()
+    if options.stat_events != None :
+        scriptStatEvents(options)
 
     if options.take_checkpoints != None :
         # Checkpoints being taken via the command line at <when> and at

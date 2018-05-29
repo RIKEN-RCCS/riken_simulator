@@ -295,7 +295,8 @@ def addCommonOptions(parser):
     parser.add_option("--arm-sve-vl", default="8", type="choice",
                       choices=["1", "2", "4", "8", "16"],
                       help="SVE vector length in quadwords (128-bit)")
-
+    parser.add_option("--stat-events", action="store",
+                      type="string", help="list of stat event tick");
 
 def addSEOptions(parser):
     # Benchmark options
