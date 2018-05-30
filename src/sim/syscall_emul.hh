@@ -104,6 +104,7 @@
 #include "cpu/base.hh"
 #include "cpu/thread_context.hh"
 #include "debug/FreeResource.hh"
+#include "debug/GetTimer.hh"
 #include "mem/page_table.hh"
 #include "params/Process.hh"
 #include "sim/emul_driver.hh"
@@ -1759,6 +1760,7 @@ clock_gettimeFunc(SyscallDesc *desc, int num, Process *p, ThreadContext *tc)
     tp.copyOut(tc->getMemProxy());
 
     DPRINTF(FreeResource, "get_clocktime\n");
+    DPRINTF(GetTimer, "get_clocktime\n");
 
     return 0;
 }
