@@ -53,8 +53,9 @@
 #include "cpu/o3/rename.hh"
 #include "cpu/reg_class.hh"
 #include "debug/Activity.hh"
-#include "debug/Rename.hh"
+#include "debug/FreeResource.hh"
 #include "debug/O3PipeView.hh"
+#include "debug/Rename.hh"
 #include "params/DerivO3CPU.hh"
 
 using namespace std;
@@ -1280,6 +1281,16 @@ DefaultRename<Impl>::readFreeEntries(ThreadID tid)
             renameMap[tid]->numFreeVecEntries(),
             renameMap[tid]->numFreePredEntries(),
             renameMap[tid]->numFreeCCEntries());
+    DPRINTF(FreeResource, "%i, %i, %i, %i, %u, %u, %u, %u\n",
+            freeEntries[tid].iqEntries,
+            freeEntries[tid].robEntries,
+            freeEntries[tid].lqEntries,
+            freeEntries[tid].sqEntries,
+            freeList->numFreeIntRegs(),
+            freeList->numFreeFloatRegs(),
+            freeList->numFreeVecRegs(),
+            freeList->numFreePredRegs()
+        );
 
     DPRINTF(Rename, "[tid:%i]: %i instructions not yet in ROB\n",
             tid, instsInProgress[tid]);

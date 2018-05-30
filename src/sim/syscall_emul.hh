@@ -103,6 +103,7 @@
 #include "config/the_isa.hh"
 #include "cpu/base.hh"
 #include "cpu/thread_context.hh"
+#include "debug/FreeResource.hh"
 #include "mem/page_table.hh"
 #include "params/Process.hh"
 #include "sim/emul_driver.hh"
@@ -1756,6 +1757,8 @@ clock_gettimeFunc(SyscallDesc *desc, int num, Process *p, ThreadContext *tc)
     tp->tv_nsec = TheISA::htog(tp->tv_nsec);
 
     tp.copyOut(tc->getMemProxy());
+
+    DPRINTF(FreeResource, "get_clocktime\n");
 
     return 0;
 }
