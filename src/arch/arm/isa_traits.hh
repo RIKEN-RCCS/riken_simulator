@@ -57,7 +57,7 @@ namespace ArmISA
 
     StaticInstPtr decodeInst(ExtMachInst);
 
-    const Addr PageShift = 12;
+    const Addr PageShift = 25;
     const Addr PageBytes = ULL(1) << PageShift;
     const Addr Page_Mask = ~(PageBytes - 1);
     const Addr PageOffset = PageBytes - 1;
