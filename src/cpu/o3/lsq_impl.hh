@@ -712,7 +712,8 @@ LSQ<Impl>::SingleDataRequest::finish(const Fault &fault, RequestPtr req,
         ThreadContext* tc, BaseTLB::Mode mode)
 {
     _fault.push_back(fault);
-
+    numInTranslationFragments = 0;
+    numTranslatedFragments = 1;
     /* If the instruction has been squahsed, let the request know
      * as it may have to self-destruct. */
     if (_inst->isSquashed()) {

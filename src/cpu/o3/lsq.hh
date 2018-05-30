@@ -113,7 +113,7 @@ class LSQ {
         inline bool alive() { return !deleted; }
         LSQRequest* request() { return _request; }
         virtual void complete() = 0;
-        void writeback() { _request->writeback(); }
+        void writebackDone() { _request->writebackDone(); }
     };
 
     /** Memory operation metadata.
@@ -202,10 +202,13 @@ class LSQ {
             /** Ownership tracking flags. */
             /** Translation squashed. */
             TranslationSquashed,
+            /** Request discarded */
+            Discarded,
             /** LSQ resources freed. */
             LSQEntryFreed,
             /** Store written back. */
-            Writeback,
+            WritebackScheduled,
+            WritebackDone,
             Max
         };
         static constexpr auto MaxFlag = (size_t) Flag::Max;
@@ -300,39 +303,46 @@ class LSQ {
         }
 
         /**
-         * Test if the LSQRequest is self-owned.
+         * Test if the LSQRequest has been released, i.e. self-owned.
          * An LSQRequest manages itself when the resources on the LSQ are freed
          * but the translation is still going on and the LSQEntry was freed.
          */
         bool
-        isSelfOwned()
+        isReleased()
         {
-            return flags[(int)Flag::LSQEntryFreed];
+            return flags[(int)Flag::LSQEntryFreed] ||
+                flags[(int)Flag::Discarded];
         }
 
-        /**
-         * Test if the LSQRequest is owned by the LSQ.
-         * This is the common case, when the instruction is not squashed or
-         * when at the point of squash there is no ongoing operation that
-         * requires keeping information alive for the future.
+        /** Release the LSQRequest.
+         * Notify the sender state that the request it points to is not valid
+         * anymore. Understand if the request is orphan (self-managed) and if
+         * so, mark it as freed, else destroy it, as this means
+         * the end of its life cycle.
+         * An LSQRequest is orphan when its resources are released
+         * but there is any in-flight translation request to the TLB or access
+         * request to the memory.
          */
-        bool
-        isOwnedByLSQ()
+        void release(Flag reason)
         {
-            return ((!flags[(int)Flag::TranslationStarted] ||
-                     flags[(int)Flag::TranslationFinished] ||
-                     flags[(int)Flag::TranslationSquashed]) &&
-                    (!flags[(int)Flag::WbStore] ||
-                     flags[(int)Flag::Writeback]));
+            assert(reason == Flag::LSQEntryFreed || reason == Flag::Discarded);
+            if (!isAnyOutstandingRequest()) {
+                delete this;
+            } else {
+                if (_senderState) {
+                    _senderState->deleteRequest();
+                }
+                flags[(int)reason] = true;
+            }
         }
 
-      public:
         /** Destructor.
          * The LSQRequest owns the request. If the packet has already been
          * sent, the sender state will be deleted upon receiving the reply.
          */
         virtual ~LSQRequest() {
-            assert(_numOutstandingPackets == 0);
+            assert(!isAnyOutstandingRequest());
+            _inst->savedReq = nullptr;
             if (_senderState)
                 delete _senderState;
 
@@ -343,6 +353,8 @@ class LSQ {
                 delete r;
         };
 
+
+      public:
         /** Convenience getters/setters. */
         /** @{ */
         /** Set up Context numbers. */
@@ -415,6 +427,28 @@ class LSQ {
             return _senderState;
         }
 
+        /**
+         * Mark senderState as discarded. This will cause to discard response
+         * packets from the cache.
+         */
+        void discardSenderState()
+        {
+            assert(_senderState);
+            _senderState->deleteRequest();
+        }
+
+        /**
+         * Test if there is any in-flight translation or mem access request
+         */
+        bool
+        isAnyOutstandingRequest()
+        {
+            return numInTranslationFragments > 0 ||
+                _numOutstandingPackets > 0 ||
+                (flags[(int)Flag::WritebackScheduled] &&
+                 !flags[(int)Flag::WritebackDone]);
+        }
+
         bool
         isSplit() const
         {
@@ -479,45 +513,42 @@ class LSQ {
                     (_state == State::PartialFault && isLoad()));
         }
 
-        /** Free the LSQResources.
-         * Notify the sender state that the request it points to is not valid
-         * anymore. Understand if the request is orphan (self-managed) and if
-         * so, mark it as LSQResources freed, else destroy it, as this means
-         * the end of its life cycle.
-         * An LSQRequest is orphan when its resources from the LSQ are freed
-         * but the TLB still needs some information. This scenario is detected
-         * by a non-squashed translation that has not yet finished.
-         * After translation is done, if the request is sent to memory and it
-         * is not satisfied by the time we squash, there is a problem
-         * as the caches will inspect the request.
+        /**
+         * The LSQ entry is cleared
          */
         void
         freeLSQEntry()
         {
-            if (isOwnedByLSQ() && _numOutstandingPackets == 0) {
-                delete this;
-            } else {
-                if (_senderState) {
-                    _senderState->deleteRequest();
-                }
-                flags[(int)Flag::LSQEntryFreed] = true;
-            }
+            release(Flag::LSQEntryFreed);
+        }
+
+        /**
+         * The request is discarded (e.g. partial store-load forwarding)
+         */
+        void discard()
+        {
+            release(Flag::Discarded);
         }
 
         void packetReplied()
         {
             assert(_numOutstandingPackets > 0);
             _numOutstandingPackets--;
-            if (isSelfOwned() && _numOutstandingPackets == 0)
+            if (_numOutstandingPackets == 0 && isReleased())
                 delete this;
         }
 
-        void writeback()
+        void writebackScheduled()
         {
-            flags[(int)Flag::Writeback] = true;
+            assert(!flags[(int)Flag::WritebackScheduled]);
+            flags[(int)Flag::WritebackScheduled] = true;
+        }
+
+        void writebackDone()
+        {
+            flags[(int)Flag::WritebackDone] = true;
             /* If the lsq resources are already free */
-            if (isSelfOwned()) {
-                assert(_numOutstandingPackets == 0);
+            if (isReleased()) {
                 delete this;
             }
         }
@@ -525,10 +556,10 @@ class LSQ {
         void
         squashTranslation()
         {
+            assert(numInTranslationFragments == 0);
             flags[(int)Flag::TranslationSquashed] = true;
             /* If we are on our own, self-destruct. */
-            if (isSelfOwned()) {
-                assert(_numOutstandingPackets == 0);
+            if (isReleased()) {
                 delete this;
             }
         }
@@ -566,6 +597,8 @@ class LSQ {
         using LSQRequest::request;
         using LSQRequest::sendFragmentToTranslation;
         using LSQRequest::setState;
+        using LSQRequest::numInTranslationFragments;
+        using LSQRequest::numTranslatedFragments;
         using LSQRequest::_numOutstandingPackets;
       public:
         SingleDataRequest(LSQUnit* port, const DynInstPtr& inst, bool isLoad,
@@ -619,7 +652,6 @@ class LSQ {
         using LSQRequest::_numOutstandingPackets;
 
         uint32_t numFragments;
-        uint32_t numOutstandingPackets;
         uint32_t numReceivedPackets;
         RequestPtr mainReq;
         PacketPtr _mainPacket;
@@ -634,7 +666,6 @@ class LSQ {
             LSQRequest(port, inst, isLoad, addr, size, flags_, data, res,
                        byteEnable),
             numFragments(0),
-            numOutstandingPackets(0),
             numReceivedPackets(0),
             mainReq(nullptr),
             _mainPacket(nullptr)
