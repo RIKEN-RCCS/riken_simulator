@@ -180,7 +180,8 @@ namespace Aarch64
               case 0x0:
                 return new Sbfm64(machInst, rdzr, rn, immr, imms);
               case 0x1:
-                return new Bfm64(machInst, rdzr, rn, immr, imms);
+                return new WrapMacroOp<Bfm64,Enums::IntShift,
+                Enums::IntAlu, Enums::IntAlu>(machInst, rdzr, rn, immr, imms);
               case 0x2:
                 return new Ubfm64(machInst, rdzr, rn, immr, imms);
               case 0x3:

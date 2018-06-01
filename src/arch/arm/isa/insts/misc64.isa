@@ -108,16 +108,33 @@ let {{
     '''
 
     bfmCode = bfmMaskCode + 'Dest64 = result | (Dest64 & ~bitMask);'
-    bfmIop = InstObjParams("bfm", "Bfm64", "RegRegImmImmOp64", bfmCode);
+    bfmIop = InstObjParams("bfm", "Bfm64", "RegRegImmImmOp64micro",
+                           bfmCode);
     subst("RegRegImmImmOp64", bfmIop)
 
     ubfmCode = bfmMaskCode + 'Dest64 = result;'
-    ubfmIop = InstObjParams("ubfm", "Ubfm64", "RegRegImmImmOp64", ubfmCode);
+    ubfmIop = InstObjParams("ubfm", "Ubfm64", "RegRegImmImmOp64",
+                            {'code':ubfmCode,
+                                'op_class': "Enums::IntShiftLong"});
+    ubfmIop.constructor += '''
+        if(_imm2==(intWidth-1))
+            { _opClass = Enums::IntShift;}
+        else if(_imm1==(_imm2+1))
+             { _opClass = (_imm1 <= (intWidth-5))
+                ?(Enums::IntShift):(Enums::IntAlu);}
+        else if((_imm1==0)&&((_imm2==7)||(_imm2==0xf)))
+        { _opClass = Enums::IntAlu;}'''
     subst("RegRegImmImmOp64", ubfmIop)
 
     sbfmCode = bfmMaskCode + \
         'Dest64 = result | (bits(Op164, imm2) ? topBits : 0);'
-    sbfmIop = InstObjParams("sbfm", "Sbfm64", "RegRegImmImmOp64", sbfmCode);
+    sbfmIop = InstObjParams("sbfm", "Sbfm64", "RegRegImmImmOp64",
+                            {'code':sbfmCode,
+                                'op_class':"Enums::IntShiftLong"});
+    sbfmIop.constructor += '''_opClass =
+       ((_imm1==0)&&((_imm2==7)||(_imm2==0xf)||(_imm2==0x1f)))?
+             Enums::IntAlu :
+          ((_imm2==(intWidth-1))? Enums::IntShift : _opClass);'''
     subst("RegRegImmImmOp64", sbfmIop)
 
     extrCode = '''
@@ -127,7 +144,11 @@ let {{
             Dest64 = (Op164 << (intWidth - imm)) | (Op264 >> imm);
         }
     '''
-    extrIop = InstObjParams("extr", "Extr64", "RegRegRegImmOp64", extrCode);
+    extrIop = InstObjParams("extr", "Extr64", "RegRegRegImmOp64",
+                            {'code':extrCode,
+                                'op_class':"Enums::IntMFlow"});
+    extrIop.constructor += '''_opClass = (_op1 != _op2) ?
+                _opClass : (Enums::IntShift);'''
     subst("RegRegRegImmOp64", extrIop);
 
     unknownCode = '''

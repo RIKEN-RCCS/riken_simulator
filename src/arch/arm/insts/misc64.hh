@@ -40,6 +40,8 @@
 #ifndef __ARCH_ARM_INSTS_MISC64_HH__
 #define __ARCH_ARM_INSTS_MISC64_HH__
 
+#include "arch/arm/insts/data64.hh"
+#include "arch/arm/insts/pred_inst.hh"
 #include "arch/arm/insts/static_inst.hh"
 
 class RegRegImmImmOp64 : public ArmStaticInst
@@ -76,6 +78,65 @@ class RegRegRegImmOp64 : public ArmStaticInst
     {}
 
     std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;
+};
+
+class RegRegImmImmOp64micro: public RegRegImmImmOp64
+{
+public:
+    RegRegImmImmOp64micro(const char *mnem, ExtMachInst _machInst,
+                     OpClass __opClass, IntRegIndex _dest, IntRegIndex _op1,
+                     uint64_t _imm1, uint64_t _imm2) :
+        RegRegImmImmOp64(mnem, _machInst, __opClass, _dest, _op1, _imm1,_imm2)
+        {
+            flags[IsMicroop] = true;
+        };
+    void
+    advancePC(PCState &pcState) const
+    {
+        if (flags[IsLastMicroop]) {
+            pcState.uEnd();
+        } else if (flags[IsMicroop]) {
+            pcState.uAdvance();
+        } else {
+            pcState.advance();
+        }
+    }
+};
+
+class DummyOp:public DataX1RegOp
+{
+public:
+    DummyOp(ExtMachInst machInst,IntRegIndex _dest,
+            IntRegIndex _op1, OpClass __opClass);
+    Fault execute(ExecContext *xc, Trace::InstRecord *traceData)const;
+    void advancePC(PCState &pcState) const;
+};
+
+template <class Op, OpClass oc1, OpClass oc2, OpClass oc3>
+class WrapMacroOp: public PredMacroOp
+{
+  public:
+    WrapMacroOp(ExtMachInst machInst, IntRegIndex _dest, IntRegIndex _op1,
+                uint64_t _imm1, uint64_t _imm2):
+        PredMacroOp("WrapOp", machInst, No_OpClass)
+        {
+            numMicroops = 4;
+            microOps = new StaticInstPtr[numMicroops];
+            microOps[0] = new DummyOp(machInst, _dest, _op1, oc1);
+            microOps[1] = new DummyOp(machInst, _dest, _op1, oc2);
+            microOps[2] = new DummyOp(machInst, _dest, _op1, oc3);
+            microOps[3] = new Op(machInst, _dest, _op1, _imm1, _imm2);
+            microOps[0]->setFirstMicroop();
+            microOps[numMicroops-1]->setLastMicroop();
+            for (int i = 0; i < numMicroops -1; i++){
+                microOps[i]->setDelayedCommit();
+            }
+
+        }
+    Fault execute(ExecContext *xc, Trace::InstRecord *traceData) const{
+        panic("Should not executed");
+        return NoFault;
+    }
 };
 
 class UnknownOp64 : public ArmStaticInst

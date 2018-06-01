@@ -38,6 +38,7 @@
  */
 
 #include "arch/arm/insts/misc64.hh"
+#include "cpu/exec_context.hh"
 
 std::string
 RegRegImmImmOp64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
@@ -94,4 +95,41 @@ RegMiscRegImmOp64::generateDisassembly(
     ss << ", ";
     printMiscReg(ss, op1);
     return ss.str();
+}
+
+DummyOp::DummyOp(ExtMachInst machInst,IntRegIndex _dest,
+                 IntRegIndex _op1, OpClass __opClass):
+    DataX1RegOp("DummyOp", machInst, __opClass, _dest, _op1)
+{
+    _numSrcRegs = 0;
+    _numDestRegs = 0;
+    _numFPDestRegs = 0;
+    _numIntDestRegs = 0;
+    _numCCDestRegs = 0;
+    _numVecDestRegs = 0;
+    _srcRegIdx[_numSrcRegs++] = RegId(IntRegClass, op1);
+    _srcRegIdx[_numSrcRegs++] = RegId(IntRegClass, dest);
+    _destRegIdx[_numDestRegs++] = RegId(IntRegClass, dest);
+    _numIntDestRegs++;
+    flags[IsInteger] = true;
+    flags[IsMicroop] = true;
+}
+
+Fault DummyOp::execute(ExecContext *xc, Trace::InstRecord *traceData) const
+{
+    uint64_t val = xc->readIntRegOperand(this, 1);
+    xc->setIntRegOperand(this, 0, val);
+    return NoFault;
+}
+
+void
+DummyOp::advancePC(PCState &pcState) const
+{
+    if (flags[IsLastMicroop]) {
+        pcState.uEnd();
+    } else if (flags[IsMicroop]) {
+        pcState.uAdvance();
+    } else {
+        pcState.advance();
+    }
 }

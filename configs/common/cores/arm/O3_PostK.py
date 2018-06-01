@@ -32,8 +32,9 @@ from m5.objects import *
 # ALU Instructions have a latency of 1
 class O3_ARM_PostK_Int_A(FUDesc):
     opList = [ OpDesc(opClass='IntAlu', opLat=1),
-               #OpDesc(opClass='IntShift', opLat=2, pipelined=True),
-               #OpDesc(opClass='IntShiftLong', opLat=3, pipelined=True),
+               OpDesc(opClass='IntShift', opLat=2, pipelined=True),
+               OpDesc(opClass='IntShiftLong', opLat=3, pipelined=True),
+               OpDesc(opClass='IntMFlow', opLat=1, pipelined=True),
                OpDesc(opClass='IntMult', opLat=5, pipelined=True),
                #OpDesc(opClass='VectorExtVExu', opLat=1),
                #OpDesc(opClass='VectorExtVExu2', opLat=2),
@@ -48,8 +49,9 @@ class O3_ARM_PostK_Int_A(FUDesc):
 
 class O3_ARM_PostK_Int_B(FUDesc):
     opList = [ OpDesc(opClass='IntAlu', opLat=1),
-               #OpDesc(opClass='IntShift', opLat=2, pipelined=True),
-               #OpDesc(opClass='IntShiftLong', opLat=3, pipelined=True),
+               OpDesc(opClass='IntShift', opLat=2, pipelined=True),
+               OpDesc(opClass='IntShiftLong', opLat=3, pipelined=True),
+               OpDesc(opClass='IntMFlow', opLat=1, pipelined=True),
                #OpDesc(opClass='VectorExtVExu', opLat=1),
                #OpDesc(opClass='VectorExtVExu2', opLat=2),
                #OpDesc(opClass='IntDiv4', opLat=26, pipelined=False),
@@ -87,10 +89,10 @@ class O3_ARM_PostK_FLA(FUDesc):
                OpDesc(opClass='SimdFloatMult', opLat=9),
                OpDesc(opClass='SimdFloatMultAcc',opLat=9),
                OpDesc(opClass='SimdFloatSqrt', opLat=29, pipelined=False),
-               #OpDesc(opClass='SimdAluA', opLat=4),
-               #OpDesc(opClass='SimdMiscA', opLat=6),
+               OpDesc(opClass='SimdAluA', opLat=4),
+               OpDesc(opClass='SimdMiscA', opLat=6),
                #OpDesc(opClass='SimdFloatMultA', opLat=8),
-               #OpDesc(opClass='SimdFloatMiscA', opLat=9),
+               OpDesc(opClass='SimdFloatA', opLat=9),
 
                OpDesc(opClass='FloatAdd', opLat=9),
                OpDesc(opClass='FloatCmp', opLat=4),
@@ -160,8 +162,8 @@ class O3_ARM_PostK_FLB(FUDesc):
                OpDesc(opClass='SimdFloatMisc', opLat=4),
                OpDesc(opClass='SimdFloatMult', opLat=9),
                OpDesc(opClass='SimdFloatMultAcc',opLat=9),
-               #OpDesc(opClass='SimdAluB', opLat=4),
-               #OpDesc(opClass='SimdMiscB', opLat=6),
+               OpDesc(opClass='SimdAluB', opLat=4),
+               OpDesc(opClass='SimdMiscB', opLat=6),
 
                OpDesc(opClass='FloatAdd', opLat=9),
                OpDesc(opClass='FloatCmp', opLat=4),

@@ -975,8 +975,10 @@ let {{
             }
             destElem = count;
     '''
-    twoEqualRegInstX("cls", "ClsDX", "SimdAluOp", smallSignedTypes, 2, clsCode)
-    twoEqualRegInstX("cls", "ClsQX", "SimdAluOp", smallSignedTypes, 4, clsCode)
+    twoEqualRegInstX("cls", "ClsDX", "SimdAluAOp", smallSignedTypes,
+                     2, clsCode)
+    twoEqualRegInstX("cls", "ClsQX", "SimdAluAOp", smallSignedTypes,
+                     4, clsCode)
     # CLZ
     clzCode = '''
             unsigned count = 0;
@@ -986,8 +988,10 @@ let {{
             }
             destElem = count;
     '''
-    twoEqualRegInstX("clz", "ClzDX", "SimdAluOp", smallSignedTypes, 2, clzCode)
-    twoEqualRegInstX("clz", "ClzQX", "SimdAluOp", smallSignedTypes, 4, clzCode)
+    twoEqualRegInstX("clz", "ClzDX", "SimdAluAOp", smallSignedTypes,
+                     2, clzCode)
+    twoEqualRegInstX("clz", "ClzQX", "SimdAluAOp", smallSignedTypes,
+                     4, clzCode)
     # CMEQ (register)
     cmeqCode = "destElem = (srcElem1 == srcElem2) ? (Element)(-1) : 0;"
     threeEqualRegInstX("cmeq", "CmeqDX", "SimdCmpOp", unsignedTypes, 2,
@@ -1057,15 +1061,15 @@ let {{
             }
             destElem = count;
     '''
-    twoEqualRegInstX("cnt", "CntDX", "SimdAluOp", ("uint8_t",), 2, cntCode)
-    twoEqualRegInstX("cnt", "CntQX", "SimdAluOp", ("uint8_t",), 4, cntCode)
+    twoEqualRegInstX("cnt", "CntDX", "SimdAluBOp", ("uint8_t",), 2, cntCode)
+    twoEqualRegInstX("cnt", "CntQX", "SimdAluBOp", ("uint8_t",), 4, cntCode)
     # DUP (element)
     dupCode = "destElem = srcElem1;"
-    twoEqualRegInstX("dup", "DupElemDX", "SimdMiscOp", smallUnsignedTypes, 2,
+    twoEqualRegInstX("dup", "DupElemDX", "SimdMiscAOp", smallUnsignedTypes, 2,
                      dupCode, isDup=True, byElem=True)
-    twoEqualRegInstX("dup", "DupElemQX", "SimdMiscOp", unsignedTypes, 4,
+    twoEqualRegInstX("dup", "DupElemQX", "SimdMiscAOp", unsignedTypes, 4,
                      dupCode, isDup=True, byElem=True)
-    twoEqualRegInstX("dup", "DupElemScX", "SimdMiscOp", unsignedTypes, 4,
+    twoEqualRegInstX("dup", "DupElemScX", "SimdMiscAOp", unsignedTypes, 4,
                      dupCode, isDup=True, byElem=True, scalar=True)
     # DUP (general register)
     dupGprInstX("dup", "DupGprWDX", "SimdMiscOp", smallUnsignedTypes, 2, 'W')
@@ -1092,8 +1096,8 @@ let {{
                 }
             }
     '''
-    extInstX("Ext", "ExtDX", "SimdMiscOp", ("uint8_t",), 2, extCode)
-    extInstX("Ext", "ExtQX", "SimdMiscOp", ("uint8_t",), 4, extCode)
+    extInstX("Ext", "ExtDX", "SimdMiscAOp", ("uint8_t",), 2, extCode)
+    extInstX("Ext", "ExtQX", "SimdMiscAOp", ("uint8_t",), 4, extCode)
     # FABD
     fpOp = '''
             FPSCR fpscr = (FPSCR) FpscrExc;
@@ -1459,9 +1463,9 @@ let {{
                        fmlsCode, True)
     # FMOV
     fmovCode = 'destElem = imm;'
-    oneRegImmInstX("fmov", "FmovDX", "SimdMiscOp", smallFloatTypes, 2,
+    oneRegImmInstX("fmov", "FmovDX", "SimdAluAOp", smallFloatTypes, 2,
                    fmovCode)
-    oneRegImmInstX("fmov", "FmovQX", "SimdMiscOp", floatTypes, 4, fmovCode)
+    oneRegImmInstX("fmov", "FmovQX", "SimdAluAOp", floatTypes, 4, fmovCode)
     # FMUL (by element)
     fmulCode = fpBinOp % "Mul"
     threeEqualRegInstX("fmul", "FmulElemDX", "SimdFloatMultOp",
@@ -1498,23 +1502,23 @@ let {{
                      fnegCode)
     # FRECPE
     frecpeCode = fpOp % "fplibRecipEstimate<Element>(srcElem1, fpscr)"
-    twoEqualRegInstX("frecpe", "FrecpeDX", "SimdFloatMultAccOp",
+    twoEqualRegInstX("frecpe", "FrecpeDX", "SimdFloatMiscOp",
                      smallFloatTypes, 2, frecpeCode)
-    twoEqualRegInstX("frecpe", "FrecpeQX", "SimdFloatMultAccOp", floatTypes, 4,
+    twoEqualRegInstX("frecpe", "FrecpeQX", "SimdFloatMiscOp", floatTypes, 4,
                      frecpeCode)
-    twoEqualRegInstX("frecpe", "FrecpeScX", "SimdFloatMultAccOp", floatTypes,
+    twoEqualRegInstX("frecpe", "FrecpeScX", "SimdFloatMiscOp", floatTypes,
                      4, frecpeCode, scalar=True)
     # FRECPS
     frecpsCode = fpBinOp % "RecipStepFused"
-    threeEqualRegInstX("frecps", "FrecpsDX", "SimdFloatMultAccOp",
+    threeEqualRegInstX("frecps", "FrecpsDX", "SimdFloatAOp",
                        smallFloatTypes, 2, frecpsCode)
-    threeEqualRegInstX("frecps", "FrecpsQX", "SimdFloatMultAccOp", floatTypes,
+    threeEqualRegInstX("frecps", "FrecpsQX", "SimdFloatAOp", floatTypes,
                        4, frecpsCode)
-    threeEqualRegInstX("frecps", "FrecpsScX", "SimdFloatMultAccOp", floatTypes,
+    threeEqualRegInstX("frecps", "FrecpsScX", "SimdFloatAOp", floatTypes,
                        4, frecpsCode, scalar=True)
     # FRECPX
     frecpxCode = fpOp % "fplibRecpX<Element>(srcElem1, fpscr)"
-    twoEqualRegInstX("frecpx", "FrecpxX", "SimdFloatMultAccOp", floatTypes, 4,
+    twoEqualRegInstX("frecpx", "FrecpxX", "SimdFloatMiscOp", floatTypes, 4,
                      frecpxCode, scalar=True)
     # FRINTA
     frintCode = fpOp % "fplibRoundInt<Element>(srcElem1, %s, %s, fpscr)"
@@ -1561,19 +1565,19 @@ let {{
                      frintzCode)
     # FRSQRTE
     frsqrteCode = fpOp % "fplibRSqrtEstimate<Element>(srcElem1, fpscr)"
-    twoEqualRegInstX("frsqrte", "FrsqrteDX", "SimdFloatSqrtOp",
+    twoEqualRegInstX("frsqrte", "FrsqrteDX", "SimdFloatMiscOp",
                      smallFloatTypes, 2, frsqrteCode)
-    twoEqualRegInstX("frsqrte", "FrsqrteQX", "SimdFloatSqrtOp", floatTypes, 4,
+    twoEqualRegInstX("frsqrte", "FrsqrteQX", "SimdFloatMiscOp", floatTypes, 4,
                      frsqrteCode)
-    twoEqualRegInstX("frsqrte", "FrsqrteScX", "SimdFloatSqrtOp", floatTypes, 4,
+    twoEqualRegInstX("frsqrte", "FrsqrteScX", "SimdFloatMiscOp", floatTypes, 4,
                      frsqrteCode, scalar=True)
     # FRSQRTS
     frsqrtsCode = fpBinOp % "RSqrtStepFused"
-    threeEqualRegInstX("frsqrts", "FrsqrtsDX", "SimdFloatMiscOp",
+    threeEqualRegInstX("frsqrts", "FrsqrtsDX", "SimdFloatAOp",
                        smallFloatTypes, 2, frsqrtsCode)
-    threeEqualRegInstX("frsqrts", "FrsqrtsQX", "SimdFloatMiscOp", floatTypes,
+    threeEqualRegInstX("frsqrts", "FrsqrtsQX", "SimdFloatAOp", floatTypes,
                        4, frsqrtsCode)
-    threeEqualRegInstX("frsqrts", "FrsqrtsScX", "SimdFloatMiscOp", floatTypes,
+    threeEqualRegInstX("frsqrts", "FrsqrtsScX", "SimdFloatAOp", floatTypes,
                        4, frsqrtsCode, scalar=True)
     # FSQRT
     fsqrtCode = fpOp % "fplibSqrt<Element>(srcElem1, fpscr)"
@@ -1588,7 +1592,7 @@ let {{
     threeEqualRegInstX("fsub", "FsubQX", "SimdFloatAddOp", floatTypes, 4,
                        fsubCode)
     # INS (element)
-    insFromVecElemInstX("ins", "InsElemX", "SimdMiscOp", unsignedTypes, 4)
+    insFromVecElemInstX("ins", "InsElemX", "SimdMiscAOp", unsignedTypes, 4)
     # INS (general register)
     insFromGprInstX("ins", "InsGprWX", "SimdMiscOp", smallUnsignedTypes, 4,
                     'W')
@@ -1622,9 +1626,9 @@ let {{
     # MOV (vector) -> alias to ORR (register)
     # MOVI
     movImmCode = "destElem = imm;"
-    oneRegImmInstX("movi", "MoviDX", "SimdMiscOp", ("uint64_t",), 2,
+    oneRegImmInstX("movi", "MoviDX", "SimdAluAOp", ("uint64_t",), 2,
                    movImmCode)
-    oneRegImmInstX("movi", "MoviQX", "SimdMiscOp", ("uint64_t",), 4,
+    oneRegImmInstX("movi", "MoviQX", "SimdAluAOp", ("uint64_t",), 4,
                    movImmCode)
     # MUL (by element)
     mulCode = "destElem = srcElem1 * srcElem2;"
@@ -1643,8 +1647,8 @@ let {{
     twoEqualRegInstX("mvn", "MvnQX", "SimdAluOp", ("uint64_t",), 4, mvnCode)
     # MVNI
     mvniCode = "destElem = ~imm;"
-    oneRegImmInstX("mvni", "MvniDX", "SimdAluOp", ("uint64_t",), 2, mvniCode)
-    oneRegImmInstX("mvni", "MvniQX", "SimdAluOp", ("uint64_t",), 4, mvniCode)
+    oneRegImmInstX("mvni", "MvniDX", "SimdAluAOp", ("uint64_t",), 2, mvniCode)
+    oneRegImmInstX("mvni", "MvniQX", "SimdAluAOp", ("uint64_t",), 4, mvniCode)
     # NEG
     negCode = "destElem = -srcElem1;"
     twoEqualRegInstX("neg", "NegDX", "SimdAluOp", signedTypes, 2, negCode)
@@ -1656,9 +1660,9 @@ let {{
     threeEqualRegInstX("orn", "OrnQX", "SimdAluOp", ("uint64_t",), 4, ornCode)
     # ORR (immediate)
     orrImmCode = "destElem |= imm;"
-    oneRegImmInstX("orr", "OrrImmDX", "SimdAluOp", ("uint64_t",), 2,
+    oneRegImmInstX("orr", "OrrImmDX", "SimdAluAOp", ("uint64_t",), 2,
                    orrImmCode, True)
-    oneRegImmInstX("orr", "OrrImmQX", "SimdAluOp", ("uint64_t",), 4,
+    oneRegImmInstX("orr", "OrrImmQX", "SimdAluAOp", ("uint64_t",), 4,
                    orrImmCode, True)
     # ORR (register)
     orrCode = "destElem = srcElem1 | srcElem2;"
@@ -1672,9 +1676,9 @@ let {{
                     destElem ^= srcElem1 << j;
             }
     '''
-    threeEqualRegInstX("pmul", "PmulDX", "SimdMultOp", ("uint8_t",), 2,
+    threeEqualRegInstX("pmul", "PmulDX", "SimdFloatAOp", ("uint8_t",), 2,
                        pmulCode)
-    threeEqualRegInstX("pmul", "PmulQX", "SimdMultOp", ("uint8_t",), 4,
+    threeEqualRegInstX("pmul", "PmulQX", "SimdFloatAOp", ("uint8_t",), 4,
                        pmulCode)
     # PMULL, PMULL2
     # Note: 64-bit PMULL is not available (Crypto. Extension)
@@ -2401,11 +2405,11 @@ let {{
             }
             FpscrQc = fpscr;
     '''
-    twoEqualRegInstX("sqshl", "SqshlImmDX", "SimdAluOp", smallSignedTypes, 2,
+    twoEqualRegInstX("sqshl", "SqshlImmDX", "SimdMiscBOp", smallSignedTypes, 2,
                      sqshlImmCode, hasImm=True)
-    twoEqualRegInstX("sqshl", "SqshlImmQX", "SimdAluOp", signedTypes, 4,
+    twoEqualRegInstX("sqshl", "SqshlImmQX", "SimdMiscBOp", signedTypes, 4,
                      sqshlImmCode, hasImm=True)
-    twoEqualRegInstX("sqshl", "SqshlImmScX", "SimdAluOp", signedTypes, 4,
+    twoEqualRegInstX("sqshl", "SqshlImmScX", "SimdMiscBOp", signedTypes, 4,
                      sqshlImmCode, hasImm=True, scalar=True)
     # SQSHL (register)
     sqshlCode = '''
@@ -2592,11 +2596,11 @@ let {{
             }
             FpscrQc = fpscr;
     '''
-    twoRegNarrowInstX("sqxtn", "SqxtnX", "SimdMiscOp", smallSignedTypes,
+    twoRegNarrowInstX("sqxtn", "SqxtnX", "SimdMiscBOp", smallSignedTypes,
                       sqxtnCode)
-    twoRegNarrowInstX("sqxtn", "Sqxtn2X", "SimdMiscOp", smallSignedTypes,
+    twoRegNarrowInstX("sqxtn", "Sqxtn2X", "SimdMiscBOp", smallSignedTypes,
                       sqxtnCode, hi=True)
-    twoRegNarrowInstX("sqxtn", "SqxtnScX", "SimdMiscOp", smallSignedTypes,
+    twoRegNarrowInstX("sqxtn", "SqxtnScX", "SimdMiscBOp", smallSignedTypes,
                       sqxtnCode, scalar=True)
     # SQXTUN, SQXTUN2
     sqxtunCode = '''
@@ -2611,11 +2615,11 @@ let {{
             }
             FpscrQc = fpscr;
     '''
-    twoRegNarrowInstX("sqxtun", "SqxtunX", "SimdMiscOp", smallSignedTypes,
+    twoRegNarrowInstX("sqxtun", "SqxtunX", "SimdMiscBOp", smallSignedTypes,
                       sqxtunCode)
-    twoRegNarrowInstX("sqxtun", "Sqxtun2X", "SimdMiscOp", smallSignedTypes,
+    twoRegNarrowInstX("sqxtun", "Sqxtun2X", "SimdMiscBOp", smallSignedTypes,
                       sqxtunCode, hi=True)
-    twoRegNarrowInstX("sqxtun", "SqxtunScX", "SimdMiscOp", smallSignedTypes,
+    twoRegNarrowInstX("sqxtun", "SqxtunScX", "SimdMiscBOp", smallSignedTypes,
                       sqxtunCode, scalar=True)
     # SRHADD
     rhaddCode = '''
@@ -2734,9 +2738,9 @@ let {{
                 }
             }
     '''
-    threeEqualRegInstX("sshl", "SshlDX", "SimdShiftOp", signedTypes, 2,
+    threeEqualRegInstX("sshl", "SshlDX", "SimdMiscBOp", signedTypes, 2,
                        shlCode)
-    threeEqualRegInstX("sshl", "SshlQX", "SimdShiftOp", signedTypes, 4,
+    threeEqualRegInstX("sshl", "SshlQX", "SimdMiscBOp", signedTypes, 4,
                        shlCode)
     # SSHLL, SSHLL2
     shllCode = '''
@@ -2843,14 +2847,14 @@ let {{
                      suqaddCode, True, scalar=True)
     # SXTL -> alias to SSHLL
     # TBL
-    tbxTblInstX("tbl", "Tbl1DX", "SimdMiscOp", ("uint8_t",), 1, "true", 2)
-    tbxTblInstX("tbl", "Tbl1QX", "SimdMiscOp", ("uint8_t",), 1, "true", 4)
-    tbxTblInstX("tbl", "Tbl2DX", "SimdMiscOp", ("uint8_t",), 2, "true", 2)
-    tbxTblInstX("tbl", "Tbl2QX", "SimdMiscOp", ("uint8_t",), 2, "true", 4)
-    tbxTblInstX("tbl", "Tbl3DX", "SimdMiscOp", ("uint8_t",), 3, "true", 2)
-    tbxTblInstX("tbl", "Tbl3QX", "SimdMiscOp", ("uint8_t",), 3, "true", 4)
-    tbxTblInstX("tbl", "Tbl4DX", "SimdMiscOp", ("uint8_t",), 4, "true", 2)
-    tbxTblInstX("tbl", "Tbl4QX", "SimdMiscOp", ("uint8_t",), 4, "true", 4)
+    tbxTblInstX("tbl", "Tbl1DX", "SimdMiscBOp", ("uint8_t",), 1, "true", 2)
+    tbxTblInstX("tbl", "Tbl1QX", "SimdMiscBOp", ("uint8_t",), 1, "true", 4)
+    tbxTblInstX("tbl", "Tbl2DX", "SimdMiscBOp", ("uint8_t",), 2, "true", 2)
+    tbxTblInstX("tbl", "Tbl2QX", "SimdMiscBOp", ("uint8_t",), 2, "true", 4)
+    tbxTblInstX("tbl", "Tbl3DX", "SimdMiscBOp", ("uint8_t",), 3, "true", 2)
+    tbxTblInstX("tbl", "Tbl3QX", "SimdMiscBOp", ("uint8_t",), 3, "true", 4)
+    tbxTblInstX("tbl", "Tbl4DX", "SimdMiscBOp", ("uint8_t",), 4, "true", 2)
+    tbxTblInstX("tbl", "Tbl4QX", "SimdMiscBOp", ("uint8_t",), 4, "true", 4)
     # TBX
     tbxTblInstX("tbx", "Tbx1DX", "SimdMiscOp", ("uint8_t",), 1, "false", 2)
     tbxTblInstX("tbx", "Tbx1QX", "SimdMiscOp", ("uint8_t",), 1, "false", 4)
@@ -2868,14 +2872,18 @@ let {{
             destReg.elements[2 * i + 1] = srcReg2.elements[2 * i + part];
         }
     '''
-    threeRegScrambleInstX("trn1", "Trn1DX", "SimdAluOp", smallUnsignedTypes, 2,
+    threeRegScrambleInstX("trn1", "Trn1DX", "SimdMiscAOp",
+                          smallUnsignedTypes, 2,
                           trnCode % "0")
-    threeRegScrambleInstX("trn1", "Trn1QX", "SimdAluOp", unsignedTypes, 4,
+    threeRegScrambleInstX("trn1", "Trn1QX", "SimdMiscAOp",
+                          unsignedTypes, 4,
                           trnCode % "0")
     # TRN2
-    threeRegScrambleInstX("trn2", "Trn2DX", "SimdAluOp", smallUnsignedTypes, 2,
+    threeRegScrambleInstX("trn2", "Trn2DX", "SimdMiscAOp",
+                          smallUnsignedTypes, 2,
                           trnCode % "1")
-    threeRegScrambleInstX("trn2", "Trn2QX", "SimdAluOp", unsignedTypes, 4,
+    threeRegScrambleInstX("trn2", "Trn2QX", "SimdMiscAOp",
+                          unsignedTypes, 4,
                           trnCode % "1")
     # UABA
     threeEqualRegInstX("uaba", "UabaDX", "SimdAddAccOp", smallUnsignedTypes, 2,
@@ -2898,14 +2906,17 @@ let {{
     threeRegLongInstX("uabdl2", "Uabdl2X", "SimdAddAccOp", smallUnsignedTypes,
                       abdlCode, True, hi=True)
     # UADALP
-    twoRegCondenseInstX("uadalp", "UadalpDX", "SimdAddOp", smallUnsignedTypes,
+    twoRegCondenseInstX("uadalp", "UadalpDX", "SimdMiscBOp",
+                        smallUnsignedTypes,
                         2, adalpCode, True)
-    twoRegCondenseInstX("uadalp", "UadalpQX", "SimdAddOp", smallUnsignedTypes,
+    twoRegCondenseInstX("uadalp", "UadalpQX", "SimdMiscBOp",
+                        smallUnsignedTypes,
                         4, adalpCode, True)
     # UADDL, UADDL2
     threeRegLongInstX("uaddl", "UaddlX", "SimdAddAccOp", smallUnsignedTypes,
                       addlwCode)
-    threeRegLongInstX("uaddl2", "Uaddl2X", "SimdAddAccOp", smallUnsignedTypes,
+    threeRegLongInstX("uaddl2", "Uaddl2X", "SimdAddAccOp",
+                      smallUnsignedTypes,
                       addlwCode, hi=True)
     # UADDLP
     twoRegCondenseInstX("uaddlp", "UaddlpDX", "SimdAddOp", smallUnsignedTypes,
@@ -3230,17 +3241,17 @@ let {{
             }
             FpscrQc = fpscr;
     '''
-    twoRegNarrowInstX("uqxtn", "UqxtnX", "SimdMiscOp", smallUnsignedTypes,
+    twoRegNarrowInstX("uqxtn", "UqxtnX", "SimdMiscBOp", smallUnsignedTypes,
                       uqxtnCode)
-    twoRegNarrowInstX("uqxtn", "Uqxtn2X", "SimdMiscOp", smallUnsignedTypes,
+    twoRegNarrowInstX("uqxtn", "Uqxtn2X", "SimdMiscBOp", smallUnsignedTypes,
                       uqxtnCode, hi=True)
-    twoRegNarrowInstX("uqxtn", "UqxtnScX", "SimdMiscOp", smallUnsignedTypes,
+    twoRegNarrowInstX("uqxtn", "UqxtnScX", "SimdMiscBOp", smallUnsignedTypes,
                       uqxtnCode, scalar=True)
     # URECPE
     urecpeCode = "destElem = unsignedRecipEstimate(srcElem1);"
-    twoEqualRegInstX("urecpe", "UrecpeDX", "SimdMultAccOp", ("uint32_t",), 2,
+    twoEqualRegInstX("urecpe", "UrecpeDX", "SimdMiscOp", ("uint32_t",), 2,
                      urecpeCode)
-    twoEqualRegInstX("urecpe", "UrecpeQX", "SimdMultAccOp", ("uint32_t",), 4,
+    twoEqualRegInstX("urecpe", "UrecpeQX", "SimdMiscOp", ("uint32_t",), 4,
                      urecpeCode)
     # URHADD
     threeEqualRegInstX("urhadd", "UrhaddDX", "SimdAddOp", smallUnsignedTypes,
@@ -3259,9 +3270,9 @@ let {{
                      rshrCode, hasImm=True)
     # URSQRTE
     ursqrteCode = "destElem = unsignedRSqrtEstimate(srcElem1);"
-    twoEqualRegInstX("ursqrte", "UrsqrteDX", "SimdSqrtOp", ("uint32_t",), 2,
+    twoEqualRegInstX("ursqrte", "UrsqrteDX", "SimdMiscOp", ("uint32_t",), 2,
                      ursqrteCode)
-    twoEqualRegInstX("ursqrte", "UrsqrteQX", "SimdSqrtOp", ("uint32_t",), 4,
+    twoEqualRegInstX("ursqrte", "UrsqrteQX", "SimdMiscOp", ("uint32_t",), 4,
                      ursqrteCode)
     # URSRA
     twoEqualRegInstX("ursra", "UrsraDX", "SimdShiftOp", unsignedTypes, 2,
@@ -3269,9 +3280,9 @@ let {{
     twoEqualRegInstX("ursra", "UrsraQX", "SimdShiftOp", unsignedTypes, 4,
                      rsraCode, True, hasImm=True)
     # USHL
-    threeEqualRegInstX("ushl", "UshlDX", "SimdShiftOp", unsignedTypes, 2,
+    threeEqualRegInstX("ushl", "UshlDX", "SimdMiscBOp", unsignedTypes, 2,
                        shlCode)
-    threeEqualRegInstX("ushl", "UshlQX", "SimdShiftOp", unsignedTypes, 4,
+    threeEqualRegInstX("ushl", "UshlQX", "SimdMiscBOp", unsignedTypes, 4,
                        shlCode)
     # USHLL, USHLL2
     twoRegLongInstX("ushll", "UshllX", "SimdShiftOp", smallUnsignedTypes,
@@ -3335,19 +3346,22 @@ let {{
             destReg.elements[eCount / 2 + i] = srcReg2.elements[2 * i + part];
         }
     '''
-    threeRegScrambleInstX("Uzp1", "Uzp1DX", "SimdAluOp", smallUnsignedTypes, 2,
+    threeRegScrambleInstX("Uzp1", "Uzp1DX", "SimdMiscOp",
+                          smallUnsignedTypes, 2,
                           uzpCode % "0")
-    threeRegScrambleInstX("Uzp1", "Uzp1QX", "SimdAluOp", unsignedTypes, 4,
+    threeRegScrambleInstX("Uzp1", "Uzp1QX", "SimdMiscOp", unsignedTypes, 4,
                           uzpCode % "0")
     # UZP2
-    threeRegScrambleInstX("Uzp2", "Uzp2DX", "SimdAluOp", smallUnsignedTypes, 2,
+    threeRegScrambleInstX("Uzp2", "Uzp2DX", "SimdMiscAOp",
+                          smallUnsignedTypes, 2,
                           uzpCode % "1")
-    threeRegScrambleInstX("Uzp2", "Uzp2QX", "SimdAluOp", unsignedTypes, 4,
+    threeRegScrambleInstX("Uzp2", "Uzp2QX", "SimdMiscAOp", unsignedTypes, 4,
                           uzpCode % "1")
     # XTN, XTN2
     xtnCode = "destElem = srcElem1;"
-    twoRegNarrowInstX("Xtn", "XtnX", "SimdMiscOp", smallUnsignedTypes, xtnCode)
-    twoRegNarrowInstX("Xtn", "Xtn2X", "SimdMiscOp", smallUnsignedTypes,
+    twoRegNarrowInstX("Xtn", "XtnX", "SimdMiscBOp", smallUnsignedTypes,
+                      xtnCode)
+    twoRegNarrowInstX("Xtn", "Xtn2X", "SimdMiscBOp", smallUnsignedTypes,
                       xtnCode, hi=True)
     # ZIP1
     zipCode = '''
@@ -3357,15 +3371,15 @@ let {{
             destReg.elements[2 * i + 1] = srcReg2.elements[base + i];
         }
     '''
-    threeRegScrambleInstX("zip1", "Zip1DX", "SimdAluOp", smallUnsignedTypes, 2,
-                          zipCode % "0")
-    threeRegScrambleInstX("zip1", "Zip1QX", "SimdAluOp", unsignedTypes, 4,
+    threeRegScrambleInstX("zip1", "Zip1DX", "SimdMiscAOp",
+                          smallUnsignedTypes, 2, zipCode % "0")
+    threeRegScrambleInstX("zip1", "Zip1QX", "SimdMiscAOp", unsignedTypes, 4,
                           zipCode % "0")
     # ZIP2
-    threeRegScrambleInstX("zip2", "Zip2DX", "SimdAluOp", smallUnsignedTypes, 2,
-                          zipCode % "eCount / 2")
-    threeRegScrambleInstX("zip2", "Zip2QX", "SimdAluOp", unsignedTypes, 4,
-                          zipCode % "eCount / 2")
+    threeRegScrambleInstX("zip2", "Zip2DX", "SimdMiscAOp",
+                          smallUnsignedTypes, 2, zipCode % "eCount / 2")
+    threeRegScrambleInstX("zip2", "Zip2QX", "SimdMiscAOp",
+                          unsignedTypes, 4, zipCode % "eCount / 2")
 
     for decoderFlavour, type_dict in decoders.iteritems():
         header_output += '''

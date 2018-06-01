@@ -219,13 +219,17 @@ let {{
     ''', overrideOpClass="IntMultOp")
 
     buildDataXRegInst("asrv", 2,
-        "Dest64 = shiftReg64(Op164, Op264, ASR, intWidth)")
+                      "Dest64 = shiftReg64(Op164, Op264, ASR, intWidth)",
+                      overrideOpClass="Enums::IntShift")
     buildDataXRegInst("lslv", 2,
-        "Dest64 = shiftReg64(Op164, Op264, LSL, intWidth)")
+                      "Dest64 = shiftReg64(Op164, Op264, LSL, intWidth)",
+                      overrideOpClass="Enums::IntShift")
     buildDataXRegInst("lsrv", 2,
-        "Dest64 = shiftReg64(Op164, Op264, LSR, intWidth)")
+                      "Dest64 = shiftReg64(Op164, Op264, LSR, intWidth)",
+                      overrideOpClass="Enums::IntShift")
     buildDataXRegInst("rorv", 2,
-        "Dest64 = shiftReg64(Op164, Op264, ROR, intWidth)")
+                      "Dest64 = shiftReg64(Op164, Op264, ROR, intWidth)",
+                      overrideOpClass="Enums::IntShift")
 
     crcCode = '''
     constexpr uint8_t size_bytes = %(sz)d;
@@ -282,10 +286,10 @@ let {{
     ''')
     buildDataXRegInst("clz", 1, '''
         Dest64 = (Op164 == 0) ? intWidth : (intWidth - 1 - findMsbSet(Op164));
-    ''')
+    ''', overrideOpClass="Enums::IntShift")
     buildDataXRegInst("rbit", 1, '''
         Dest64 = reverseBits(Op164, intWidth/8);
-    ''')
+    ''', overrideOpClass="Enums::IntShift")
     buildDataXRegInst("rev", 1, '''
         if (intWidth == 32)
             Dest64 = betole<uint32_t>(Op164);
