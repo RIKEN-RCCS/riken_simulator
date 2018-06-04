@@ -1082,7 +1082,7 @@ class Packet : public Printable
         if (p != getPtr<uint8_t>()) {
             // for packet with allocated dynamic data, we copy data from
             // one to the other, e.g. a forwarded response to a response
-            if (req->getByteEnable().empty()) {
+            if (req->getByteEnable().size() != getSize()) {
                 std::memcpy(getPtr<uint8_t>(), p, getSize());
             } else {
                 for (int i = 0; i < getSize(); i++) {

@@ -1003,8 +1003,10 @@ namespace Aarch64
             IntRegIndex zd = (IntRegIndex) (uint8_t) bits(machInst, 4, 0);
             return decodeSveUnaryUnpredU<SveDupScalar>(size, machInst, zd, rn);
         } else if (bits(machInst, 20, 16) == 0x4 && b12_10 == 0x6) {
-            // INSR (scalar)
-            return new Unknown64(machInst);
+            uint8_t size = bits(machInst, 23, 22);
+            IntRegIndex zdn = (IntRegIndex) (uint8_t) bits(machInst, 4, 0);
+            IntRegIndex rm = (IntRegIndex) (uint8_t) bits(machInst, 9, 5);
+            return decodeSveUnaryUnpredU<SveInsr>(size, machInst, zdn, rm);
         } else if (bits(machInst, 20, 16) == 0x14 && b12_10 == 0x6) {
             // INSR (SIMD&FP scalar)
             return new Unknown64(machInst);
@@ -1183,7 +1185,6 @@ namespace Aarch64
             break;
           case 0xC:
             if (!b13) {
-                // sve_int_perm_splice
                 uint8_t size = bits(machInst, 23, 22);
                 IntRegIndex pg = (IntRegIndex)(uint8_t) bits(machInst, 12, 10);
                 IntRegIndex zdn = (IntRegIndex)(uint8_t) bits(machInst, 4, 0);
@@ -1217,12 +1218,25 @@ namespace Aarch64
             break;
           case 0x4:
             if (!b13) {
-                // sve_int_perm_clast_zz
+                uint8_t AB = bits(machInst, 16);
+                uint8_t size = bits(machInst, 23, 22);
+                IntRegIndex pg = (IntRegIndex)(uint8_t) bits(machInst, 12, 10);
+                IntRegIndex zm = (IntRegIndex)(uint8_t) bits(machInst, 9, 5);
+                IntRegIndex zdn = (IntRegIndex)(uint8_t) bits(machInst, 4, 0);
+                if (!AB) {
+                    return decodeSveUnaryPredU<SveClastav>(size,
+                            machInst, zdn, zm, pg);
+                } else {
+                    return decodeSveUnaryPredU<SveClastbv>(size,
+                            machInst, zdn, zm, pg);
+                }
             }
             break;
           case 0x5:
             if (!b13) {
                 // sve_int_perm_clast_vz
+                // uint8_t AB = bits(machInst, 16);
+                // uint8_t size = bits(machInst, 23, 22);
             }
             break;
           case 0x8:
@@ -1243,7 +1257,6 @@ namespace Aarch64
             break;
         }
         if (bits(machInst, 20, 18) == 0x1 && !b13) {
-            // sve_int_perm_rev
             unsigned size = (unsigned) bits(machInst, 23, 22);
             IntRegIndex pg = (IntRegIndex)(uint8_t) bits(machInst, 12, 10);
             IntRegIndex zn = (IntRegIndex)(uint8_t) bits(machInst, 9, 5);
@@ -2747,6 +2760,10 @@ namespace Aarch64
                     uint64_t imm = sext<9>((bits(machInst, 21, 16) << 3) |
                                            bits(machInst, 12, 10));
                     return new SveLdrVec(machInst, zt, rn, imm);
+                } else if (bits(machInst, 22) == 1 &&
+                           bits(machInst, 4) == 0) {
+                    // TODO: SVE contiguous prefetch (scalar plus immediate)
+                    return new NopInst(machInst);
                 }
                 break;
             }
@@ -2833,6 +2850,18 @@ namespace Aarch64
     StaticInstPtr
     decodeSveLoadStructsSS(ExtMachInst machInst)
     {
+        IntRegIndex zt = (IntRegIndex) (uint8_t) bits(machInst, 4, 0);
+        IntRegIndex rn = (IntRegIndex) (uint8_t) bits(machInst, 9, 5);
+        IntRegIndex rm = (IntRegIndex) (uint8_t) bits(machInst, 20, 16);
+        IntRegIndex pg = (IntRegIndex) (uint8_t) bits(machInst, 12, 10);
+        uint8_t msz = bits(machInst, 24, 23);
+        uint8_t num = bits(machInst, 22, 21);
+
+        if (rm != 0x1f && num != 0) {
+            num++;
+            return decodeSveStructLoadSSInsts(msz, machInst,
+                    zt, pg, rn, rm, num);
+        }
         return new Unknown64(machInst);
     }  // decodeSveLoadStructsSS
 
@@ -2845,6 +2874,19 @@ namespace Aarch64
     StaticInstPtr
     decodeSveLoadStructsSI(ExtMachInst machInst)
     {
+        IntRegIndex zt = (IntRegIndex) (uint8_t) bits(machInst, 4, 0);
+        IntRegIndex rn = (IntRegIndex) (uint8_t) bits(machInst, 9, 5);
+        int64_t imm = sext<4>(bits(machInst, 19, 16));
+        IntRegIndex pg = (IntRegIndex) (uint8_t) bits(machInst, 12, 10);
+        uint8_t msz = bits(machInst, 24, 23);
+        uint8_t num = bits(machInst, 22, 21);
+
+        if (num != 0) {
+            num++;
+            imm *= num;
+            return decodeSveStructLoadSIInsts(msz, machInst,
+                    zt, pg, rn, imm, num);
+        }
         return new Unknown64(machInst);
     }  // decodeSveLoadStructsSI
 
@@ -3041,12 +3083,37 @@ namespace Aarch64
     StaticInstPtr
     decodeSveStoreStructsSS(ExtMachInst machInst)
     {
+        IntRegIndex zt = (IntRegIndex) (uint8_t) bits(machInst, 4, 0);
+        IntRegIndex rn = (IntRegIndex) (uint8_t) bits(machInst, 9, 5);
+        IntRegIndex rm = (IntRegIndex) (uint8_t) bits(machInst, 20, 16);
+        IntRegIndex pg = (IntRegIndex) (uint8_t) bits(machInst, 12, 10);
+        uint8_t msz = bits(machInst, 24, 23);
+        uint8_t num = bits(machInst, 22, 21);
+
+        if (rm != 0x1f && num != 0) {
+            num++;
+            return decodeSveStructStoreSSInsts(msz, machInst,
+                    zt, pg, rn, rm, num);
+        }
         return new Unknown64(machInst);
     }  // decodeSveStoreStructsSS
 
     StaticInstPtr
     decodeSveStoreStructsSI(ExtMachInst machInst)
     {
+        IntRegIndex zt = (IntRegIndex) (uint8_t) bits(machInst, 4, 0);
+        IntRegIndex rn = (IntRegIndex) (uint8_t) bits(machInst, 9, 5);
+        int64_t imm = sext<4>(bits(machInst, 19, 16));
+        IntRegIndex pg = (IntRegIndex) (uint8_t) bits(machInst, 12, 10);
+        uint8_t msz = bits(machInst, 24, 23);
+        uint8_t num = bits(machInst, 22, 21);
+
+        if (num != 0) {
+            num++;
+            imm *= num;
+            return decodeSveStructStoreSIInsts(msz, machInst,
+                    zt, pg, rn, imm, num);
+        }
         return new Unknown64(machInst);
     }  // decodeSveStoreStructsSI
 

@@ -1569,7 +1569,6 @@ makePacketForRequest(Request &request, bool isLoad,
     Packet::SenderState *sender_state, PacketDataPtr data,
     const std::vector<bool>& writeByteEnable)
 {
-    assert(!isLoad || writeByteEnable.empty());
     PacketPtr ret = isLoad ? Packet::createRead(&request)
                            : Packet::createWrite(&request);
 

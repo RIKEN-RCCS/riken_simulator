@@ -97,6 +97,7 @@ class ExecContext : public ::ExecContext
         DPRINTF(MinorExecute, "ExecContext setting PC: %s\n", inst->pc);
         pcState(inst->pc);
         setPredicate(true);
+        setMemAccPredicate(true);
         thread.setIntReg(TheISA::ZeroReg, 0);
 #if THE_ISA == ALPHA_ISA
         thread.setFloatReg(TheISA::ZeroReg, 0.0);

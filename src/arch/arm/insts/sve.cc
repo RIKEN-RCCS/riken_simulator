@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 ARM Limited
+ * Copyright (c) 2017-2018 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -547,17 +547,23 @@ SvePartBrkPropOp::generateDisassembly(Addr pc,
 }
 
 std::string
-SveScalarSelectOp::generateDisassembly(Addr pc,
+SveSelectOp::generateDisassembly(Addr pc,
         const SymbolTable *symtab) const
 {
     std::stringstream ss;
     printMnemonic(ss, "", false);
-    printIntReg(ss, dest, scalar_width);
+    if (scalar)
+        printIntReg(ss, dest, scalar_width);
+    else
+        printVecReg(ss, dest, true);
     ccprintf(ss, ", ");
     printPredReg(ss, gp);
     if (conditional) {
         ccprintf(ss, ", ");
-        printIntReg(ss, dest, scalar_width);
+        if (scalar)
+            printIntReg(ss, dest, scalar_width);
+        else
+            printVecReg(ss, dest, true);
     }
     ccprintf(ss, ", ");
     printVecReg(ss, op1, true);
@@ -686,6 +692,18 @@ SveBinImmIdxUnpredOp::generateDisassembly(Addr pc,
     ccprintf(ss, "[");
     ss << imm;
     ccprintf(ss, "]");
+    return ss.str();
+}
+
+std::string
+SveUnarySca2VecUnpredOp::generateDisassembly(Addr pc,
+        const SymbolTable *symtab) const
+{
+    std::stringstream ss;
+    printMnemonic(ss, "", false);
+    printVecReg(ss, dest, true);
+    ccprintf(ss, ", ");
+    printIntReg(ss, op1);
     return ss.str();
 }
 
