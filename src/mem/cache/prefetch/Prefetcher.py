@@ -90,3 +90,13 @@ class TaggedPrefetcher(QueuedPrefetcher):
     cxx_header = "mem/cache/prefetch/tagged.hh"
 
     degree = Param.Int(2, "Number of prefetches to generate")
+
+class KPrefetcher(QueuedPrefetcher):
+    type = 'KPrefetcher'
+    cxx_class = 'KPrefetcher'
+    cxx_header = "mem/cache/prefetch/kprefetcher.hh"
+
+    degree = Param.Int(2, "Number of prefetchs to generate")
+    prftablesize = Param.Int(20, "PRF Table size")
+    maxprfofs = Param.Int(2048, "Max prefetchOffset")
+    slowstart = Param.Bool(False, "Dont start prefetch in first miss")

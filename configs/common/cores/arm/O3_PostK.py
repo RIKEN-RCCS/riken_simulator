@@ -282,9 +282,10 @@ class O3_ARM_PostK_DCache(Cache):
     write_buffers = 21
     writeback_clean = False
     prefetch_on_access = True
-    prefetcher = StridePrefetcher(degree=8, latency = 1)
-#    prefetcher = Prefetcher(degree=2, latency=1,
-#slowstart=True, maxprfofs=2048, on_inst=False)
+    #prefetcher = StridePrefetcher(degree=8, latency = 1)
+    prefetcher = KPrefetcher(degree=2, latency=1,
+                             slowstart=True, maxprfofs=2048,
+                             on_inst=False)
 
 # TLB Cache
 # Use a cache as a L2 TLB

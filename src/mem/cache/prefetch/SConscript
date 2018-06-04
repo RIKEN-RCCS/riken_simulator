@@ -36,4 +36,5 @@ Source('base.cc')
 Source('queued.cc')
 Source('stride.cc')
 Source('tagged.cc')
+Source('kprefetcher.cc')
 
