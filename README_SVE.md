@@ -37,10 +37,6 @@ The current limitations apply to the model:
     - INSR (SIMD&FP scalar)
     - LASTA (SIMD&FP scalar)
     - LASTB (SIMD&FP scalar)
-    - SDOT (indexed)
-    - SDOT (vectors)
-    - UDOT (indexed)
-    - UDOT (vectors)
   - SVE prefetch instructions are treated as no-ops
 
 If you encounter further issues, please contact:
