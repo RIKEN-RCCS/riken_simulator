@@ -415,6 +415,22 @@ SveReducOp::generateDisassembly(Addr pc,
 }
 
 std::string
+SveOrdReducOp::generateDisassembly(Addr pc,
+                                const SymbolTable *symtab) const
+{
+    std::stringstream ss;
+    printMnemonic(ss, "", false);
+    printFloatReg(ss, dest);
+    ccprintf(ss, ", ");
+    printPredReg(ss, gp);
+    ccprintf(ss, ", ");
+    printFloatReg(ss, dest);
+    ccprintf(ss, ", ");
+    printVecReg(ss, op1, true);
+    return ss.str();
+}
+
+std::string
 SvePtrueOp::generateDisassembly(Addr pc,
                                 const SymbolTable *symtab) const
 {

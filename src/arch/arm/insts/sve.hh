@@ -440,6 +440,20 @@ class SveReducOp : public ArmStaticInst {
     std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;
 };
 
+/// SVE ordered reductions.
+class SveOrdReducOp : public ArmStaticInst {
+  protected:
+    IntRegIndex dest, op1, gp;
+
+    SveOrdReducOp(const char* mnem, ExtMachInst _machInst, OpClass __opClass,
+               IntRegIndex _dest, IntRegIndex _op1, IntRegIndex _gp) :
+        ArmStaticInst(mnem, _machInst, __opClass),
+        dest(_dest), op1(_op1), gp(_gp)
+    {}
+
+    std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;
+};
+
 /// PTRUE, PTRUES.
 class SvePtrueOp : public ArmStaticInst {
   protected:

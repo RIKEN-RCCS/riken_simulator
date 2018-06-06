@@ -2240,7 +2240,17 @@ namespace Aarch64
     StaticInstPtr
     decodeSveFpAccumReduc(ExtMachInst machInst)
     {
-        return new Unknown64(machInst);
+        uint8_t opc = bits(machInst, 18, 16);
+        uint8_t size = bits(machInst, 23, 22);
+        if (opc != 0 || size == 0) {
+            return new Unknown64(machInst);
+        }
+
+        IntRegIndex vdn = (IntRegIndex) (uint8_t) bits(machInst, 4, 0);
+        IntRegIndex zm = (IntRegIndex) (uint8_t) bits(machInst, 9, 5);
+        IntRegIndex pg = (IntRegIndex) (uint8_t) bits(machInst, 12, 10);
+
+        return decodeSveUnaryPredF<SveFadda>(size, machInst, vdn, zm, pg);
     }  // decodeSveFpAccumReduc
 
     StaticInstPtr
