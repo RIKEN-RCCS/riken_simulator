@@ -318,6 +318,7 @@ class BaseXBar : public MemObject
     const Cycles responseLatency;
     /** the width of the xbar in bytes */
     const uint32_t width;
+    const uint32_t respwidth;
 
     AddrRangeMap<PortID> portMap;
 
@@ -413,7 +414,8 @@ class BaseXBar : public MemObject
      * @param pkt Packet to populate with timings
      * @param header_delay Header delay to be added
      */
-    void calcPacketTiming(PacketPtr pkt, Tick header_delay);
+    void calcPacketTiming(PacketPtr pkt, Tick header_delay,
+                          bool inverse = false);
 
     /**
      * Remember for each of the master ports of the crossbar if we got

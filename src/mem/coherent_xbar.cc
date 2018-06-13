@@ -71,8 +71,8 @@ CoherentXBar::CoherentXBar(const CoherentXBarParams *p)
         masterPorts.push_back(bp);
         reqLayers.push_back(new ReqLayer(*bp, *this,
                                          csprintf(".reqLayer%d", i)));
-        snoopLayers.push_back(new SnoopRespLayer(*bp, *this,
-                                                 csprintf(".snoopLayer%d", i)));
+        snoopLayers.push_back(new SnoopRespLayer
+                              (*bp, *this, csprintf(".snoopLayer%d", i)));
     }
 
     // see if we have a default slave device connected and if so add
@@ -513,7 +513,7 @@ CoherentXBar::recvTimingSnoopReq(PacketPtr pkt, PortID master_port_id)
 
     // set the packet header and payload delay, for now use forward latency
     // @todo Assess the choice of latency further
-    calcPacketTiming(pkt, forwardLatency * clockPeriod());
+    calcPacketTiming(pkt, forwardLatency * clockPeriod(), true);
 
     // remember if a cache has already committed to responding so we
     // can see if it changes during the snooping
@@ -615,7 +615,7 @@ CoherentXBar::recvTimingSnoopResp(PacketPtr pkt, PortID slave_port_id)
         clockPeriod();
 
     // set the packet header and payload delay
-    calcPacketTiming(pkt, xbar_delay);
+    calcPacketTiming(pkt, xbar_delay, true);
 
     // determine how long to be crossbar layer is busy
     Tick packetFinishTime = clockEdge(Cycles(1)) + pkt->payloadDelay;

@@ -61,6 +61,7 @@ BaseXBar::BaseXBar(const BaseXBarParams *p)
       forwardLatency(p->forward_latency),
       responseLatency(p->response_latency),
       width(p->width),
+      respwidth((p->respwidth) ? p->respwidth : p->width),
       gotAddrRanges(p->port_default_connection_count +
                           p->port_master_connection_count, false),
       gotAllAddrRanges(false), defaultPortID(InvalidPortID),
@@ -106,7 +107,8 @@ BaseXBar::getSlavePort(const std::string &if_name, PortID idx)
 }
 
 void
-BaseXBar::calcPacketTiming(PacketPtr pkt, Tick header_delay)
+BaseXBar::calcPacketTiming(PacketPtr pkt, Tick header_delay,
+                           bool inverse)
 {
     // the crossbar will be called at a time that is not necessarily
     // coinciding with its own clock, so start by determining how long
@@ -128,12 +130,14 @@ BaseXBar::calcPacketTiming(PacketPtr pkt, Tick header_delay)
              "Encountered header delay exceeding 1 us\n");
 
     if (pkt->hasData()) {
+        bool direction = (inverse) ? pkt->isResponse() : pkt->isRequest();
+        uint32_t bwidth = (direction) ? width : respwidth;
         // the payloadDelay takes into account the relative time to
         // deliver the payload of the packet, after the header delay,
         // we take the maximum since the payload delay could already
         // be longer than what this parcitular crossbar enforces.
         pkt->payloadDelay = std::max<Tick>(pkt->payloadDelay,
-                                           divCeil(pkt->getSize(), width) *
+                                           divCeil(pkt->getSize(), bwidth) *
                                            clockPeriod());
     }
 

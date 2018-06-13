@@ -72,6 +72,9 @@ class BaseXBar(MemObject):
 
     # Width governing the throughput of the crossbar
     width = Param.Unsigned("Datapath width per port (bytes)")
+    respwidth = Param.Unsigned(
+        "Datapath width per port for response (bytes) 0 "\
+        "if bandwidth is same as width")
 
     # The default port can be left unconnected, or be used to connect
     # a default slave port
@@ -87,10 +90,12 @@ class BaseXBar(MemObject):
 
 class NoncoherentXBar(BaseXBar):
     type = 'NoncoherentXBar'
+    respwidth = 0 #Don't change this.
     cxx_header = "mem/noncoherent_xbar.hh"
 
 class CoherentXBar(BaseXBar):
     type = 'CoherentXBar'
+    respwidth = 0 #Don't change this.
     cxx_header = "mem/coherent_xbar.hh"
 
     # The coherent crossbar additionally has snoop responses that are
@@ -130,6 +135,8 @@ class SnoopFilter(SimObject):
 class L2XBar(CoherentXBar):
     # 256-bit crossbar by default
     width = 32
+    #To set response bandwidth, uncomment following and change bandwidth
+    #respwidth = 16
 
     # Assume that most of this is covered by the cache latencies, with
     # no more than a single pipeline stage for any packet.

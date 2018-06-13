@@ -100,6 +100,8 @@ def config_cache(options, system):
         num_bank = 2**options.l2_bankbit
 
         system.tol2bus = L2XBar(clk_domain = system.cpu_clk_domain)
+        system.tol2bus.width = 64
+        system.tol2bus.respwidth = 128
         system.l2s = [ l2_cache_class(clk_domain=system.cpu_clk_domain,
                                       size=options.l2_size,
                                       assoc=options.l2_assoc)
