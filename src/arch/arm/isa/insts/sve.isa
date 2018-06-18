@@ -2240,9 +2240,11 @@ let {{
         unsigned eCount = ArmStaticInst::getCurSveVecLen<uint8_t>(
                 xc->tcBase());
         bool last = POp1_ub.lastActive(GpOp_ub, eCount);
-        if (!last) {
-            for (unsigned i = 0; i < eCount; i++) {
+        for (unsigned i = 0; i < eCount; i++) {
+            if (!last) {
                 PDest_ub[i] = 0;
+            } else {
+                PDest_ub[i] = PDestMerge_ub[i];
             }
         }'''
         extraPrologCode = ''
