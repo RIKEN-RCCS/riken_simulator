@@ -196,6 +196,32 @@ SimpleThread::suspend()
     baseCpu->suspendContext(_threadId);
 }
 
+void
+SimpleThread::activatefutex()
+{
+    // printf("activatefutex\n");
+    if (status() == ThreadContext::Active ||
+        status() == ThreadContext::ActiveFutex)
+        return;
+
+    lastActivate = curTick();
+    _status = ThreadContext::ActiveFutex;
+    baseCpu->activateContext(_threadId);
+}
+
+void
+SimpleThread::suspendfutex()
+{
+    // printf("suspendfutex\n");
+    if (status() == ThreadContext::Suspended ||
+        status() == ThreadContext::SuspendedFutex)
+        return;
+
+    lastActivate = curTick();
+    lastSuspend = curTick();
+    _status = ThreadContext::SuspendedFutex;
+    baseCpu->suspendContext(_threadId);
+}
 
 void
 SimpleThread::halt()

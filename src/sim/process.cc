@@ -158,16 +158,8 @@ void
 Process::clone(ThreadContext *otc, ThreadContext *ntc,
                Process *np, TheISA::IntReg flags)
 {
-#ifndef CLONE_VM
-#define CLONE_VM 0
-#endif
-#ifndef CLONE_FILES
-#define CLONE_FILES 0
-#endif
-#ifndef CLONE_THREAD
-#define CLONE_THREAD 0
-#endif
-    if (CLONE_VM & flags) {
+
+    if (P_CLONE_VM & flags) {
         /**
          * Share the process memory address space between the new process
          * and the old process. Changes in one will be visible in the other
@@ -196,7 +188,7 @@ Process::clone(ThreadContext *otc, ThreadContext *ntc,
         *np->memState = *memState;
     }
 
-    if (CLONE_FILES & flags) {
+    if (P_CLONE_FILES & flags) {
         /**
          * The parent and child file descriptors are shared because the
          * two FDArray pointers are pointing to the same FDArray. Opening
@@ -236,7 +228,7 @@ Process::clone(ThreadContext *otc, ThreadContext *ntc,
         }
     }
 
-    if (CLONE_THREAD & flags) {
+    if (P_CLONE_THREAD & flags) {
         np->_tgid = _tgid;
         delete np->exitGroup;
         np->exitGroup = exitGroup;

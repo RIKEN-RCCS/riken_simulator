@@ -150,6 +150,12 @@ class O3ThreadContext : public ThreadContext
     /** Set the status to Suspended. */
     virtual void suspend();
 
+    /** Set the status to ActiveFutex. */
+    virtual void activatefutex();
+
+    /** Set the status to SuspendedFutex. */
+    virtual void suspendfutex();
+
     /** Set the status to Halted. */
     virtual void halt();
 

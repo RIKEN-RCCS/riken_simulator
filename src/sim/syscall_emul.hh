@@ -311,6 +311,8 @@ SyscallReturn accessFunc(SyscallDesc *desc, int num,
 SyscallReturn accessFunc(SyscallDesc *desc, int num,
                          Process *p, ThreadContext *tc,
                          int index);
+SyscallReturn schedGetAffinityFunc(SyscallDesc *desc, int num,
+                         Process *p, ThreadContext *tc);
 
 /// Futex system call
 /// Implemented by Daniel Sanchez
@@ -340,6 +342,9 @@ futexFunc(SyscallDesc *desc, int callnum, Process *process,
         BufferArg buf(uaddr, sizeof(int));
         buf.copyIn(tc->getMemProxy());
         int mem_val = *(int*)buf.bufferPtr();
+        //int mem_val = val;
+
+        tc->suspendfutex();
 
         /*
          * The value in memory at uaddr is not equal with the expected val
@@ -353,6 +358,7 @@ futexFunc(SyscallDesc *desc, int callnum, Process *process,
 
         return 0;
     } else if (OS::TGT_FUTEX_WAKE == op) {
+        tc->activatefutex();
         return futex_map.wakeup(uaddr, process->tgid(), val);
     }
 
@@ -1249,7 +1255,7 @@ cloneFunc(SyscallDesc *desc, int callnum, Process *p, ThreadContext *tc)
     TheISA::IntReg newStack = p->getSyscallArg(tc, index);
     Addr ptidPtr = p->getSyscallArg(tc, index);
 
-#if THE_ISA == RISCV_ISA
+#if (THE_ISA == RISCV_ISA)||(THE_ISA == ARM_ISA)
     /**
      * Linux kernel 4.15 sets CLONE_BACKWARDS flag for RISC-V.
      * The flag defines the list of clone() arguments in the following
@@ -1320,7 +1326,7 @@ cloneFunc(SyscallDesc *desc, int callnum, Process *p, ThreadContext *tc)
     }
 
     cp->initState();
-    p->clone(tc, ctc, cp, flags);
+    p->clone(tc, ctc, cp, OS::translateCloneFlag(flags));
 
     if (flags & OS::TGT_CLONE_THREAD) {
         delete cp->sigchld;
@@ -1359,6 +1365,15 @@ cloneFunc(SyscallDesc *desc, int callnum, Process *p, ThreadContext *tc)
     TheISA::copyRegs(tc, ctc);
 #endif
 
+#if THE_ISA == ARM_ISA
+    PCState pc (tc->nextInstAddr());
+    pc.aarch64(true);
+    pc.nextAArch64(pc.aarch64());
+    ctc->pcState(pc);
+    if (flags & OS::TGT_CLONE_SETTLS){
+        ctc->setMiscReg(TheISA::MISCREG_TPIDR_EL0, tlsPtr);
+    }
+#endif
 #if THE_ISA == X86_ISA
     if (flags & OS::TGT_CLONE_SETTLS) {
         ctc->setMiscRegNoEffect(TheISA::MISCREG_FS_BASE, tlsPtr);
@@ -1367,18 +1382,23 @@ cloneFunc(SyscallDesc *desc, int callnum, Process *p, ThreadContext *tc)
 #endif
 
     if (newStack)
+#if THE_ISA != ARM_ISA
         ctc->setIntReg(TheISA::StackPointerReg, newStack);
-
-    cp->setSyscallReturn(ctc, 0);
-
+#else
+        ctc->setIntReg(TheISA::StackPointerReg, newStack);
+        ctc->setIntReg(43, newStack);
+#endif
+        cp->setSyscallReturn(ctc, 0);
+        ctc->setIntReg(0, 0);
 #if THE_ISA == ALPHA_ISA
     ctc->setIntReg(TheISA::SyscallSuccessReg, 0);
 #elif THE_ISA == SPARC_ISA
     tc->setIntReg(TheISA::SyscallPseudoReturnReg, 0);
     ctc->setIntReg(TheISA::SyscallPseudoReturnReg, 1);
 #endif
-
+#if THE_ISA != ARM_ISA
     ctc->pcState(tc->nextInstAddr());
+#endif
     ctc->activate();
 
     return cp->pid();

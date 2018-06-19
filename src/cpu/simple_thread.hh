@@ -230,6 +230,12 @@ class SimpleThread : public ThreadState
     /// Set the status to Suspended.
     void suspend();
 
+    /// Set the status to ActiveFutex.
+    void activatefutex();
+
+    /// Set the status to SuspendedFutex.
+    void suspendfutex();
+
     /// Set the status to Halted.
     void halt();
 

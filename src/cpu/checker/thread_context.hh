@@ -167,6 +167,12 @@ class CheckerThreadContext : public ThreadContext
     /// Set the status to Suspended.
     void suspend() { actualTC->suspend(); }
 
+    /// Set the status to Active.
+    void activatefutex() { actualTC->activatefutex(); }
+
+    /// Set the status to Suspended.
+    void suspendfutex() { actualTC->suspendfutex(); }
+
     /// Set the status to Halted.
     void halt() { actualTC->halt(); }
 

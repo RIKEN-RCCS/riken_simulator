@@ -113,9 +113,17 @@ class ThreadContext
         /// the context is in this state.
         Active,
 
+        /// Running.  Instructions should be executed only when
+        /// the context is in this state.
+        ActiveFutex,
+
         /// Temporarily inactive.  Entered while waiting for
         /// synchronization, etc.
         Suspended,
+
+        /// Temporarily inactive.  Entered while waiting for
+        /// synchronization, etc.
+        SuspendedFutex,
 
         /// Permanently shut down.  Entered when target executes
         /// m5exit pseudo-instruction.  When all contexts enter
@@ -180,6 +188,12 @@ class ThreadContext
 
     /// Set the status to Suspended.
     virtual void suspend() = 0;
+
+    /// Set the status to Active.
+    virtual void activatefutex() = 0;
+
+    /// Set the status to Suspended.
+    virtual void suspendfutex() = 0;
 
     /// Set the status to Halted.
     virtual void halt() = 0;
@@ -444,6 +458,12 @@ class ProxyThreadContext : public ThreadContext
 
     /// Set the status to Suspended.
     void suspend() { actualTC->suspend(); }
+
+    /// Set the status to Active.
+    void activatefutex() { actualTC->activatefutex(); }
+
+    /// Set the status to Suspended.
+    void suspendfutex() { actualTC->suspendfutex(); }
 
     /// Set the status to Halted.
     void halt() { actualTC->halt(); }

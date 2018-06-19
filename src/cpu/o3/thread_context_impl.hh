@@ -86,10 +86,12 @@ template <class Impl>
 void
 O3ThreadContext<Impl>::activate()
 {
+
     DPRINTF(O3CPU, "Calling activate on Thread Context %d\n",
             threadId());
 
-    if (thread->status() == ThreadContext::Active)
+    if (thread->status() == ThreadContext::Active ||
+        thread->status() == ThreadContext::ActiveFutex)
         return;
 
     thread->lastActivate = curTick();
@@ -103,10 +105,12 @@ template <class Impl>
 void
 O3ThreadContext<Impl>::suspend()
 {
+
     DPRINTF(O3CPU, "Calling suspend on Thread Context %d\n",
             threadId());
 
-    if (thread->status() == ThreadContext::Suspended)
+    if (thread->status() == ThreadContext::Suspended ||
+        thread->status() == ThreadContext::SuspendedFutex)
         return;
 
     if (cpu->isDraining()) {
@@ -118,6 +122,40 @@ O3ThreadContext<Impl>::suspend()
     thread->lastSuspend = curTick();
 
     thread->setStatus(ThreadContext::Suspended);
+    cpu->suspendContext(thread->threadId());
+}
+
+template <class Impl>
+void
+O3ThreadContext<Impl>::activatefutex()
+{
+    DPRINTF(O3CPU, "Calling futex_wake on Thread Context %d\n",
+            threadId());
+
+    if (thread->status() == ThreadContext::Active ||
+        thread->status() == ThreadContext::ActiveFutex)
+        return;
+
+    thread->lastActivate = curTick();
+    thread->setStatus(ThreadContext::ActiveFutex);
+    cpu->activateContext(thread->threadId());
+}
+
+template <class Impl>
+void
+O3ThreadContext<Impl>::suspendfutex()
+{
+    DPRINTF(O3CPU, "Calling futex_wait on Thread Context %d\n",
+            threadId());
+
+    if (thread->status() == ThreadContext::Suspended ||
+        thread->status() == ThreadContext::SuspendedFutex)
+        return;
+
+    thread->lastActivate = curTick();
+    thread->lastSuspend = curTick();
+
+    thread->setStatus(ThreadContext::SuspendedFutex);
     cpu->suspendContext(thread->threadId());
 }
 

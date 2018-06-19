@@ -55,6 +55,13 @@ Linux::openSpecialFile(std::string path, Process *process,
     } else if (path.compare(0, 11, "/etc/passwd") == 0) {
         data = Linux::etcPasswd(process, tc);
         matched = true;
+    } else if (path.compare(0, 30, "/sys/devices/system/cpu/online") == 0) {
+      data = Linux::sysDevicesSystemCpuOnline(process, tc);
+    } else {
+      warn("Attempting to open special file: %s. Ignoring. Simulation may"
+           " take un-expected code path or be non-deterministic until proper"
+           "  handling is implemented.\n", path.c_str());
+      return -1;
     }
 
     if (matched) {
@@ -65,11 +72,19 @@ Linux::openSpecialFile(std::string path, Process *process,
         rewind(f);
         return fd;
     } else {
-        warn("Attempting to open special file: %s. Ignoring. Simulation may "
-             "take un-expected code path or be non-deterministic until proper "
-             "handling is implemented.\n", path.c_str());
+        // warn("Attempting to open special file: %s. "
+        //      "Ignoring. Simulation may "
+        //      "take un-expected code path or be non-deterministic "
+        //      "until proper handling is implemented.\n", path.c_str());
+        // errno = EACCES;
+        // return -1;
+        FILE *f = tmpfile();
+        int fd = fileno(f);
+        size_t ret M5_VAR_USED = fwrite(data.c_str(), 1, data.size(), f);
+        assert(ret == data.size());
+        rewind(f);
         errno = EACCES;
-        return -1;
+        return fd;
     }
 }
 
@@ -86,4 +101,12 @@ Linux::etcPasswd(Process *process, ThreadContext *tc)
 {
     return csprintf("gem5-user:x:1000:1000:gem5-user,,,:%s:/bin/bash\n",
                     process->getcwd());
+}
+
+std::string
+Linux::sysDevicesSystemCpuOnline(Process *process, ThreadContext *tc)
+{
+    //printf("process->system->numContexts() = %d\n",
+    //process->system->numContexts());
+    return csprintf("0-%d\n",process->system->numContexts());
 }

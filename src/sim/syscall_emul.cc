@@ -101,13 +101,26 @@ exitImpl(SyscallDesc *desc, int callnum, Process *p, ThreadContext *tc,
     int activeContexts = 0;
     for (auto &system: sys->systemList)
         activeContexts += system->numRunningContexts();
-    if (activeContexts == 1) {
-        exitSimLoop("exiting with last active thread context", status & 0xff);
-        return status;
-    }
+
+    assert(activeContexts>0);
 
     if (group)
         *p->exitGroup = true;
+    else
+        activeContexts--;
+
+    for (int  i = 0; i < sys->numContexts(); i++){
+        Process *walk ;
+        if (!(walk = sys->threadContexts[i]->getProcessPtr()))
+            continue;
+        if (*walk->exitGroup)
+            activeContexts--;
+    }
+
+    if (activeContexts == 0) {
+        exitSimLoop("exiting with last active thread context", status & 0xff);
+        return status;
+    }
 
     if (p->childClearTID)
         exitFutexWake(tc, p->childClearTID, p->tgid());
@@ -1051,3 +1064,36 @@ accessFunc(SyscallDesc *desc, int callnum, Process *p, ThreadContext *tc)
     return accessFunc(desc, callnum, p, tc, 0);
 }
 
+
+SyscallReturn
+schedGetAffinityFunc(SyscallDesc *desc, int callnum, Process *p,
+                     ThreadContext *tc)
+{
+    int index = 1;
+    // int pid = p->getSyscallArg(tc, index);
+    int nbytes = p->getSyscallArg(tc, index);
+    Addr bufPtr = p->getSyscallArg(tc, index);
+    BufferArg bufArg(bufPtr, nbytes);
+    int retlen=0;
+
+    // DPRINTF(SyscallVerbose, "PID %d\n", pid);
+
+    std::for_each(p->contextIds.begin(), p->contextIds.end(),
+                  [&bufArg,nbytes,&retlen] (int x){
+                    unsigned long *cpumask =
+                      (unsigned long *)bufArg.bufferPtr();
+                    int maskpos,maskbit,masksize;
+                    if (x<nbytes*8){
+                      maskpos = x/(sizeof(*cpumask)*8);
+                      maskbit = x%(sizeof(*cpumask)*8);
+                      masksize = (maskpos+1)*sizeof(*cpumask);
+                      cpumask[maskpos] |= (1<<maskbit);
+                      retlen = (retlen<masksize) ? masksize
+                        : retlen;
+                    }
+                  });
+
+    bufArg.copyOut(tc->getMemProxy());
+
+    return retlen;
+}
