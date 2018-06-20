@@ -60,6 +60,8 @@ using namespace std;
 template <class Impl>
 LSQ<Impl>::LSQ(O3CPU *cpu_ptr, IEW *iew_ptr, DerivO3CPUParams *params)
     : cpu(cpu_ptr), iewStage(iew_ptr),
+      _cacheBlocked(false),
+      cacheStorePorts(params->cacheStorePorts), usedStorePorts(0),
       lsqPolicy(readLSQPolicy(params->smtLSQPolicy)),
       maxLQEntries(maxLSQAllocation(lsqPolicy, params->LQEntries,
                   params->numThreads, params->smtLSQThreshold)),
@@ -157,23 +159,41 @@ template <class Impl>
 void
 LSQ<Impl>::takeOverFrom()
 {
+    usedStorePorts = 0;
+    _cacheBlocked = false;
+
     for (ThreadID tid = 0; tid < numThreads; tid++) {
         thread.at(tid).takeOverFrom();
     }
 }
 
 template<class Impl>
-void
-LSQ<Impl>::tick()
+bool
+LSQ<Impl>::cacheBlocked() const
 {
-    list<ThreadID>::iterator threads = activeThreads->begin();
-    list<ThreadID>::iterator end = activeThreads->end();
+    return _cacheBlocked;
+}
 
-    while (threads != end) {
-        ThreadID tid = *threads++;
+template<class Impl>
+void
+LSQ<Impl>::cacheBlocked(bool v)
+{
+    _cacheBlocked = v;
+}
 
-        thread.at(tid).tick();
-    }
+template<class Impl>
+bool
+LSQ<Impl>::storePortAvailable() const
+{
+    return usedStorePorts < cacheStorePorts;
+}
+
+template<class Impl>
+void
+LSQ<Impl>::storePortBusy()
+{
+    usedStorePorts++;
+    assert(usedStorePorts <= cacheStorePorts);
 }
 
 template<class Impl>
@@ -254,6 +274,7 @@ void
 LSQ<Impl>::recvReqRetry()
 {
     iewStage->cacheUnblocked();
+    cacheBlocked(false);
 
     for (ThreadID tid : *activeThreads) {
         thread.at(tid).recvRetry();

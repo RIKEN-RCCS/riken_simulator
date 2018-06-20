@@ -164,7 +164,6 @@ LSQUnit<Impl>::init(O3CPU *cpu_ptr, IEW *iew_ptr, DerivO3CPUParams *params,
 
     depCheckShift = params->LSQDepCheckShift;
     checkLoads = params->LSQCheckLoads;
-    cacheStorePorts = params->cacheStorePorts;
     needsTSO = params->needsTSO;
 
     resetState();
@@ -179,8 +178,6 @@ LSQUnit<Impl>::resetState()
 
 
     storeWBIt = storeQueue.begin();
-
-    usedStorePorts = 0;
 
     retryPkt = NULL;
     memDepViolator = NULL;
@@ -698,18 +695,12 @@ LSQUnit<Impl>::commitStores(InstSeqNum &youngest_inst)
 
 template <class Impl>
 void
-LSQUnit<Impl>::writebackPendingStore()
+LSQUnit<Impl>::writebackBlockedStore()
 {
-    if (hasPendingRequest) {
-        assert(pendingRequest != nullptr);
-
-        // If the cache is blocked, this will store the packet for retry.
-        pendingRequest->sendPacketToCache();
-        if (pendingRequest->isSent()) {
-            storePostSend(pendingRequest->packet());
-            pendingRequest = nullptr;
-            hasPendingRequest = false;
-        }
+    assert(isStoreBlocked);
+    storeWBIt->request()->sendPacketToCache();
+    if (storeWBIt->request()->isSent()){
+        storePostSend();
     }
 }
 
@@ -717,14 +708,17 @@ template <class Impl>
 void
 LSQUnit<Impl>::writebackStores()
 {
-    writebackPendingStore();
+    if (isStoreBlocked) {
+        DPRINTF(LSQUnit, "Writing back  blocked store\n");
+        writebackBlockedStore();
+    }
 
     while (storesToWB > 0 &&
            storeWBIt.dereferenceable() &&
            storeWBIt->valid() &&
            storeWBIt->canWB() &&
            ((!needsTSO) || (!storeInFlight)) &&
-           usedStorePorts < cacheStorePorts) {
+           lsq->storePortAvailable()) {
 
         if (isStoreBlocked) {
             DPRINTF(LSQUnit, "Unable to write back any more stores, cache"
@@ -741,8 +735,6 @@ LSQUnit<Impl>::writebackStores()
             completeStore(storeWBIt++);
             continue;
         }
-
-        ++usedStorePorts;
 
         if (storeWBIt->instruction()->isDataPrefetch()) {
             storeWBIt++;
@@ -834,17 +826,13 @@ LSQUnit<Impl>::writebackStores()
 
         /* If successful, do the post send */
         if (req->isSent()) {
-            storePostSend(req->packet());
+            storePostSend();
         } else {
-            DPRINTF(IEW, "D-Cache became blocked when writing [sn:%lli], "
+            DPRINTF(LSQUnit, "D-Cache became blocked when writing [sn:%lli], "
                     "will retry later\n",
                     inst->seqNum);
         }
     }
-
-    // Not sure this should set it to 0.
-    usedStorePorts = 0;
-
     assert(stores >= 0 && storesToWB >= 0);
 }
 
@@ -919,7 +907,7 @@ LSQUnit<Impl>::squash(const InstSeqNum &squashed_num)
 
 template <class Impl>
 void
-LSQUnit<Impl>::storePostSend(PacketPtr pkt)
+LSQUnit<Impl>::storePostSend()
 {
     if (isStalled() &&
         storeWBIt->instruction()->seqNum == stallingStoreIsn) {
@@ -1059,42 +1047,40 @@ template <class Impl>
 bool
 LSQUnit<Impl>::trySendPacket(bool isLoad, PacketPtr data_pkt)
 {
-    if (isLoad || usedStorePorts < cacheStorePorts) {
-        if (!isLoad)
-            ++usedStorePorts;
-        auto state = dynamic_cast<LSQSenderState*>(data_pkt->senderState);
-        state->outstanding++;
-        if (!dcachePort->sendTimingReq(data_pkt)) {
-            ++lsqCacheBlocked;
-            if (!isLoad) {
-                isStoreBlocked = true;
-                retryPkt = data_pkt;
-            }
-            state->request()->packetNotSent();
-            /* TODO: Revisit that 'false' is the appropriate value to return
-             * here. */
-            return false;
-        } else {
-            state->request()->packetSent();
-            return true;
-        }
-    }
-    return false;
-}
+    bool ret = true;
+    bool cache_got_blocked = false;
 
-template <class Impl>
-bool
-LSQUnit<Impl>::sendStore(PacketPtr data_pkt)
-{
-    if (!dcachePort->sendTimingReq(data_pkt)) {
-        // Need to handle becoming blocked on a store.
-        isStoreBlocked = true;
-        ++lsqCacheBlocked;
-        assert(retryPkt == NULL);
-        retryPkt = data_pkt;
-        return false;
+    auto state = dynamic_cast<LSQSenderState*>(data_pkt->senderState);
+
+    if (!lsq->cacheBlocked() && (isLoad || lsq->storePortAvailable())) {
+        if (!dcachePort->sendTimingReq(data_pkt)) {
+            ret = false;
+            cache_got_blocked = true;
+        }
+    } else {
+        ret = false;
     }
-    return true;
+
+    if (ret) {
+        if (!isLoad) {
+            lsq->storePortBusy();
+            isStoreBlocked = false;
+        }
+        state->outstanding++;
+        state->request()->packetSent();
+    } else {
+        if (cache_got_blocked) {
+            lsq->cacheBlocked(true);
+            ++lsqCacheBlocked;
+        }
+        if (!isLoad) {
+            assert(state->request() == storeWBIt->request());
+            isStoreBlocked = true;
+        }
+        state->request()->packetNotSent();
+    }
+
+    return ret;
 }
 
 template <class Impl>
@@ -1102,21 +1088,8 @@ void
 LSQUnit<Impl>::recvRetry()
 {
     if (isStoreBlocked) {
-        DPRINTF(LSQUnit, "Receiving retry: store blocked\n");
-        assert(retryPkt != NULL);
-
-        SQSenderState *state =
-            dynamic_cast<SQSenderState *>(retryPkt->senderState);
-
-        state->idx->request()->sendPacketToCache();
-        if (state->idx->request()->isSent()){
-            storePostSend(state->idx->request()->packet());
-            retryPkt = NULL;
-            isStoreBlocked = false;
-        } else {
-            // Still blocked!
-            ++lsqCacheBlocked;
-        }
+        DPRINTF(LSQUnit, "Receiving retry: blocked store\n");
+        writebackBlockedStore();
     }
 }
 

@@ -1462,6 +1462,8 @@ DefaultIEW<Impl>::tick()
     wroteToTimeBuffer = false;
     updatedQueues = false;
 
+    ldstQueue.tick();
+
     sortInsts();
 
     // Free function units marked as being freed this cycle.
