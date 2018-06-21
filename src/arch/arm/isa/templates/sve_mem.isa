@@ -568,8 +568,12 @@ def template SveGatherLoadMicroopExecute {{
                     index < numElems && !(%(pred_check_code)s);
                     index++);
 
-               if (index != elemIndex)
-                  fault = NoFault;
+               if (index < elemIndex) {
+                   fault = NoFault;
+                   memData = 0;
+                   %(memacc_code)s;
+                   %(op_wb)s;
+               }
             }
         }
         return fault;
@@ -601,7 +605,7 @@ def template SveGatherLoadMicroopInitiateAcc {{
                     for (index = 0;
                          index < numElems && !(%(pred_check_code)s);
                          index++);
-                    if (index != elemIndex) {
+                    if (index < elemIndex) {
                         fault = NoFault;
                         xc->setMemAccPredicate(false);
                     }

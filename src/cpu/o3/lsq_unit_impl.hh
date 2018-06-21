@@ -66,6 +66,8 @@ LSQUnit<Impl>::WritebackEvent::WritebackEvent(const DynInstPtr &_inst,
     : Event(Default_Pri, AutoDelete),
       inst(_inst), pkt(_pkt), lsqPtr(lsq_ptr)
 {
+    assert(_inst->savedReq);
+    _inst->savedReq->writebackScheduled();
 }
 
 template<class Impl>
@@ -76,14 +78,8 @@ LSQUnit<Impl>::WritebackEvent::process()
 
     lsqPtr->writeback(inst, pkt);
 
-    if (pkt->senderState) {
-        auto ss = dynamic_cast<LSQSenderState*>(pkt->senderState);
-        assert(ss);
-        ss->writeback();
-    } else {
-        /* The request and the packet are freed by the LSQ in the commit
-         * cleanup step */
-    }
+    assert(inst->savedReq);
+    inst->savedReq->writebackDone();
     delete pkt;
 }
 
@@ -134,7 +130,7 @@ LSQUnit<Impl>::completeDataAccess(PacketPtr pkt)
             writeback(inst, state->request()->mainPacket());
             if (inst->isStore()) {
                 auto ss = dynamic_cast<SQSenderState*>(state);
-                ss->writeback();
+                ss->writebackDone();
                 completeStore(ss->idx);
             }
         } else if (inst->isStore()) {
@@ -563,8 +559,7 @@ LSQUnit<Impl>::executeLoad(const DynInstPtr &inst)
 
     load_fault = inst->initiateAcc();
 
-    if (!inst->readMemAccPredicate()) {
-        assert(load_fault == NoFault);
+    if (load_fault == NoFault && !inst->readMemAccPredicate()) {
         assert(inst->readPredicate());
         inst->setExecuted();
         inst->completeAcc(nullptr);
@@ -841,7 +836,7 @@ LSQUnit<Impl>::writebackStores()
             /** Here the IprWrite should be deferred to the LSQRequest
              * to handle multi-part operations. */
             TheISA::handleIprWrite(thread, req->packet());
-            delete req;
+            req->discard();
             // this code is obviously broken ...
             assert(0);
             req->senderState(nullptr);

@@ -958,7 +958,7 @@ let {{
         auto& firstFaultReg = Ffr;'''
         fautlingLoadmemAccCode = '''
         for (int i = 0; i < eCount; i++) {
-            if (GpOp_x[i] && firstFaultReg[i]) {
+            if (GpOp_x[i] && firstFaultReg[i * sizeof(RegElemType)]) {
                 AA64FpDest_x[i] = memDataView[i];
             } else {
                 AA64FpDest_x[i] = 0;
@@ -980,15 +980,21 @@ let {{
             for (first_active_index = 0;
                  first_active_index < eCount && !(GpOp_x[first_active_index]);
                  first_active_index++);
-            if (%s first_active_index != fault_elem_index) {
-                for (int i = 0; i < eCount; i++)
-                    if (i < fault_elem_index)
-                        Ffr_x[i] = FfrAux_x[i];
-                    else
-                        Ffr_x[i] = 0;
-                if (first_active_index >= fault_elem_index)
+            if (%s first_active_index < fault_elem_index) {
+                for (int i = 0; i < eCount; i++) {
+                    for (int j = 0; j < sizeof(RegElemType); j++) {
+                        if (i < fault_elem_index) {
+                            Ffr_ub[i * sizeof(RegElemType) + j] = FfrAux_x[i];
+                        } else {
+                            Ffr_ub[i * sizeof(RegElemType) + j] = 0;
+                        }
+                    }
+                }
+                fault = NoFault;
+                if (first_active_index >= fault_elem_index) {
+                    // non-faulting load needs this
                     xc->setMemAccPredicate(false);
-                  fault = NoFault;
+                }
             }
         }
         ''' % ('' if firstFaulting else nonFaultingCode)
@@ -1201,8 +1207,16 @@ let {{
         tplHeader = 'template <class RegElemType>'
         tplArgs = '<RegElemType>'
         faultStatusCheckCode = 'PUreg0_x[index]'
-        firstFaultResetCode = 'Ffr_x[index] = 0;'
-        firstFaultForwardCode = 'Ffr_x[index] = FfrAux_x[index];'
+        firstFaultResetCode = '''
+        for(int j = 0; j < sizeof(RegElemType); j++) {
+            Ffr_ub[index * sizeof(RegElemType) + j] = 0;
+        }
+        '''
+        firstFaultForwardCode = '''
+        for(int j = 0; j < sizeof(RegElemType); j++) {
+            Ffr_ub[index * sizeof(RegElemType) + j] = FfrAux_x[index];
+        }
+        '''
         iop = InstObjParams('ldff1',
             'SveFirstFaultWritebackMicroop',
             'MicroOp',

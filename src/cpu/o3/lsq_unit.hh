@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014,2017 ARM Limited
+ * Copyright (c) 2012-2014,2017-2018 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -121,7 +121,7 @@ class LSQUnit {
         {
             inst = nullptr;
             if (req != nullptr) {
-                delete req;
+                req->freeLSQEntry();
                 req = nullptr;
             }
         }
@@ -647,7 +647,7 @@ LSQUnit<Impl>::read(LSQRequest *req, int load_idx)
         // memory.  This is quite ugly.  @todo: Figure out the proper
         // place to really handle request deletes.
         load_req.setRequest(nullptr);
-        delete req;
+        req->discard();
         return std::make_shared<GenericISA::M5PanicFault>(
             "Strictly ordered load [sn:%llx] PC %s\n",
             load_inst->seqNum, load_inst->pcState());
@@ -740,9 +740,11 @@ LSQUnit<Impl>::read(LSQRequest *req, int load_idx)
             bool upper_load_has_store_part = req_e > st_s;
 
             // If the store's data has all of the data needed and the load
-            // isn't LLSC, we can forward.
+            // isn't LLSC then
+            // we can forward.
             if (store_has_lower_limit && store_has_upper_limit &&
                 !req->mainRequest()->isLLSC()) {
+
                 // Get shift amount for offset into the store's data.
                 int shift_amt = req->mainRequest()->getVaddr() -
                     store_it->instruction()->effAddr;
@@ -768,6 +770,15 @@ LSQUnit<Impl>::read(LSQRequest *req, int load_idx)
                         MemCmd::ReadReq);
                 data_pkt->dataStatic(load_inst->memData);
 
+                if (req->isAnyOutstandingRequest()) {
+                    assert(req->_numOutstandingPackets > 0);
+                    // There are memory requests packets in flight already.
+                    // This may happen if the store was not complete the
+                    // first time this load got executed. Signal the senderSate
+                    // that response packets should be discarded.
+                    req->discardSenderState();
+                }
+
                 WritebackEvent *wb = new WritebackEvent(load_inst, data_pkt,
                         this);
 
@@ -778,6 +789,7 @@ LSQUnit<Impl>::read(LSQRequest *req, int load_idx)
 
                 // Don't need to do anything special for split loads.
                 ++lsqForwLoads;
+
                 return NoFault;
             } else if (
                 (!req->mainRequest()->isLLSC() &&
@@ -822,10 +834,8 @@ LSQUnit<Impl>::read(LSQRequest *req, int load_idx)
                         "Store idx %i to load addr %#x\n",
                         store_it._idx, req->mainRequest()->getVaddr());
 
-                // Must delete request now that it wasn't handed off to
-                // memory.  This is quite ugly.  @todo: Figure out the
-                // proper place to really handle request deletes.
-                delete req;
+                // Must discard the request.
+                req->discard();
                 load_req.setRequest(nullptr);
                 return NoFault;
             }

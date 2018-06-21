@@ -751,7 +751,6 @@ class %(class_name)s : public %(base_class)s
     typedef _SElement TPSElem;
     typedef _DElement TPDElem;
   public:
-    // Constructor
     %(class_name)s(ExtMachInst machInst,
                    IntRegIndex _dest, IntRegIndex _op1)
         : %(base_class)s("%(mnemonic)s", machInst, %(op_class)s,
@@ -834,7 +833,58 @@ class %(class_name)s : public %(base_class)s
 };
 }};
 
-def template SveWideningUnaryOpExecute {{
+def template SveWideningTerImmOpDeclare {{
+template <class _SElement, class _DElement>
+class %(class_name)s : public %(base_class)s
+{
+  protected:
+    typedef _DElement Element;
+    typedef _SElement SElement;
+    typedef _DElement DElement;
+    typedef _SElement TPSElem;
+    typedef _DElement TPDElem;
+
+  public:
+    %(class_name)s(ExtMachInst machInst,
+                   IntRegIndex _dest, IntRegIndex _op1, IntRegIndex _op2,
+                   uint64_t _imm)
+        : %(base_class)s("%(mnemonic)s", machInst, %(op_class)s,
+                         _dest, _op1, _op2, _imm)
+    {
+        %(constructor)s;
+        esize = sizeof(Element);
+    }
+
+    Fault execute(ExecContext *, Trace::InstRecord *) const;
+};
+}};
+
+def template SveWideningTerOpDeclare {{
+template <class _SElement, class _DElement>
+class %(class_name)s : public %(base_class)s
+{
+  protected:
+    typedef _DElement Element;
+    typedef _SElement SElement;
+    typedef _DElement DElement;
+    typedef _SElement TPSElem;
+    typedef _DElement TPDElem;
+
+  public:
+    %(class_name)s(ExtMachInst machInst,
+                   IntRegIndex _dest, IntRegIndex _op1, IntRegIndex _op2)
+        : %(base_class)s("%(mnemonic)s", machInst, %(op_class)s,
+                         _dest, _op1, _op2)
+    {
+        %(constructor)s;
+        esize = sizeof(Element);
+    }
+
+    Fault execute(ExecContext *, Trace::InstRecord *) const;
+};
+}};
+
+def template SveWideningOpExecute {{
     template <class SElement, class DElement>
     Fault %(class_name)s<SElement, DElement>::execute(ExecContext *xc,
             Trace::InstRecord *traceData) const

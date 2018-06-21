@@ -1460,7 +1460,7 @@ let {{
             header_output += SveWideningUnaryPredOpDeclare.subst(iop)
         else:
             header_output += SveWideningUnaryUnpredOpDeclare.subst(iop)
-        exec_output += SveWideningUnaryOpExecute.subst(iop)
+        exec_output += SveWideningOpExecute.subst(iop)
         for type in types:
             substDict = {'targs' : type,
                          'class_name' : 'Sve' + Name}
@@ -1536,7 +1536,7 @@ let {{
         iop = InstObjParams(name, 'Sve' + Name, 'SveUnaryPredOp',
                             {'code': code, 'op_class': opClass}, [])
         header_output += SveWideningUnaryPredOpDeclare.subst(iop)
-        exec_output += SveWideningUnaryOpExecute.subst(iop)
+        exec_output += SveWideningOpExecute.subst(iop)
         for type in types:
             substDict = {'targs' : type,
                          'class_name' : 'Sve' + Name}
@@ -1592,7 +1592,7 @@ let {{
         iop = InstObjParams(name, 'Sve' + Name, 'SveReducOp',
                             {'code': code, 'op_class': opClass}, [])
         header_output += SveWideningReducOpDeclare.subst(iop)
-        exec_output += SveWideningUnaryOpExecute.subst(iop)
+        exec_output += SveWideningOpExecute.subst(iop)
         for type in types:
             substDict = {'targs' : type,
                          'class_name' : 'Sve' + Name}
@@ -2437,7 +2437,7 @@ let {{
         iop = InstObjParams(name, 'Sve' + Name, 'SveUnpackOp',
                 {'code': code, 'op_class': opClass}, [])
         header_output += SveUnpackOpDeclare.subst(iop)
-        exec_output += SveWideningUnaryOpExecute.subst(iop)
+        exec_output += SveWideningOpExecute.subst(iop)
         for srcType, dstType in sdtypes:
             substDict = {'targs': srcType + ', ' + dstType,
                          'class_name': 'Sve' + Name}
@@ -2656,6 +2656,49 @@ let {{
                 {'code': code, 'op_class': opClass}, [])
         header_output += SveUnaryUnpredOpDeclare.subst(iop)
         exec_output += SveOpExecute.subst(iop)
+        for type in types:
+            substDict = {'targs': type, 'class_name': 'Sve' + Name}
+            exec_output += SveOpExecDeclare.subst(substDict)
+
+    # Generate definition for DOT instructions
+    def sveDotInst(name, Name, opClass, types, isIndexed = True):
+        global header_output, exec_output, decoders
+        code = sveEnabledCheckCode + '''
+        unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
+                xc->tcBase());
+        for (int i = 0; i < eCount; ++i) {'''
+        if isIndexed:
+            code += '''
+            int segbase = i - i % (16 / sizeof(Element));
+            int s = segbase + imm;'''
+        code += '''
+            DElement res = destVect[i];
+            DElement srcElem1, srcElem2;
+            for (int j = 0; j <= 3; ++j) {
+                srcElem1 = static_cast<DElement>(AA64FpOp1_xs[4 * i + j]);'''
+        if isIndexed:
+            code += '''
+                srcElem2 = static_cast<DElement>(AA64FpOp2_xs[4 * s + j]);'''
+        else:
+            code += '''
+                srcElem2 = static_cast<DElement>(AA64FpOp2_xs[4 * i + j]);'''
+        code += '''
+                res += srcElem1 * srcElem2;
+            }
+            AA64FpDestMerge_xd[i] = res;
+        }'''
+        extraPrologCode = '''
+        auto& destVect = AA64FpDestMerge;'''
+        iop = InstObjParams(name, 'Sve' + Name,
+                'SveDotProdIdxOp' if isIndexed else
+                'SveDotProdOp',
+                {'code': code, 'op_class': opClass}, [])
+        iop.snippets['code'] = extraPrologCode + iop.snippets['code']
+        if isIndexed:
+            header_output += SveWideningTerImmOpDeclare.subst(iop)
+        else:
+            header_output += SveWideningTerOpDeclare.subst(iop)
+        exec_output += SveWideningOpExecute.subst(iop)
         for type in types:
             substDict = {'targs': type, 'class_name': 'Sve' + Name}
             exec_output += SveOpExecDeclare.subst(substDict)
@@ -3719,6 +3762,12 @@ let {{
     '''
     sveBinInst('sdivr', 'Sdivr', 'SimdDivOp', signedTypes, sdivrCode,
                PredType.MERGE, True)
+    # SDOT (indexed)
+    sveDotInst('sdot', 'Sdoti', 'SimdAluOp', ['int8_t, int32_t',
+        'int16_t, int64_t'], isIndexed = True)
+    # SDOT (vectors)
+    sveDotInst('sdot', 'Sdotv', 'SimdAluOp', ['int8_t, int32_t',
+        'int16_t, int64_t'], isIndexed = False)
     # SEL (predicates)
     selCode = 'destElem = srcElem1;'
     svePredLogicalInst('sel', 'PredSel', 'SimdPredAluOp', ('uint8_t',),
@@ -4074,6 +4123,12 @@ let {{
     udivrCode = 'destElem = (srcElem1 == 0) ? 0 : (srcElem2 / srcElem1);'
     sveBinInst('udivr', 'Udivr', 'SimdDivOp', unsignedTypes, udivrCode,
                PredType.MERGE, True)
+    # UDOT (indexed)
+    sveDotInst('udot', 'Udoti', 'SimdAluOp', ['uint8_t, uint32_t',
+        'uint16_t, uint64_t'], isIndexed = True)
+    # UDOT (vectors)
+    sveDotInst('udot', 'Udotv', 'SimdAluOp', ['uint8_t, uint32_t',
+        'uint16_t, uint64_t'], isIndexed = False)
     # UMAX (immediate)
     sveWideImmInst('umax', 'UmaxImm', 'SimdCmpOp', unsignedTypes, maxCode)
     # UMAX (vectors)
