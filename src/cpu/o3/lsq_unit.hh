@@ -236,13 +236,6 @@ class LSQUnit {
     /** Takes over from another CPU's thread. */
     void takeOverFrom();
 
-    /** Ticks the LSQ unit, which in this case only resets the number of
-     * used cache ports.
-     * @todo: Move the number of used ports up to the LSQ level so it can
-     * be shared by all LSQ units.
-     */
-    void tick() { usedStorePorts = 0; }
-
     /** Inserts an instruction. */
     void insert(const DynInstPtr &inst);
     /** Inserts a load instruction. */
@@ -358,28 +351,23 @@ class LSQUnit {
     /** Writes back the instruction, sending it to IEW. */
     void writeback(const DynInstPtr &inst, PacketPtr pkt);
 
-    /** Writes back a store that couldn't be completed the previous cycle. */
-    void writebackPendingStore();
+    /** Try to finish a previously blocked write back attempt */
+    void writebackBlockedStore();
 
     /** Completes the store at the specified index. */
     void completeStore(typename StoreQueue::iterator store_idx);
 
-  public:
     /** Handles completing the send of a store to memory. */
-    void storePostSend(PacketPtr pkt);
+    void storePostSend();
 
+  public:
     /** Attempts to send a packet to the cache.
      * Check if there are ports available. Return true if
      * there are, false if there are not.
      */
-
     bool trySendPacket(bool isLoad, PacketPtr data_pkt);
-  private:
 
-    /** Attempts to send a store to the cache. */
-    bool sendStore(PacketPtr data_pkt);
 
-  public:
     /** Debugging function to dump instructions in the LSQ. */
     void dumpInsts() const;
 
@@ -501,15 +489,6 @@ class LSQUnit {
      * written back, and has not yet been written back.
      */
     typename StoreQueue::iterator storeWBIt;
-
-    /// @todo Consider moving to a more advanced model with write vs read ports
-    /** The number of cache ports available each cycle (stores only). */
-    int cacheStorePorts;
-
-    /** The number of used cache ports in this cycle by stores. */
-    int usedStorePorts;
-
-    //list<InstSeqNum> mshrSeqNums;
 
     /** Address Mask for a cache block (e.g. ~(cache_block_size-1)) */
     Addr cacheBlockMask;

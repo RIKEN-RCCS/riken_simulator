@@ -78,7 +78,7 @@ class LSQ {
         LSQSenderState(LSQRequest* request, bool isLoad_)
             : _request(request), mainPkt(NULL), pendingPacket(NULL),
               outstanding(0), isLoad(isLoad_), needWB(isLoad_), isSplit(false),
-              pktToSend(false), cacheBlocked(false), deleted(false)
+              pktToSend(false), deleted(false)
           { }
       public:
 
@@ -98,8 +98,6 @@ class LSQ {
         bool isSplit;
         /** Whether or not there is a packet that needs sending. */
         bool pktToSend;
-        /** Whether or not the second packet of this split load was blocked */
-        bool cacheBlocked;
         /** Has the request been deleted?
          * LSQ entries can be squashed before the response comes back. in that
          * case the SenderState knows.
@@ -724,9 +722,6 @@ class LSQ {
 
     /** Ticks the LSQ. */
     void tick();
-    /** Ticks a specific LSQ Unit. */
-    void tick(ThreadID tid)
-    { thread.at(tid).tick(); }
 
     /** Inserts a load into the LSQ. */
     void insertLoad(const DynInstPtr &load_inst);
@@ -932,7 +927,28 @@ class LSQ {
     /** The IEW stage pointer. */
     IEW *iewStage;
 
+    /** Is D-cache blocked? */
+    bool cacheBlocked() const;
+    /** Set D-cache blocked status */
+    void cacheBlocked(bool v);
+    /** Is any store port available to use? */
+    bool cachePortAvailable(bool is_load) const;
+    /** Another store port is in use */
+    void cachePortBusy(bool is_load);
+
   protected:
+    /** D-cache is blocked */
+    bool _cacheBlocked;
+    /** The number of cache ports available each cycle (stores only). */
+    int cacheStorePorts;
+    /** The number of used cache ports in this cycle by stores. */
+    int usedStorePorts;
+    /** The number of cache ports available each cycle (loads only). */
+    int cacheLoadPorts;
+    /** The number of used cache ports in this cycle by loads. */
+    int usedLoadPorts;
+
+
     /** The LSQ policy for SMT mode. */
     LSQPolicy lsqPolicy;
 

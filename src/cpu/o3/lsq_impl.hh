@@ -61,6 +61,9 @@ using namespace std;
 template <class Impl>
 LSQ<Impl>::LSQ(O3CPU *cpu_ptr, IEW *iew_ptr, DerivO3CPUParams *params)
     : cpu(cpu_ptr), iewStage(iew_ptr),
+      _cacheBlocked(false),
+      cacheStorePorts(params->cacheStorePorts), usedStorePorts(0),
+      cacheLoadPorts(params->cacheLoadPorts), usedLoadPorts(0),
       lsqPolicy(readLSQPolicy(params->smtLSQPolicy)),
       maxLQEntries(maxLSQAllocation(lsqPolicy, params->LQEntries,
                   params->numThreads, params->smtLSQThreshold)),
@@ -158,22 +161,63 @@ template <class Impl>
 void
 LSQ<Impl>::takeOverFrom()
 {
+    usedStorePorts = 0;
+    _cacheBlocked = false;
+
     for (ThreadID tid = 0; tid < numThreads; tid++) {
         thread.at(tid).takeOverFrom();
     }
 }
 
-template<class Impl>
+template <class Impl>
 void
 LSQ<Impl>::tick()
 {
-    list<ThreadID>::iterator threads = activeThreads->begin();
-    list<ThreadID>::iterator end = activeThreads->end();
+    // Re-issue loads which got blocked on the per-cycle load ports limit.
+    if (usedLoadPorts == cacheLoadPorts && !_cacheBlocked)
+            iewStage->cacheUnblocked();
 
-    while (threads != end) {
-        ThreadID tid = *threads++;
+    usedLoadPorts = 0;
+    usedStorePorts = 0;
+}
 
-        thread.at(tid).tick();
+template<class Impl>
+bool
+LSQ<Impl>::cacheBlocked() const
+{
+    return _cacheBlocked;
+}
+
+template<class Impl>
+void
+LSQ<Impl>::cacheBlocked(bool v)
+{
+    _cacheBlocked = v;
+}
+
+template<class Impl>
+bool
+LSQ<Impl>::cachePortAvailable(bool is_load) const
+{
+    bool ret;
+    if (is_load) {
+        ret  = usedLoadPorts < cacheLoadPorts;
+    } else {
+        ret  = usedStorePorts < cacheStorePorts;
+    }
+    return ret;
+}
+
+template<class Impl>
+void
+LSQ<Impl>::cachePortBusy(bool is_load)
+{
+    if (is_load) {
+        usedLoadPorts++;
+        assert(usedLoadPorts <= cacheLoadPorts);
+    } else {
+        usedStorePorts++;
+        assert(usedStorePorts <= cacheStorePorts);
     }
 }
 
@@ -255,6 +299,7 @@ void
 LSQ<Impl>::recvReqRetry()
 {
     iewStage->cacheUnblocked();
+    cacheBlocked(false);
 
     for (ThreadID tid : *activeThreads) {
         thread.at(tid).recvRetry();
