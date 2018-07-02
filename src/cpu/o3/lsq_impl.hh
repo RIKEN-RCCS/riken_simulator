@@ -64,6 +64,7 @@ LSQ<Impl>::LSQ(O3CPU *cpu_ptr, IEW *iew_ptr, DerivO3CPUParams *params)
       _cacheBlocked(false),
       cacheStorePorts(params->cacheStorePorts), usedStorePorts(0),
       cacheLoadPorts(params->cacheLoadPorts), usedLoadPorts(0),
+      storePortUsageRatio(params->storePortUsageRatio),
       lsqPolicy(readLSQPolicy(params->smtLSQPolicy)),
       maxLQEntries(maxLSQAllocation(lsqPolicy, params->LQEntries,
                   params->numThreads, params->smtLSQThreshold)),
@@ -200,7 +201,8 @@ bool
 LSQ<Impl>::cachePortAvailable(bool is_load) const
 {
     bool ret;
-    if (is_load) {
+
+    if (is_load || storePortUsageRatio) {
         ret  = usedLoadPorts < cacheLoadPorts;
     } else {
         ret  = usedStorePorts < cacheStorePorts;
@@ -215,6 +217,8 @@ LSQ<Impl>::cachePortBusy(bool is_load)
     if (is_load) {
         usedLoadPorts++;
         assert(usedLoadPorts <= cacheLoadPorts);
+    } else if (storePortUsageRatio){
+        usedLoadPorts += storePortUsageRatio;
     } else {
         usedStorePorts++;
         assert(usedStorePorts <= cacheStorePorts);

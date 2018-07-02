@@ -947,7 +947,7 @@ class LSQ {
     int cacheLoadPorts;
     /** The number of used cache ports in this cycle by loads. */
     int usedLoadPorts;
-
+    int storePortUsageRatio;
 
     /** The LSQ policy for SMT mode. */
     LSQPolicy lsqPolicy;
