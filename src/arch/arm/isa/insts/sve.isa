@@ -2710,9 +2710,8 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());'''
-        extraPrologCode = '''
-        Element destElem = AA64FpDest[0];'''
         code += '''
+        Element destElem = AA64FpDestMerge_x[0];
         for (int i = 0; i < eCount; ++i) {
             if (GpOp_x[i]) {
                 Element srcElem1 = AA64FpOp1_x[i];
@@ -2725,7 +2724,6 @@ let {{
         AA64FpDest_x[0] = destElem;'''%{'op': op}
         iop = InstObjParams(name, 'Sve' + Name, 'SveOrdReducOp',
                 {'code': code, 'op_class': opClass}, [])
-        iop.snippets['code'] = extraPrologCode + iop.snippets['code']
         header_output += SveReducOpDeclare.subst(iop)
         exec_output += SveOpExecute.subst(iop)
         for type in types:
