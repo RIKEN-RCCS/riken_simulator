@@ -272,9 +272,9 @@ class O3_ARM_PostK_ICache(Cache):
 
 # Data Cache
 class O3_ARM_PostK_DCache(Cache):
-    tag_latency = 5
-    data_latency = 5
-    response_latency = 5
+    tag_latency = 2
+    data_latency = 3
+    response_latency = 3
     mshrs = 21
     tgts_per_mshr = 32
     size = '64kB'
@@ -304,9 +304,9 @@ class O3_ARM_PostK_WalkCache(Cache):
 
 # L2 Cache
 class O3_ARM_PostK_L2(Cache):
-    tag_latency = 35
-    data_latency = 35
-    response_latency = 35
+    tag_latency = 37
+    data_latency = 37
+    response_latency = 37
     mshrs = 64
     tgts_per_mshr = 12
     size = '8MB'
