@@ -49,14 +49,14 @@
 #include <string>
 
 #include "arch/utility.hh"
-#include "base/loader/symtab.hh"
 #include "base/cp_annotate.hh"
+#include "base/loader/symtab.hh"
 #include "config/the_isa.hh"
+#include "cpu/base.hh"
 #include "cpu/checker/cpu.hh"
+#include "cpu/exetrace.hh"
 #include "cpu/o3/commit.hh"
 #include "cpu/o3/thread_state.hh"
-#include "cpu/base.hh"
-#include "cpu/exetrace.hh"
 #include "cpu/timebuf.hh"
 #include "debug/Activity.hh"
 #include "debug/Commit.hh"
@@ -161,7 +161,8 @@ void
 DefaultCommit<Impl>::regProbePoints()
 {
     ppCommit = new ProbePointArg<DynInstPtr>(cpu->getProbeManager(), "Commit");
-    ppCommitStall = new ProbePointArg<DynInstPtr>(cpu->getProbeManager(), "CommitStall");
+    ppCommitStall = new ProbePointArg<DynInstPtr>
+      (cpu->getProbeManager(), "CommitStall");
     ppSquash = new ProbePointArg<DynInstPtr>(cpu->getProbeManager(), "Squash");
 }
 
@@ -196,6 +197,18 @@ DefaultCommit<Impl>::regStats()
     instsCommitted
         .init(cpu->numThreads)
         .name(name() + ".committedInsts")
+        .desc("Number of ops commited each cycle")
+        .flags(Stats::pdf)
+        ;
+
+    zeroCommittedRob
+        .name(name() + ".zerocommitted_frontend")
+        .desc("number of cycles with no committed insts" \
+              "waiting fetch/decode/rename")
+        ;
+    numCommittedInst
+        .init(0,commitWidth,1)
+        .name(name() + ".committed_insts_per_cycle")
         .desc("Number of instructions committed")
         .flags(total)
         ;
@@ -282,6 +295,14 @@ DefaultCommit<Impl>::regStats()
         .name(name() + ".bw_lim_events")
         .desc("number cycles where commit BW limit reached")
         ;
+    zeroCommitedMem
+      .name(name()+".zerocommited_memref")
+      .desc("Number of memory reference head")
+      ;
+    zeroCommitedUop
+      .name(name()+".zerocommited_uop")
+      .desc("Number of cycle only commit uop.")
+      ;
 }
 
 template <class Impl>
@@ -855,7 +876,8 @@ DefaultCommit<Impl>::commit()
 
             if (fromIEW->mispredictInst[tid]) {
                 DPRINTF(Commit,
-                    "[tid:%i]: Squashing due to branch mispred PC:%#x [sn:%i]\n",
+                    "[tid:%i]: Squashing due to branch mispred\
+                    PC:%#x [sn:%i]\n",
                     tid,
                     fromIEW->mispredictInst[tid]->instAddr(),
                     fromIEW->squashedSeqNum[tid]);
@@ -981,9 +1003,10 @@ DefaultCommit<Impl>::commitInsts()
     DPRINTF(Commit, "Trying to commit instructions in the ROB.\n");
 
     unsigned num_committed = 0;
+    unsigned num_committed_insts = 0;
 
     DynInstPtr head_inst;
-
+    unsigned head_is_memref = 0;
     // Commit as many instructions as possible until the commit bandwidth
     // limit is reached, or it becomes impossible to commit any more.
     while (num_committed < commitWidth) {
@@ -998,12 +1021,16 @@ DefaultCommit<Impl>::commitInsts()
             break;
 
         head_inst = rob->readHeadInst(commit_thread);
+        if (head_inst->isMemRef()){
+            head_is_memref = 1;
+        }
 
         ThreadID tid = head_inst->threadNumber;
 
         assert(tid == commit_thread);
 
-        DPRINTF(Commit, "Trying to commit head instruction, [sn:%i] [tid:%i]\n",
+        DPRINTF(Commit, "Trying to commit head instruction,\
+                [sn:%i] [tid:%i]\n",
                 head_inst->seqNum, tid);
 
         // If the head instruction is squashed, it is ready to retire
@@ -1036,6 +1063,9 @@ DefaultCommit<Impl>::commitInsts()
 
             if (commit_success) {
                 ++num_committed;
+                if (!head_inst->isMicroop() ||
+                   head_inst->isLastMicroop())
+                  ++num_committed_insts;
                 statCommittedInstType[tid][head_inst->opClass()]++;
                 ppCommit->notify(head_inst);
 
@@ -1103,7 +1133,8 @@ DefaultCommit<Impl>::commitInsts()
                            !thread[tid]->trapPending);
                     do {
                         oldpc = pc[tid].instAddr();
-                        cpu->system->pcEventQueue.service(thread[tid]->getTC());
+                        cpu->system->pcEventQueue.service
+                          (thread[tid]->getTC());
                         count++;
                     } while (oldpc != pc[tid].instAddr());
                     if (count > 1) {
@@ -1119,7 +1150,8 @@ DefaultCommit<Impl>::commitInsts()
                 // pipeline reached a place to handle the interrupt. In that
                 // case squash now to make sure the interrupt is handled.
                 //
-                // If we don't do this, we might end up in a live lock situation
+                // If we don't do this, we might end up in a
+                // live lock situation
                 if (!interrupt && avoidQuiesceLiveLock &&
                     onInstBoundary && cpu->checkInterrupts(cpu->tcBase(0)))
                     squashAfter(tid, head_inst);
@@ -1133,7 +1165,18 @@ DefaultCommit<Impl>::commitInsts()
     }
 
     DPRINTF(CommitRate, "%i\n", num_committed);
-    numCommittedDist.sample(num_committed);
+
+    numCommittedInst.sample(num_committed_insts);
+
+    if (num_committed_insts == 0){
+        if (num_committed != 0){
+            zeroCommitedUop++;
+        }else if (rob->isEmpty()){
+            zeroCommittedRob++;
+        }else{
+            zeroCommitedMem += head_is_memref;
+        }
+    }
 
     if (num_committed == commitWidth) {
         commitEligibleSamples++;

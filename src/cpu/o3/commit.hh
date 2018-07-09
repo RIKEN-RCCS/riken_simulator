@@ -367,8 +367,9 @@ class DefaultCommit
     /** Vector of all of the threads. */
     std::vector<Thread *> thread;
 
-    /** Records that commit has written to the time buffer this cycle. Used for
-     * the CPU to determine if it can deschedule itself if there is no activity.
+    /** Records that commit has written to the time buffer
+     * this cycle. Used for  the CPU to determine if it can
+     * deschedule itself if there is no activity.
      */
     bool wroteToTimeBuffer;
 
@@ -479,17 +480,23 @@ class DefaultCommit
     /** Updates commit stats based on this instruction. */
     void updateComInstStats(const DynInstPtr &inst);
 
-    /** Stat for the total number of squashed instructions discarded by commit.
+    /** Stat for the total number of squashed
+     * instructions discarded by commit.
      */
     Stats::Scalar commitSquashedInsts;
-    /** Stat for the total number of times commit has had to stall due to a non-
-     * speculative instruction reaching the head of the ROB.
+    /** Stat for the total number of times
+     * commit has had to stall due to a nonspeculative
+     * instruction reaching the head of the ROB.
      */
     Stats::Scalar commitNonSpecStalls;
-    /** Stat for the total number of branch mispredicts that caused a squash. */
+    /** Stat for the total number of branch mispredicts
+     * that caused a squash.
+     */
     Stats::Scalar branchMispredicts;
     /** Distribution of the number of committed instructions each cycle. */
     Stats::Distribution numCommittedDist;
+    Stats::Distribution numCommittedInst;
+    Stats::Scalar zeroCommittedRob;
 
     /** Total number of instructions committed. */
     Stats::Vector instsCommitted;
@@ -518,6 +525,9 @@ class DefaultCommit
 
     /** Number of cycles where the commit bandwidth limit is reached. */
     Stats::Scalar commitEligibleSamples;
+    /** count zero insts commit*/
+    Stats::Scalar zeroCommitedMem;
+    Stats::Scalar zeroCommitedUop;
 };
 
 #endif // __CPU_O3_COMMIT_HH__
