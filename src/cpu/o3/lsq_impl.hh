@@ -180,6 +180,11 @@ LSQ<Impl>::tick()
 
     usedLoadPorts = 0;
     usedStorePorts = 0;
+
+    //    if (numFreeStoreEntries() < 6) {
+    //      DPRINTF(LSQ, "numFreeStoreEntries < 6, so writebaskStore first\n");
+    //      writebackStores();
+    //    }
 }
 
 template<class Impl>
@@ -202,8 +207,10 @@ LSQ<Impl>::cachePortAvailable(bool is_load) const
 {
     bool ret;
 
-    if (is_load || storePortUsageRatio) {
+    if (is_load) {
         ret  = usedLoadPorts < cacheLoadPorts;
+    } else if (storePortUsageRatio) {
+        ret  = usedLoadPorts + storePortUsageRatio <= cacheLoadPorts;
     } else {
         ret  = usedStorePorts < cacheStorePorts;
     }

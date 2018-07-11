@@ -560,7 +560,7 @@ output decoder {{
                 return new SveIndexedMemSV<uint64_t, uint8_t,
                                            SveGatherLoadSVMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemReadOp, zt, pg, rn, zm,
+                    mn, machInst, SveMemReadOp, zt, pg, rn, zm,
                     offsetIs32, offsetIsSigned, offsetIsScaled, firstFault);
             }
           case 0x2:
@@ -568,13 +568,13 @@ output decoder {{
                 return new SveIndexedMemSV<int32_t, int16_t,
                                            SveGatherLoadSVMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemReadOp, zt, pg, rn, zm,
+                    mn, machInst, SveMemReadOp, zt, pg, rn, zm,
                     offsetIs32, offsetIsSigned, offsetIsScaled, firstFault);
             } else {
                 return new SveIndexedMemSV<int64_t, int16_t,
                                            SveGatherLoadSVMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemReadOp, zt, pg, rn, zm,
+                    mn, machInst, SveMemReadOp, zt, pg, rn, zm,
                     offsetIs32, offsetIsSigned, offsetIsScaled, firstFault);
             }
           case 0x3:
@@ -582,13 +582,13 @@ output decoder {{
                 return new SveIndexedMemSV<uint32_t, uint16_t,
                                            SveGatherLoadSVMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemReadOp, zt, pg, rn, zm,
+                    mn, machInst, SveMemReadOp, zt, pg, rn, zm,
                     offsetIs32, offsetIsSigned, offsetIsScaled, firstFault);
             } else {
                 return new SveIndexedMemSV<uint64_t, uint16_t,
                                            SveGatherLoadSVMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemReadOp, zt, pg, rn, zm,
+                    mn, machInst, SveMemReadOp, zt, pg, rn, zm,
                     offsetIs32, offsetIsSigned, offsetIsScaled, firstFault);
             }
           case 0x4:
@@ -598,7 +598,7 @@ output decoder {{
                 return new SveIndexedMemSV<int64_t, int32_t,
                                            SveGatherLoadSVMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemReadOp, zt, pg, rn, zm,
+                    mn, machInst, SveMemReadOp, zt, pg, rn, zm,
                     offsetIs32, offsetIsSigned, offsetIsScaled, firstFault);
             }
           case 0x5:
@@ -606,13 +606,13 @@ output decoder {{
                 return new SveIndexedMemSV<uint32_t, uint32_t,
                                            SveGatherLoadSVMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemReadOp, zt, pg, rn, zm,
+                    mn, machInst, SveMemReadOp, zt, pg, rn, zm,
                     offsetIs32, offsetIsSigned, offsetIsScaled, firstFault);
             } else {
                 return new SveIndexedMemSV<uint64_t, uint32_t,
                                            SveGatherLoadSVMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemReadOp, zt, pg, rn, zm,
+                    mn, machInst, SveMemReadOp, zt, pg, rn, zm,
                     offsetIs32, offsetIsSigned, offsetIsScaled, firstFault);
             }
           case 0x7:
@@ -622,7 +622,7 @@ output decoder {{
                 return new SveIndexedMemSV<uint64_t, uint64_t,
                                            SveGatherLoadSVMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemReadOp, zt, pg, rn, zm,
+                    mn, machInst, SveMemReadOp, zt, pg, rn, zm,
                     offsetIs32, offsetIsSigned, offsetIsScaled, firstFault);
             }
         }
@@ -642,36 +642,36 @@ output decoder {{
                 return new SveIndexedMemVI<uint32_t, uint8_t,
                                            SveScatterStoreVIMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemWriteOp, zt, pg, zn, imm, false);
+                    mn, machInst, SveMemWriteOp, zt, pg, zn, imm, false);
             } else {
                 return new SveIndexedMemVI<uint64_t, uint8_t,
                                            SveScatterStoreVIMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemWriteOp, zt, pg, zn, imm, false);
+                    mn, machInst, SveMemWriteOp, zt, pg, zn, imm, false);
             }
           case 0x1:
             if (esizeIs32) {
                 return new SveIndexedMemVI<uint32_t, uint16_t,
                                            SveScatterStoreVIMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemWriteOp, zt, pg, zn, imm, false);
+                    mn, machInst, SveMemWriteOp, zt, pg, zn, imm, false);
             } else {
                 return new SveIndexedMemVI<uint64_t, uint16_t,
                                            SveScatterStoreVIMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemWriteOp, zt, pg, zn, imm, false);
+                    mn, machInst, SveMemWriteOp, zt, pg, zn, imm, false);
             }
           case 0x2:
             if (esizeIs32) {
                 return new SveIndexedMemVI<uint32_t, uint32_t,
                                            SveScatterStoreVIMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemWriteOp, zt, pg, zn, imm, false);
+                    mn, machInst, SveMemWriteOp, zt, pg, zn, imm, false);
             } else {
                 return new SveIndexedMemVI<uint64_t, uint32_t,
                                            SveScatterStoreVIMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemWriteOp, zt, pg, zn, imm, false);
+                    mn, machInst, SveMemWriteOp, zt, pg, zn, imm, false);
             }
           case 0x3:
             if (esizeIs32) {
@@ -680,7 +680,7 @@ output decoder {{
                 return new SveIndexedMemVI<uint64_t, uint64_t,
                                            SveScatterStoreVIMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemWriteOp, zt, pg, zn, imm, false);
+                    mn, machInst, SveMemWriteOp, zt, pg, zn, imm, false);
             }
         }
         return new Unknown64(machInst);
@@ -700,13 +700,13 @@ output decoder {{
                 return new SveIndexedMemSV<uint32_t, uint8_t,
                                            SveScatterStoreSVMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemWriteOp, zt, pg, rn, zm,
+                    mn, machInst, SveMemWriteOp, zt, pg, rn, zm,
                     offsetIs32, offsetIsSigned, offsetIsScaled, false);
             } else {
                 return new SveIndexedMemSV<uint64_t, uint8_t,
                                            SveScatterStoreSVMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemWriteOp, zt, pg, rn, zm,
+                    mn, machInst, SveMemWriteOp, zt, pg, rn, zm,
                     offsetIs32, offsetIsSigned, offsetIsScaled, false);
             }
           case 0x1:
@@ -714,13 +714,13 @@ output decoder {{
                 return new SveIndexedMemSV<uint32_t, uint16_t,
                                            SveScatterStoreSVMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemWriteOp, zt, pg, rn, zm,
+                    mn, machInst, SveMemWriteOp, zt, pg, rn, zm,
                     offsetIs32, offsetIsSigned, offsetIsScaled, false);
             } else {
                 return new SveIndexedMemSV<uint64_t, uint16_t,
                                            SveScatterStoreSVMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemWriteOp, zt, pg, rn, zm,
+                    mn, machInst, SveMemWriteOp, zt, pg, rn, zm,
                     offsetIs32, offsetIsSigned, offsetIsScaled, false);
             }
           case 0x2:
@@ -728,13 +728,13 @@ output decoder {{
                 return new SveIndexedMemSV<uint32_t, uint32_t,
                                            SveScatterStoreSVMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemWriteOp, zt, pg, rn, zm,
+                    mn, machInst, SveMemWriteOp, zt, pg, rn, zm,
                     offsetIs32, offsetIsSigned, offsetIsScaled, false);
             } else {
                 return new SveIndexedMemSV<uint64_t, uint32_t,
                                            SveScatterStoreSVMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemWriteOp, zt, pg, rn, zm,
+                    mn, machInst, SveMemWriteOp, zt, pg, rn, zm,
                     offsetIs32, offsetIsSigned, offsetIsScaled, false);
             }
           case 0x3:
@@ -744,7 +744,7 @@ output decoder {{
                 return new SveIndexedMemSV<uint64_t, uint64_t,
                                            SveScatterStoreSVMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemWriteOp, zt, pg, rn, zm,
+                    mn, machInst, SveMemWriteOp, zt, pg, rn, zm,
                     offsetIs32, offsetIsSigned, offsetIsScaled, false);
             }
         }
