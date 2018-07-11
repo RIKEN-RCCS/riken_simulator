@@ -78,6 +78,7 @@ static const OpClass SimdMultAccOp = Enums::SimdMultAcc;
 static const OpClass SimdShiftOp = Enums::SimdShift;
 static const OpClass SimdShiftAccOp = Enums::SimdShiftAcc;
 static const OpClass SimdDivOp = Enums::SimdDiv;
+static const OpClass SimdGprOp = Enums::SimdGpr;
 static const OpClass SimdSqrtOp = Enums::SimdSqrt;
 static const OpClass SimdReduceAddOp = Enums::SimdReduceAdd;
 static const OpClass SimdReduceAluOp = Enums::SimdReduceAlu;

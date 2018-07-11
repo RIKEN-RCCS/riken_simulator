@@ -222,19 +222,19 @@ output decoder {{
                 return new SveLdStructSI<etype,
                         SveLoadRegImmMicroop,
                         SveDeIntrlv2Microop>(
-                               nm[numregs][esize], machInst, MemReadOp,
+                               nm[numregs][esize], machInst, SveMemReadOp,
                                zt, pg, xn, imm, numregs);
             case 3:
                 return new SveLdStructSI<etype,
                         SveLoadRegImmMicroop,
                         SveDeIntrlv3Microop>(
-                               nm[numregs][esize], machInst, MemReadOp,
+                               nm[numregs][esize], machInst, SveMemReadOp,
                                zt, pg, xn, imm, numregs);
             case 4:
                 return new SveLdStructSI<etype,
                         SveLoadRegImmMicroop,
                         SveDeIntrlv4Microop>(
-                               nm[numregs][esize], machInst, MemReadOp,
+                               nm[numregs][esize], machInst, SveMemReadOp,
                                zt, pg, xn, imm, numregs);
         }
         return new Unknown64(machInst);
@@ -280,19 +280,19 @@ output decoder {{
                 return new SveStStructSI<etype,
                         SveStoreRegImmMicroop,
                         SveIntrlv2Microop>(
-                            nm[numregs][esize], machInst, MemWriteOp,
+                            nm[numregs][esize], machInst, SveMemWriteOp,
                             zt, pg, xn, imm, numregs);
             case 3:
                 return new SveStStructSI<etype,
                         SveStoreRegImmMicroop,
                         SveIntrlv3Microop>(
-                            nm[numregs][esize], machInst, MemWriteOp,
+                            nm[numregs][esize], machInst, SveMemWriteOp,
                             zt, pg, xn, imm, numregs);
            case 4:
                 return new SveStStructSI<etype,
                         SveStoreRegImmMicroop,
                         SveIntrlv4Microop>(
-                            nm[numregs][esize], machInst, MemWriteOp,
+                            nm[numregs][esize], machInst, SveMemWriteOp,
                             zt, pg, xn, imm, numregs);
         }
         return new Unknown64(machInst);
@@ -338,19 +338,19 @@ output decoder {{
                 return new SveLdStructSS<etype,
                         SveLoadRegRegMicroop,
                         SveDeIntrlv2Microop>(
-                               nm[numregs][esize], machInst, MemReadOp,
+                               nm[numregs][esize], machInst, SveMemReadOp,
                                zt, pg, xn, xm, numregs);
             case 3:
                 return new SveLdStructSS<etype,
                         SveLoadRegRegMicroop,
                         SveDeIntrlv3Microop>(
-                               nm[numregs][esize], machInst, MemReadOp,
+                               nm[numregs][esize], machInst, SveMemReadOp,
                                zt, pg, xn, xm, numregs);
             case 4:
                 return new SveLdStructSS<etype,
                         SveLoadRegRegMicroop,
                         SveDeIntrlv4Microop>(
-                               nm[numregs][esize], machInst, MemReadOp,
+                               nm[numregs][esize], machInst, SveMemReadOp,
                                zt, pg, xn, xm, numregs);
         }
         return new Unknown64(machInst);
@@ -396,19 +396,19 @@ output decoder {{
                 return new SveStStructSS<etype,
                         SveStoreRegRegMicroop,
                         SveIntrlv2Microop>(
-                               nm[numregs][esize], machInst, MemWriteOp,
+                               nm[numregs][esize], machInst, SveMemWriteOp,
                                zt, pg, xn, xm, numregs);
             case 3:
                 return new SveStStructSS<etype,
                         SveStoreRegRegMicroop,
                         SveIntrlv3Microop>(
-                               nm[numregs][esize], machInst, MemWriteOp,
+                               nm[numregs][esize], machInst, SveMemWriteOp,
                                zt, pg, xn, xm, numregs);
             case 4:
                 return new SveStStructSS<etype,
                         SveStoreRegRegMicroop,
                         SveIntrlv4Microop>(
-                               nm[numregs][esize], machInst, MemWriteOp,
+                               nm[numregs][esize], machInst, SveMemWriteOp,
                                zt, pg, xn, xm, numregs);
         }
         return new Unknown64(machInst);
@@ -449,48 +449,48 @@ output decoder {{
                 return new SveIndexedMemVI<int32_t, int8_t,
                                            SveGatherLoadVIMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemReadOp, zt, pg, zn, imm, firstFault);
+                    mn, machInst, SveMemReadOp, zt, pg, zn, imm, firstFault);
             } else {
                 return new SveIndexedMemVI<int64_t, int8_t,
                                            SveGatherLoadVIMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemReadOp, zt, pg, zn, imm, firstFault);
+                    mn, machInst, SveMemReadOp, zt, pg, zn, imm, firstFault);
             }
           case 0x1:
             if (esizeIs32) {
                 return new SveIndexedMemVI<uint32_t, uint8_t,
                                            SveGatherLoadVIMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemReadOp, zt, pg, zn, imm, firstFault);
+                    mn, machInst, SveMemReadOp, zt, pg, zn, imm, firstFault);
             } else {
                 return new SveIndexedMemVI<uint64_t, uint8_t,
                                            SveGatherLoadVIMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemReadOp, zt, pg, zn, imm, firstFault);
+                    mn, machInst, SveMemReadOp, zt, pg, zn, imm, firstFault);
             }
           case 0x2:
             if (esizeIs32) {
                 return new SveIndexedMemVI<int32_t, int16_t,
                                            SveGatherLoadVIMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemReadOp, zt, pg, zn, imm, firstFault);
+                    mn, machInst, SveMemReadOp, zt, pg, zn, imm, firstFault);
             } else {
                 return new SveIndexedMemVI<int64_t, int16_t,
                                            SveGatherLoadVIMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemReadOp, zt, pg, zn, imm, firstFault);
+                    mn, machInst, SveMemReadOp, zt, pg, zn, imm, firstFault);
             }
           case 0x3:
             if (esizeIs32) {
                 return new SveIndexedMemVI<uint32_t, uint16_t,
                                            SveGatherLoadVIMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemReadOp, zt, pg, zn, imm, firstFault);
+                    mn, machInst, SveMemReadOp, zt, pg, zn, imm, firstFault);
             } else {
                 return new SveIndexedMemVI<uint64_t, uint16_t,
                                            SveGatherLoadVIMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemReadOp, zt, pg, zn, imm, firstFault);
+                    mn, machInst, SveMemReadOp, zt, pg, zn, imm, firstFault);
             }
           case 0x4:
             if (esizeIs32) {
@@ -499,19 +499,19 @@ output decoder {{
                 return new SveIndexedMemVI<int64_t, int32_t,
                                            SveGatherLoadVIMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemReadOp, zt, pg, zn, imm, firstFault);
+                    mn, machInst, SveMemReadOp, zt, pg, zn, imm, firstFault);
             }
           case 0x5:
             if (esizeIs32) {
                 return new SveIndexedMemVI<uint32_t, uint32_t,
                                            SveGatherLoadVIMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemReadOp, zt, pg, zn, imm, firstFault);
+                    mn, machInst, SveMemReadOp, zt, pg, zn, imm, firstFault);
             } else {
                 return new SveIndexedMemVI<uint64_t, uint32_t,
                                            SveGatherLoadVIMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemReadOp, zt, pg, zn, imm, firstFault);
+                    mn, machInst, SveMemReadOp, zt, pg, zn, imm, firstFault);
             }
           case 0x7:
             if (esizeIs32) {
@@ -520,7 +520,7 @@ output decoder {{
                 return new SveIndexedMemVI<uint64_t, uint64_t,
                                            SveGatherLoadVIMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemReadOp, zt, pg, zn, imm, firstFault);
+                    mn, machInst, SveMemReadOp, zt, pg, zn, imm, firstFault);
             }
         }
         return new Unknown64(machInst);
@@ -540,13 +540,13 @@ output decoder {{
                 return new SveIndexedMemSV<int32_t, int8_t,
                                            SveGatherLoadSVMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemReadOp, zt, pg, rn, zm,
+                    mn, machInst, SveMemReadOp, zt, pg, rn, zm,
                     offsetIs32, offsetIsSigned, offsetIsScaled, firstFault);
             } else {
                 return new SveIndexedMemSV<int64_t, int8_t,
                                            SveGatherLoadSVMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemReadOp, zt, pg, rn, zm,
+                    mn, machInst, SveMemReadOp, zt, pg, rn, zm,
                     offsetIs32, offsetIsSigned, offsetIsScaled, firstFault);
             }
           case 0x1:
@@ -554,7 +554,7 @@ output decoder {{
                 return new SveIndexedMemSV<uint32_t, uint8_t,
                                            SveGatherLoadSVMicroop,
                                            SveFirstFaultWritebackMicroop>(
-                    mn, machInst, MemReadOp, zt, pg, rn, zm,
+                    mn, machInst, SveMemReadOp, zt, pg, rn, zm,
                     offsetIs32, offsetIsSigned, offsetIsScaled, firstFault);
             } else {
                 return new SveIndexedMemSV<uint64_t, uint8_t,

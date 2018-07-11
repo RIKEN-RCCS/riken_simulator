@@ -2910,7 +2910,7 @@ let {{
         if (last >= eCount)
             last = 0;
         destElem = AA64FpOp1_x[last];'''
-    sveSelectInst('clasta', 'Clasta', 'SimdAluOp', unsignedTypes, clastaCode,
+    sveSelectInst('clasta', 'Clasta', 'SimdGprOp', unsignedTypes, clastaCode,
             isCond = True, destType = DestType.Scalar)
     # CLASTA (vector)
     sveSelectInst('clasta', 'Clastav', 'SimdAluOp', unsignedTypes, clastaCode,
@@ -2918,7 +2918,7 @@ let {{
     # CLASTB (scalar)
     clastbCode = '''
         destElem = AA64FpOp1_x[last];'''
-    sveSelectInst('clastb', 'Clastb', 'SimdAluOp', unsignedTypes, clastbCode,
+    sveSelectInst('clastb', 'Clastb', 'SimdGprOp', unsignedTypes, clastbCode,
             isCond = True, destType = DestType.Scalar)
     # CLASTB (vector)
     sveSelectInst('clastb', 'Clastbv', 'SimdAluOp', unsignedTypes, clastbCode,
@@ -3521,7 +3521,7 @@ let {{
             last = 0;
         }
         destElem = AA64FpOp1_x[last];'''
-    sveSelectInst('lasta', 'Lasta', 'SimdAluOp', unsignedTypes, lastaCode,
+    sveSelectInst('lasta', 'Lasta', 'SimdGprOp', unsignedTypes, lastaCode,
             isCond = False)
     # LASTB (scalar)
     lastbCode = '''
@@ -3529,7 +3529,7 @@ let {{
             last = eCount - 1;
         }
         destElem = AA64FpOp1_x[last];'''
-    sveSelectInst('lastb', 'Lastb', 'SimdAluOp', unsignedTypes, lastbCode,
+    sveSelectInst('lastb', 'Lastb', 'SimdGprOp', unsignedTypes, lastbCode,
             isCond = False)
     # LSL (immediate, predicated)
     lslCode = '''
