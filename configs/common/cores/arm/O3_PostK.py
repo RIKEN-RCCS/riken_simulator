@@ -230,7 +230,7 @@ class O3_ARM_PostK_3(DerivO3CPU):
     fetchToDecodeDelay = 1
     decodeWidth = 4
     decodeToRenameDelay = 1
-    renameWidth = 4
+    renameWidth = 2
     renameToIEWDelay = 1
     issueToExecuteDelay = 1
     dispatchWidth = 4
@@ -252,8 +252,9 @@ class O3_ARM_PostK_3(DerivO3CPU):
     #numPhysMaskRegs = 48
     numIQEntries = 64 #128 #64
     numROBEntries = 128 #256 #128
+    cacheLoadPorts=2
     cacheStorePorts=1
-    #storePortUsageRatio = 2
+    storePortUsageRatio = 2
 
     switched_out = False
     branchPred = O3_ARM_PostK_BP()
@@ -272,9 +273,9 @@ class O3_ARM_PostK_ICache(Cache):
 
 # Data Cache
 class O3_ARM_PostK_DCache(Cache):
-    tag_latency = 5
-    data_latency = 5
-    response_latency = 5
+    tag_latency = 2
+    data_latency = 3
+    response_latency = 3
     mshrs = 21
     tgts_per_mshr = 32
     size = '64kB'
@@ -304,9 +305,9 @@ class O3_ARM_PostK_WalkCache(Cache):
 
 # L2 Cache
 class O3_ARM_PostK_L2(Cache):
-    tag_latency = 35
-    data_latency = 35
-    response_latency = 35
+    tag_latency = 37
+    data_latency = 37
+    response_latency = 37
     mshrs = 64
     tgts_per_mshr = 12
     size = '8MB'

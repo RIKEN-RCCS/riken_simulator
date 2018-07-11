@@ -118,7 +118,7 @@ class StaticInst : public RefCounted, public StaticInstFlags
     int8_t _numVecElemDestRegs;
     int8_t _numPredDestRegs;
     /** @} */
-
+    int8_t vecLen;
   public:
 
     /// @name Register information.
