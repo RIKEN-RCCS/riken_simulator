@@ -232,7 +232,7 @@ class O3_ARM_PostK_3(DerivO3CPU):
     fetchToDecodeDelay = 1
     decodeWidth = 4
     decodeToRenameDelay = 1
-    renameWidth = 4
+    renameWidth = 2
     renameToIEWDelay = 1
     issueToExecuteDelay = 1
     dispatchWidth = 4

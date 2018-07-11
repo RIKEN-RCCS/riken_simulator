@@ -152,6 +152,7 @@ class ArmStaticInst : public StaticInst
             intWidth = 64;  // Force 64-bit width for ADR/ADRP
         else
             intWidth = (aarch64 && bits(machInst, 31)) ? 64 : 32;
+	vecLen = 1;
     }
 
     /// Print a register name for disassembly given the unique
