@@ -1453,6 +1453,8 @@ class InstObjParams(object):
                 # register
                 if 'IsFloating' in self.flags:
                     self.op_class = 'FloatMemWriteOp'
+                elif 'IsVector' in self.flags:
+                    self.op_class = 'SveMemWriteOp'
                 else:
                     self.op_class = 'MemWriteOp'
             elif 'IsLoad' in self.flags or 'IsPrefetch' in self.flags:
@@ -1461,6 +1463,8 @@ class InstObjParams(object):
                 # register
                 if 'IsFloating' in self.flags:
                     self.op_class = 'FloatMemReadOp'
+                elif 'IsVector' in self.flags:
+                    self.op_class = 'SveMemReadOp'
                 else:
                     self.op_class = 'MemReadOp'
             elif 'IsFloating' in self.flags:
