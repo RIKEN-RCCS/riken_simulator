@@ -3400,7 +3400,7 @@ let {{
                PredType.MERGE)
     # FRECPE
     frecpeCode = fpOp % 'fplibRecipEstimate<Element>(srcElem1, fpscr)'
-    sveUnaryInst('frecpe', 'Frecpe', 'SimdFloatMultAccOp', floatTypes,
+    sveUnaryInst('frecpe', 'Frecpe', 'SimdFloatMiscOp', floatTypes,
                  frecpeCode)
     # FRECPS
     frecpsCode = fpBinOp % 'RecipStepFused'
@@ -3408,7 +3408,7 @@ let {{
                frecpsCode)
     # FRECPX
     frecpxCode = fpOp % "fplibRecpX<Element>(srcElem1, fpscr)"
-    sveUnaryInst('frecpx', 'Frecpx', 'SimdFloatMultAccOp', floatTypes,
+    sveUnaryInst('frecpx', 'Frecpx', 'SimdFloatMiscOp', floatTypes,
                  frecpxCode, PredType.MERGE)
     # FRINTA
     frintCode = fpOp % 'fplibRoundInt<Element>(srcElem1, %s, %s, fpscr)'
@@ -3441,11 +3441,11 @@ let {{
                  PredType.MERGE)
     # FRSQRTE
     frsqrteCode = fpOp % 'fplibRSqrtEstimate<Element>(srcElem1, fpscr)'
-    sveUnaryInst('frsqrte', 'Frsqrte', 'SimdFloatSqrtOp', floatTypes,
+    sveUnaryInst('frsqrte', 'Frsqrte', 'SimdFloatMiscOp', floatTypes,
                  frsqrteCode)
     # FRSQRTS
     frsqrtsCode = fpBinOp % 'RSqrtStepFused'
-    sveBinInst('frsqrts', 'Frsqrts', 'SimdFloatMiscOp', floatTypes,
+    sveBinInst('frsqrts', 'Frsqrts', 'SimdFloatMultAccOp', floatTypes,
                frsqrtsCode)
     # FSCALE
     fscaleCode = fpBinOp % 'Scale'

@@ -72,6 +72,7 @@ class O3_ARM_PostK_FLA(FUDesc):
                OpDesc(opClass='SimdAlu', opLat=4),
                OpDesc(opClass='SimdCmp', opLat=4),
                OpDesc(opClass='SimdCvt', opLat=4),
+               OpDesc(opClass='SimdDiv', opLat=178, pipelined=False),
                OpDesc(opClass='SimdMisc', opLat=4),
                OpDesc(opClass='SimdMult',opLat=9),
                OpDesc(opClass='SimdMultAcc',opLat=9),
@@ -184,10 +185,10 @@ class O3_ARM_PostK_FLB(FUDesc):
 class O3_ARM_PostK_LoadStore(FUDesc):
     opList = [ OpDesc(opClass='MemRead',opLat=2),
                OpDesc(opClass='FloatMemRead',opLat=5),
-               #OpDesc(opClass='VectorExtMread', opLat=8),
+               OpDesc(opClass='SveMemRead', opLat=8),
                OpDesc(opClass='MemWrite',opLat=1),
                OpDesc(opClass='FloatMemWrite',opLat=1),
-               #OpDesc(opClass='VectorExtMwrite', opLat=1)
+               OpDesc(opClass='SveMemWrite', opLat=1)
     ]
     count = 1
 

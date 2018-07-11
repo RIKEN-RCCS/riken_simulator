@@ -56,6 +56,7 @@ class OpClass(Enum):
             'SimdFloatReduceAdd', 'SimdFloatReduceCmp',
             'SimdPredAlu',
             'MemRead', 'MemWrite', 'FloatMemRead', 'FloatMemWrite',
+            'SveMemRead', 'SveMemWrite',
             'IprAccess', 'InstPrefetch']
 
 class OpDesc(SimObject):
