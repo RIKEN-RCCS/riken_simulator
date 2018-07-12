@@ -73,6 +73,7 @@ static const OpClass SimdCvtOp = Enums::SimdCvt;
 static const OpClass SimdMiscOp = Enums::SimdMisc;
 static const OpClass SimdMiscAOp = Enums::SimdMiscA;
 static const OpClass SimdMiscBOp = Enums::SimdMiscB;
+static const OpClass SimdMvpOp = Enums::SimdMvp;
 static const OpClass SimdMultOp = Enums::SimdMult;
 static const OpClass SimdMultAccOp = Enums::SimdMultAcc;
 static const OpClass SimdShiftOp = Enums::SimdShift;

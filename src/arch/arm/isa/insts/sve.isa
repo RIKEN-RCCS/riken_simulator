@@ -3404,7 +3404,7 @@ let {{
                  frecpeCode)
     # FRECPS
     frecpsCode = fpBinOp % 'RecipStepFused'
-    sveBinInst('frecps', 'Frecps', 'SimdFloatMultAccOp', floatTypes,
+    sveBinInst('frecps', 'Frecps', 'SimdFloatMultOp', floatTypes,
                frecpsCode)
     # FRECPX
     frecpxCode = fpOp % "fplibRecpX<Element>(srcElem1, fpscr)"
@@ -3445,11 +3445,11 @@ let {{
                  frsqrteCode)
     # FRSQRTS
     frsqrtsCode = fpBinOp % 'RSqrtStepFused'
-    sveBinInst('frsqrts', 'Frsqrts', 'SimdFloatMultAccOp', floatTypes,
+    sveBinInst('frsqrts', 'Frsqrts', 'SimdFloatMultOp', floatTypes,
                frsqrtsCode)
     # FSCALE
     fscaleCode = fpBinOp % 'Scale'
-    sveBinInst('fscale', 'Fscale', 'SimdFloatMiscOp', floatTypes, fscaleCode,
+    sveBinInst('fscale', 'Fscale', 'SimdFloatMultOp', floatTypes, fscaleCode,
                PredType.MERGE, True)
     # FSQRT
     fsqrtCode = fpOp % "fplibSqrt<Element>(srcElem1, fpscr)"
@@ -3478,10 +3478,10 @@ let {{
                   ftmadCode)
     # FTSMUL
     ftsmulCode = fpBinOp % 'TrigSMul'
-    sveBinInst('ftsmul', 'Ftsmul', 'SimdFloatMiscOp', floatTypes, ftsmulCode)
+    sveBinInst('ftsmul', 'Ftsmul', 'SimdFloatMultOp', floatTypes, ftsmulCode)
     # FTSSEL
     ftsselCode = fpBinOp % 'TrigSSel'
-    sveBinInst('ftssel', 'Ftssel', 'SimdFloatMultOp', floatTypes, ftsselCode)
+    sveBinInst('ftssel', 'Ftssel', 'SimdFloatMiscOp', floatTypes, ftsselCode)
     # INCB, INCH, INCW, INCD (scalar)
     incxCode = '''
         destElem = srcElem1 + (count * imm);
@@ -3608,12 +3608,12 @@ let {{
     sveTerInst('mls', 'Mls', 'SimdMultAccOp', signedTypes, mlsCode)
     # MOVPRFX (predicated)
     movCode = 'destElem = srcElem1;'
-    sveUnaryInst('movprfx', 'MovprfxPredM', 'SimdMiscOp', unsignedTypes,
+    sveUnaryInst('movprfx', 'MovprfxPredM', 'SimdMvpOp', unsignedTypes,
                  movCode, PredType.MERGE)
-    sveUnaryInst('movprfx', 'MovprfxPredZ', 'SimdMiscOp', unsignedTypes,
+    sveUnaryInst('movprfx', 'MovprfxPredZ', 'SimdMvpOp', unsignedTypes,
                  movCode, PredType.ZERO)
     # MOVPRFX (unpredicated)
-    sveUnaryInst('movprfx', 'MovprfxUnpred', 'SimdMiscOp', ('uint64_t',),
+    sveUnaryInst('movprfx', 'MovprfxUnpred', 'SimdMvpOp', ('uint64_t',),
                  movCode)
     # MSB
     msbCode = 'destElem = srcElem1 - destElem * srcElem2;'
