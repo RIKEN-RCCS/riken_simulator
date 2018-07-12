@@ -526,8 +526,8 @@ class DefaultCommit
     /** Number of cycles where the commit bandwidth limit is reached. */
     Stats::Scalar commitEligibleSamples;
     /** count zero insts commit*/
-    Stats::Scalar zeroCommitedMem;
-    Stats::Scalar zeroCommitedUop;
+    Stats::Scalar zeroCommittedMem;
+    Stats::Scalar zeroCommittedUop;
 };
 
 #endif // __CPU_O3_COMMIT_HH__

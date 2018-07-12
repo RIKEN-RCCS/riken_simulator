@@ -190,14 +190,14 @@ DefaultCommit<Impl>::regStats()
     numCommittedDist
         .init(0,commitWidth,1)
         .name(name() + ".committed_per_cycle")
-        .desc("Number of insts commited each cycle")
+        .desc("Number of insts committed each cycle")
         .flags(Stats::pdf)
         ;
 
     instsCommitted
         .init(cpu->numThreads)
         .name(name() + ".committedInsts")
-        .desc("Number of ops commited each cycle")
+        .desc("Number of ops committed each cycle")
         .flags(Stats::pdf)
         ;
 
@@ -295,12 +295,12 @@ DefaultCommit<Impl>::regStats()
         .name(name() + ".bw_lim_events")
         .desc("number cycles where commit BW limit reached")
         ;
-    zeroCommitedMem
-      .name(name()+".zerocommited_memref")
+    zeroCommittedMem
+      .name(name()+".zerocommitted_memref")
       .desc("Number of memory reference head")
       ;
-    zeroCommitedUop
-      .name(name()+".zerocommited_uop")
+    zeroCommittedUop
+      .name(name()+".zerocommitted_uop")
       .desc("Number of cycle only commit uop.")
       ;
 }
@@ -1170,11 +1170,11 @@ DefaultCommit<Impl>::commitInsts()
 
     if (num_committed_insts == 0){
         if (num_committed != 0){
-            zeroCommitedUop++;
+            zeroCommittedUop++;
         }else if (rob->isEmpty()){
             zeroCommittedRob++;
         }else{
-            zeroCommitedMem += head_is_memref;
+            zeroCommittedMem += head_is_memref;
         }
     }
 
