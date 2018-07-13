@@ -414,7 +414,7 @@ def template SveIndexedMemVIMicroopDeclare {{
                              ArmISA::TLB::MustBeOne)
         {
             %(constructor)s;
-            if (_opClass == MemReadOp && elemIndex == 0) {
+            if (_opClass == SveMemReadOp && elemIndex == 0) {
                 // The first micro-op is responsible for pinning the
                 // destination and the fault status registers
                 assert(_numDestRegs == 2);
@@ -443,7 +443,7 @@ def template SveIndexedMemVIMicroopDeclare {{
             printVecReg(ss, dest, true);
             ccprintf(ss, "}, ");
             printPredReg(ss, gp);
-            if (_opClass == MemReadOp) {
+            if (_opClass == SveMemReadOp) {
                 ccprintf(ss, "/z");
             }
             ccprintf(ss, ", [");
@@ -494,7 +494,7 @@ def template SveIndexedMemSVMicroopDeclare {{
                              ArmISA::TLB::MustBeOne)
         {
             %(constructor)s;
-            if (_opClass == MemReadOp && elemIndex == 0) {
+            if (_opClass == SveMemReadOp && elemIndex == 0) {
                 // The first micro-op is responsible for pinning the
                 // destination and the fault status registers
                 assert(_numDestRegs == 2);
@@ -523,7 +523,7 @@ def template SveIndexedMemSVMicroopDeclare {{
             printVecReg(ss, dest, true);
             ccprintf(ss, "}, ");
             printPredReg(ss, gp);
-            if (_opClass == MemReadOp) {
+            if (_opClass == SveMemReadOp) {
                 ccprintf(ss, "/z");
             }
             ccprintf(ss, ", [");
@@ -885,7 +885,7 @@ def template SveStructMemSIMicroopDeclare {{
             }
             ccprintf(ss, "}, ");
             printPredReg(ss, gp);
-            if (_opClass == MemReadOp) {
+            if (_opClass == SveMemReadOp) {
                 ccprintf(ss, "/z");
             }
             ccprintf(ss, ", [");
@@ -1149,7 +1149,7 @@ def template SveStructMemSSMicroopDeclare {{
             }
             ccprintf(ss, "}, ");
             printPredReg(ss, gp);
-            if (_opClass == MemReadOp) {
+            if (_opClass == SveMemReadOp) {
                 ccprintf(ss, "/z");
             }
             ccprintf(ss, ", [");
