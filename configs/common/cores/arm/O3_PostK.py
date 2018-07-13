@@ -251,7 +251,7 @@ class O3_ARM_PostK_3(DerivO3CPU):
     numPhysIntRegs = 96
     numPhysFloatRegs = 512 #1056 #544 # 32*4+32=160:numFloatRegs 128*4+32=544
     numPhysVecRegs = 128 #264 #136 # 32+8=40 numVectorRegs 128+8=136
-    #numPhysMaskRegs = 48
+    numPhysPredRegs = 48 #32
     numIQEntries = 64 #128 #64
     numROBEntries = 128 #256 #128
     cacheLoadPorts=2
