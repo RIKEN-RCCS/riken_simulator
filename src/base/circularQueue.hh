@@ -419,7 +419,7 @@ class circularQueue : public std::vector<T>
     static uint32_t
     subM(const uint32_t& op1, const uint32_t& op2, const uint32_t& size)
     {
-        auto ret = (op1 - op2) % size;
+        int ret = (int32_t)(op1 - op2) % size;
         return ret >= 0 ? ret : ret + size;
     }
 
