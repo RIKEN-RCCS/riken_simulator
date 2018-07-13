@@ -352,7 +352,8 @@ class SveIndexedMemVI : public PredMacroOp
         : PredMacroOp(mnem, machInst, __opClass),
           dest(_dest), gp(_gp), base(_base), imm(_imm)
     {
-        bool isLoad = (__opClass == MemReadOp);
+        bool isLoad = ((__opClass == MemReadOp)
+                       ||(__opClass == SveMemReadOp));
         assert(!firstFault || isLoad);
 
         int num_elems = ((machInst.sveLen + 1) * 16) / sizeof(RegElemType);
@@ -455,7 +456,8 @@ class SveIndexedMemSV : public PredMacroOp
           offsetIs32(_offsetIs32), offsetIsSigned(_offsetIsSigned),
           offsetIsScaled(_offsetIsScaled)
     {
-        bool isLoad = (__opClass == MemReadOp);
+        bool isLoad = ((__opClass == MemReadOp)
+                       ||(__opClass == SveMemReadOp));
         assert(!firstFault || isLoad);
 
         int num_elems = ((machInst.sveLen + 1) * 16) / sizeof(RegElemType);
