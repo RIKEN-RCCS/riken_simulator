@@ -2778,10 +2778,10 @@ let {{
             }
             destElem = srcElem1 + srcElem2 * mult;
     '''
-    sveAdrInst('adr', 'Adr', 'SimdAddOp', ('uint32_t', 'uint64_t'), adrCode)
+    sveAdrInst('adr', 'Adr', 'SimdAluAOp', ('uint32_t', 'uint64_t'), adrCode)
     # AND (immediate)
     andCode = 'destElem = srcElem1 & srcElem2;'
-    sveWideImmInst('and', 'AndImm', 'SimdAluOp', ('uint64_t',), andCode)
+    sveWideImmInst('and', 'AndImm', 'SimdAluAOp', ('uint64_t',), andCode)
     # AND (vectors, predicated)
     sveBinInst('and', 'AndPred', 'SimdAluOp', unsignedTypes, andCode,
                PredType.MERGE, True)
@@ -2838,7 +2838,7 @@ let {{
         }
         destElem = (element1 >> shift);
     '''
-    sveBinImmInst('asrd', 'Asrd', 'SimdAluOp', signedTypes, asrdCode,
+    sveBinImmInst('asrd', 'Asrd', 'SimdMiscAOp', signedTypes, asrdCode,
                   PredType.MERGE)
     # ASRR
     asrrCode = '''
@@ -2941,7 +2941,7 @@ let {{
             }
         }
     '''
-    sveUnaryInst('cls', 'Cls', 'SimdAluOp', signedTypes, clsCode,
+    sveUnaryInst('cls', 'Cls', 'SimdAluAOp', signedTypes, clsCode,
                  PredType.MERGE)
     # CLZ
     clzCode = '''
@@ -2952,7 +2952,7 @@ let {{
             val <<= 1;
         }
     '''
-    sveUnaryInst('clz', 'Clz', 'SimdAluOp', signedTypes, clzCode,
+    sveUnaryInst('clz', 'Clz', 'SimdAluAOp', signedTypes, clzCode,
                  PredType.MERGE)
     # CMPEQ (immediate)
     cmpeqCode = '''
@@ -3049,16 +3049,16 @@ let {{
             val >>= 1;
         }
     '''
-    sveUnaryInst('cnt', 'Cnt', 'SimdAluOp', unsignedTypes, cntCode,
+    sveUnaryInst('cnt', 'Cnt', 'SimdAluBOp', unsignedTypes, cntCode,
                  PredType.MERGE)
     # CNTB, CNTD, CNTH, CNTW
     cntxCode = '''
         destElem = (count * imm);
     '''
-    sveElemCountInst('cnt', 'Cntx', 'SimdAluOp', unsignedTypes, cntxCode,
+    sveElemCountInst('cnt', 'Cntx', 'IntAluOp', unsignedTypes, cntxCode,
             destType = DestType.Scalar, dstIs32b = False, dstAcc = False)
     # COMPACT
-    sveCompactInst('compact', 'Compact', 'SimdPredAluOp',
+    sveCompactInst('compact', 'Compact', 'SimdMiscAOp',
             ('uint32_t', 'uint64_t'))
     # CPY (immediate)
     dupCode = 'destElem = srcElem1;'
@@ -3067,30 +3067,30 @@ let {{
     sveWideImmInst('cpy', 'CpyImmZero', 'SimdAluOp', unsignedTypes, dupCode,
                    predType=PredType.ZERO, isUnary=True)
     # CPY (scalar)
-    sveUnaryInst('cpy', 'CpyScalar', 'SimdAluOp', unsignedTypes, dupCode,
+    sveUnaryInst('cpy', 'CpyScalar', 'SimdMiscAOp', unsignedTypes, dupCode,
                  PredType.MERGE, srcRegType=SrcRegType.Scalar)
     # CPY (SIMD&FP scalar)
-    sveUnaryInst('cpy', 'CpySimdFpScalar', 'SimdAluOp', unsignedTypes, dupCode,
-                 PredType.MERGE, srcRegType=SrcRegType.SimdFpScalar)
+    sveUnaryInst('cpy', 'CpySimdFpScalar', 'SimdMiscAOp', unsignedTypes,
+                 dupCode, PredType.MERGE, srcRegType=SrcRegType.SimdFpScalar)
     # CNTP
     svePredCountPredInst('cntp', 'Cntp', 'SimdAluOp', unsignedTypes)
     # CTERMEQ
     cteqCode = '''
         destElem = srcElem1 == srcElem2;
     '''
-    sveCompTermInst('ctermeq', 'Ctermeq', 'IntAluOp',
+    sveCompTermInst('ctermeq', 'Ctermeq', 'IntAlu2Op',
             ['uint32_t', 'uint64_t'], cteqCode)
     # CTERMNE
     ctneCode = '''
         destElem = srcElem1 != srcElem2;
     '''
-    sveCompTermInst('ctermne', 'Ctermne', 'IntAluOp',
+    sveCompTermInst('ctermne', 'Ctermne', 'IntAlu2Op',
             ['uint32_t', 'uint64_t'], ctneCode)
     # DECB, DECH, DECW, DECD (scalar)
     decxCode = '''
         destElem = srcElem1 - (count * imm);
     '''
-    sveElemCountInst('dec', 'Dec', 'SimdAluOp', unsignedTypes, decxCode,
+    sveElemCountInst('dec', 'Dec', 'IntAluOp', unsignedTypes, decxCode,
             destType = DestType.Scalar, dstIs32b = False)
     # DECH, DECW, DECD (vector)
     sveElemCountInst('dec', 'Decv', 'SimdAluOp', bigUnsignedTypes, decxCode,
@@ -3099,28 +3099,28 @@ let {{
     decpCode = '''
     XDest = XDest - count;
     '''
-    svePredCountInst('decp', 'Decp', 'SimdAluOp', unsignedTypes, decpCode,
+    svePredCountInst('decp', 'Decp', 'SimdMiscAOp', unsignedTypes, decpCode,
                      DestType.Scalar, SrcSize.Src64bit)
     # DECP (vector)
     decpvCode = '''
     destElem = srcElem - count;
     '''
-    svePredCountInst('decp', 'Decpv', 'SimdAluOp', unsignedTypes, decpvCode,
+    svePredCountInst('decp', 'Decpv', 'SimdMiscAOp', unsignedTypes, decpvCode,
                      DestType.Vector)
     # DUP (immediate)
-    sveWideImmInst('dup', 'DupImm', 'SimdAluOp', unsignedTypes, dupCode,
+    sveWideImmInst('dup', 'DupImm', 'SimdAluAOp', unsignedTypes, dupCode,
                    isUnary=True)
     # DUP (index)
-    sveDupIndexInst('mov', 'DupIdx', 'SimdAluOp', unsignedTypes)
+    sveDupIndexInst('mov', 'DupIdx', 'SimdMiscAOp', unsignedTypes)
     # DUP (scalar)
-    sveUnaryInst('dup', 'DupScalar', 'SimdAluOp', unsignedTypes, dupCode,
+    sveUnaryInst('dup', 'DupScalar', 'SimdMiscAOp', unsignedTypes, dupCode,
                  PredType.NONE, srcRegType=SrcRegType.Scalar)
     # DUPM
-    sveWideImmInst('dupm', 'Dupm', 'SimdAluOp', unsignedTypes, dupCode,
+    sveWideImmInst('dupm', 'Dupm', 'SimdAluAOp', unsignedTypes, dupCode,
                    isUnary=True)
     # EOR (immediate)
     eorCode = 'destElem = srcElem1 ^ srcElem2;'
-    sveWideImmInst('eor', 'EorImm', 'SimdAluOp', ('uint64_t',), eorCode)
+    sveWideImmInst('eor', 'EorImm', 'SimdAluAOp', ('uint64_t',), eorCode)
     # EOR (vectors, predicated)
     sveBinInst('eor', 'EorPred', 'SimdAluOp', unsignedTypes, eorCode,
                PredType.MERGE, True)
@@ -3137,7 +3137,7 @@ let {{
     sveAssocReducInst('eorv', 'Eorv', 'SimdReduceAluOp', unsignedTypes,
                       eorvCode, '0')
     # EXT
-    sveExtInst('ext', 'Ext', 'SimdAluOp')
+    sveExtInst('ext', 'Ext', 'SimdMiscAOp')
     # FABD
     fpOp = '''
             FPSCR fpscr = (FPSCR) FpscrExc;
@@ -3162,7 +3162,7 @@ let {{
     # FADD (immediate)
     fpBinOp = fpOp % 'fplib%s<Element>(srcElem1, srcElem2, fpscr)'
     faddCode = fpBinOp % 'Add'
-    sveBinImmInst('fadd', 'FaddImm', 'SimdFloatAddOp', floatTypes, faddCode,
+    sveBinImmInst('fadd', 'FaddImm', 'SimdFloatAOp', floatTypes, faddCode,
                   PredType.MERGE)
     # FADD (vectors, predicated)
     sveBinInst('fadd', 'FaddPred', 'SimdFloatAddOp', floatTypes, faddCode,
@@ -3175,7 +3175,7 @@ let {{
             destElem = fplibAdd<Element>(destElem, srcElem1, fpscr);
             FpscrExc = FpscrExc | fpscr;
     '''
-    sveOrderedReduction('fadda', 'Fadda', 'SimdFloatReduceAddOp', floatTypes,
+    sveOrderedReduction('fadda', 'Fadda', 'SimdFloatReduceAddAOp', floatTypes,
             fpAddaOp)
     # FADDV
     fpReduceOp = '''
@@ -3231,7 +3231,7 @@ let {{
     # TODO: FCMLA (indexed)
     # TODO: FCMLA (vectors)
     # FCPY
-    sveWideImmInst('fcpy', 'Fcpy', 'SimdAluOp', unsignedTypes, dupCode,
+    sveWideImmInst('fcpy', 'Fcpy', 'SimdAluAOp', unsignedTypes, dupCode,
                    predType=PredType.MERGE, isUnary=True)
     # FCVT
     fcvtCode = fpOp % ('fplibConvert<SElement, DElement>('
@@ -3284,7 +3284,7 @@ let {{
     sveBinInst('fdivr', 'Fdivr', 'SimdFloatDivOp', floatTypes, fdivrCode,
                PredType.MERGE, True)
     # FDUP
-    sveWideImmInst('fdup', 'Fdup', 'SimdFloatAluOp', floatTypes, dupCode,
+    sveWideImmInst('fdup', 'Fdup', 'SimdAluAOp', floatTypes, dupCode,
                    isUnary=True)
     # FEXPA
     fexpaCode = 'destElem = fplibExpA<Element>(srcElem1);'
@@ -3299,14 +3299,14 @@ let {{
     sveBinImmInst('fmax', 'FmaxImm', 'SimdFloatCmpOp', floatTypes, fmaxCode,
                   PredType.MERGE)
     # FMAX (vectors)
-    sveBinInst('fmax', 'Fmax', 'SimdFloatCmpOp', floatTypes, fmaxCode,
+    sveBinInst('fmax', 'Fmax', 'SimdAluOp', floatTypes, fmaxCode,
                PredType.MERGE, True)
     # FMAXNM (immediate)
     fmaxnmCode = fpBinOp % 'MaxNum'
     sveBinImmInst('fmaxnm', 'FmaxnmImm', 'SimdFloatCmpOp', floatTypes,
                   fmaxnmCode, PredType.MERGE)
     # FMAXNM (vectors)
-    sveBinInst('fmaxnm', 'Fmaxnm', 'SimdFloatCmpOp', floatTypes, fmaxnmCode,
+    sveBinInst('fmaxnm', 'Fmaxnm', 'SimdAluOp', floatTypes, fmaxnmCode,
                PredType.MERGE, True)
     # FMAXNMV
     fmaxnmvCode = fpReduceOp % 'MaxNum'
@@ -3321,14 +3321,14 @@ let {{
     sveBinImmInst('fmin', 'FminImm', 'SimdFloatCmpOp', floatTypes, fminCode,
                   PredType.MERGE)
     # FMIN (vectors)
-    sveBinInst('fmin', 'Fmin', 'SimdFloatCmpOp', floatTypes, fminCode,
+    sveBinInst('fmin', 'Fmin', 'SimdAluOp', floatTypes, fminCode,
                PredType.MERGE, True)
     # FMINNM (immediate)
     fminnmCode = fpBinOp % 'MinNum'
     sveBinImmInst('fminnm', 'FminnmImm', 'SimdFloatCmpOp', floatTypes,
                   fminnmCode, PredType.MERGE)
     # FMINNM (vectors)
-    sveBinInst('fminnm', 'Fminnm', 'SimdFloatCmpOp', floatTypes, fminnmCode,
+    sveBinInst('fminnm', 'Fminnm', 'SimdAluOp', floatTypes, fminnmCode,
                PredType.MERGE, True)
     # FMINNMV
     fminnmvCode = fpReduceOp % 'MinNum'
@@ -3358,7 +3358,7 @@ let {{
     # FMUL (immediate)
     fpBinOp = fpOp % 'fplib%s<Element>(srcElem1, srcElem2, fpscr)'
     fmulCode = fpBinOp % 'Mul'
-    sveBinImmInst('fmul', 'FmulImm', 'SimdFloatMultOp', floatTypes, fmulCode,
+    sveBinImmInst('fmul', 'FmulImm', 'SimdFloatAOp', floatTypes, fmulCode,
                   PredType.MERGE)
     # FMUL (vectors, predicated)
     fmulCode = fpBinOp % 'Mul'
@@ -3404,7 +3404,7 @@ let {{
                  frecpeCode)
     # FRECPS
     frecpsCode = fpBinOp % 'RecipStepFused'
-    sveBinInst('frecps', 'Frecps', 'SimdFloatMultOp', floatTypes,
+    sveBinInst('frecps', 'Frecps', 'SimdFloatAOp', floatTypes,
                frecpsCode)
     # FRECPX
     frecpxCode = fpOp % "fplibRecpX<Element>(srcElem1, fpscr)"
@@ -3445,7 +3445,7 @@ let {{
                  frsqrteCode)
     # FRSQRTS
     frsqrtsCode = fpBinOp % 'RSqrtStepFused'
-    sveBinInst('frsqrts', 'Frsqrts', 'SimdFloatMultOp', floatTypes,
+    sveBinInst('frsqrts', 'Frsqrts', 'SimdFloatAOp', floatTypes,
                frsqrtsCode)
     # FSCALE
     fscaleCode = fpBinOp % 'Scale'
@@ -3457,7 +3457,7 @@ let {{
                  PredType.MERGE)
     # FSUB (immediate)
     fsubCode = fpBinOp % 'Sub'
-    sveBinImmInst('fsub', 'FsubImm', 'SimdFloatAddOp', floatTypes, fsubCode,
+    sveBinImmInst('fsub', 'FsubImm', 'SimdFloatAOp', floatTypes, fsubCode,
                   PredType.MERGE)
     # FSUB (vectors, predicated)
     sveBinInst('fsub', 'FsubPred', 'SimdFloatAddOp', floatTypes, fsubCode,
@@ -3466,7 +3466,7 @@ let {{
     sveBinInst('fsub', 'FsubUnpred', 'SimdFloatAddOp', floatTypes, fsubCode)
     # FSUBR (immediate)
     fsubrCode = fpBinRevOp % 'Sub'
-    sveBinImmInst('fsubr', 'FsubrImm', 'SimdFloatAddOp', floatTypes, fsubrCode,
+    sveBinImmInst('fsubr', 'FsubrImm', 'SimdFloatAOp', floatTypes, fsubrCode,
                   PredType.MERGE)
     # FSUBR (vectors)
     sveBinInst('fsubr', 'Fsubr', 'SimdFloatAddOp', floatTypes, fsubrCode,
@@ -3486,7 +3486,7 @@ let {{
     incxCode = '''
         destElem = srcElem1 + (count * imm);
     '''
-    sveElemCountInst('inc', 'Inc', 'SimdAluOp', unsignedTypes, incxCode,
+    sveElemCountInst('inc', 'Inc', 'IntAluOp', unsignedTypes, incxCode,
             destType = DestType.Scalar, dstIs32b = False)
     # INCH, INCW, INCD (vector)
     sveElemCountInst('inc', 'Incv', 'SimdAluOp', bigUnsignedTypes, incxCode,
@@ -3495,13 +3495,13 @@ let {{
     incpCode = '''
     XDest = XDest + count;
     '''
-    svePredCountInst('incp', 'Incp', 'SimdAluOp', unsignedTypes, incpCode,
+    svePredCountInst('incp', 'Incp', 'SimdMiscAOp', unsignedTypes, incpCode,
                      DestType.Scalar, SrcSize.Src64bit)
     # INCP (vector)
     incpvCode = '''
         destElem = srcElem + count;
     '''
-    svePredCountInst('incp', 'Incpv', 'SimdAluOp', unsignedTypes, incpvCode,
+    svePredCountInst('incp', 'Incpv', 'SimdFloatAOp', unsignedTypes, incpvCode,
                      DestType.Vector)
     # INDEX (immediates)
     sveIndex(IndexFormat.ImmImm)
@@ -3525,6 +3525,7 @@ let {{
             isCond = False)
     # LASTB (scalar)
     lastbCode = '''
+
         if (last < 0) {
             last = eCount - 1;
         }
@@ -3620,7 +3621,7 @@ let {{
     sveTerInst('msb', 'Msb', 'SimdMultAccOp', signedTypes, msbCode)
     # MUL (immediate)
     mulCode = 'destElem = srcElem1 * srcElem2;'
-    sveWideImmInst('mul', 'MulImm', 'SimdMultOp', unsignedTypes, mulCode)
+    sveWideImmInst('mul', 'MulImm', 'SimdFloatAOp', unsignedTypes, mulCode)
     # MUL (vectors)
     sveBinInst('mul', 'Mul', 'SimdMultOp', unsignedTypes, mulCode,
                PredType.MERGE, True)
@@ -3652,7 +3653,7 @@ let {{
                        ornCode, isFlagSetting=True)
     # ORR (immediate)
     orCode = 'destElem = srcElem1 | srcElem2;'
-    sveWideImmInst('orr', 'OrrImm', 'SimdAluOp', ('uint64_t',), orCode)
+    sveWideImmInst('orr', 'OrrImm', 'SimdAluAOp', ('uint64_t',), orCode)
     # ORR (vectors, predicated)
     sveBinInst('orr', 'OrrPred', 'SimdAluOp', unsignedTypes, orCode,
                PredType.MERGE, True)
@@ -3733,7 +3734,7 @@ let {{
     sveReverseElementsInst('rev', 'Revp', 'SimdPredAluOp', unsignedTypes,
             srcType = SrcRegType.Predicate)
     # REV (vector)
-    sveReverseElementsInst('rev', 'Revv', 'SimdAluOp', unsignedTypes,
+    sveReverseElementsInst('rev', 'Revv', 'SimdMiscAOp', unsignedTypes,
             srcType = SrcRegType.Vector)
     # REVB
     revCode = '''
@@ -3800,10 +3801,10 @@ let {{
     sveBinInst('sdivr', 'Sdivr', 'SimdDivOp', signedTypes, sdivrCode,
                PredType.MERGE, True)
     # SDOT (indexed)
-    sveDotInst('sdot', 'Sdoti', 'SimdAluOp', ['int8_t, int32_t',
+    sveDotInst('sdot', 'Sdoti', 'SimdMultAccOp', ['int8_t, int32_t',
         'int16_t, int64_t'], isIndexed = True)
     # SDOT (vectors)
-    sveDotInst('sdot', 'Sdotv', 'SimdAluOp', ['int8_t, int32_t',
+    sveDotInst('sdot', 'Sdotv', 'SimdMultAccOp', ['int8_t, int32_t',
         'int16_t, int64_t'], isIndexed = False)
     # SEL (predicates)
     selCode = 'destElem = srcElem1;'
@@ -3821,7 +3822,7 @@ let {{
     maxCode = 'destElem = (srcElem1 > srcElem2) ? srcElem1 : srcElem2;'
     sveWideImmInst('smax', 'SmaxImm', 'SimdCmpOp', signedTypes, maxCode)
     # SMAX (vectors)
-    sveBinInst('smax', 'Smax', 'SimdCmpOp', signedTypes, maxCode,
+    sveBinInst('smax', 'Smax', 'SimdAluOp', signedTypes, maxCode,
                PredType.MERGE, True)
     # SMAXV
     maxvCode = '''
@@ -3834,7 +3835,7 @@ let {{
     minCode = 'destElem = (srcElem1 < srcElem2) ? srcElem1 : srcElem2;'
     sveWideImmInst('smin', 'SminImm', 'SimdCmpOp', signedTypes, minCode)
     # SMIN (vectors)
-    sveBinInst('smin', 'Smin', 'SimdCmpOp', signedTypes, minCode,
+    sveBinInst('smin', 'Smin', 'SimdAluOp', signedTypes, minCode,
                PredType.MERGE, True)
     # SMINV
     minvCode = '''
@@ -3919,7 +3920,7 @@ let {{
     sveBinInst('smulh', 'Smulh', 'SimdMultOp', signedTypes, mulhCode,
                PredType.MERGE, True)
     # SPLICE
-    sveSpliceInst('splice', 'Splice', 'SimdAluOp', unsignedTypes)
+    sveSpliceInst('splice', 'Splice', 'SimdMiscAOp', unsignedTypes)
     # SQADD (immediate)
     sqaddCode = '''
             destElem = srcElem1 + srcElem2;
@@ -3947,11 +3948,11 @@ let {{
                 destElem -= 1;
         }
     '''
-    sveElemCountInst('sqdec', 'Sqdec32', 'SimdAluOp', signedTypes,
+    sveElemCountInst('sqdec', 'Sqdec32', 'IntAlu2Op', signedTypes,
             sqdecCode%{'dstType':'int32_t'}, destType = DestType.Scalar,
             dstIs32b = True)
     # SQDECB, SQDECH, SQDECW, SQDECD (scalar) 64-bit
-    sveElemCountInst('sqdec', 'Sqdec', 'SimdAluOp', signedTypes,
+    sveElemCountInst('sqdec', 'Sqdec', 'IntAlu2Op', signedTypes,
             sqdecCode%{'dstType':'int64_t'}, destType = DestType.Scalar,
             dstIs32b = False)
     # SQDECH, SQDECW, SQDECD (vector)
@@ -3979,7 +3980,7 @@ let {{
             XDest = destElem;
         }
     '''
-    svePredCountInst('sqdecp', 'Sqdecp32', 'SimdAluOp', signedTypes,
+    svePredCountInst('sqdecp', 'Sqdecp32', 'SimdMiscAOp', signedTypes,
                      sqdecp32Code, DestType.Scalar, SrcSize.Src32bit)
     # SQDECP (scalar, 64-bit)
     sqdecp64Code = '''
@@ -3987,10 +3988,10 @@ let {{
         int64_t destElem;''' + (sqdecpCode % 'int64_t') + '''
         XDest = destElem;
     '''
-    svePredCountInst('sqdecp', 'Sqdecp64', 'SimdAluOp', signedTypes,
+    svePredCountInst('sqdecp', 'Sqdecp64', 'SimdMiscAOp', signedTypes,
                      sqdecp64Code, DestType.Scalar, SrcSize.Src64bit)
     # SQDECP (vector)
-    svePredCountInst('sqdecp', 'Sqdecpv', 'SimdAluOp', signedTypes,
+    svePredCountInst('sqdecp', 'Sqdecpv', 'SimdFloatAOp', signedTypes,
                      sqdecpCode % 'Element', DestType.Vector)
     # SQINCB, SQINCH, SQINCW, SQINCD (scalar) 32-bit
     sqincCode = '''
@@ -4004,11 +4005,11 @@ let {{
                 destElem -= 1;
         }
     '''
-    sveElemCountInst('sqinc', 'Sqinc32', 'SimdAluOp', signedTypes,
+    sveElemCountInst('sqinc', 'Sqinc32', 'IntAlu2Op', signedTypes,
             sqincCode%{'dstType':'int32_t'}, destType = DestType.Scalar,
             dstIs32b = True)
     # SQINCB, SQINCH, SQINCW, SQINCD (scalar) 64-bit
-    sveElemCountInst('sqinc', 'Sqinc', 'SimdAluOp', signedTypes,
+    sveElemCountInst('sqinc', 'Sqinc', 'IntAlu2Op', signedTypes,
             sqincCode%{'dstType':'int64_t'}, destType = DestType.Scalar,
             dstIs32b = False)
     # SQINCH, SQINCW, SQINCD (vector)
@@ -4036,7 +4037,7 @@ let {{
             XDest = destElem;
         }
     '''
-    svePredCountInst('sqincp', 'Sqincp32', 'SimdAluOp', signedTypes,
+    svePredCountInst('sqincp', 'Sqincp32', 'SimdMiscAOp', signedTypes,
                      sqincp32Code, DestType.Scalar, SrcSize.Src32bit)
     # SQINCP (scalar) 64-bit
     sqincp64Code = '''
@@ -4044,10 +4045,10 @@ let {{
         int64_t destElem;''' + (sqincpCode % 'int64_t') + '''
         XDest = destElem;
     '''
-    svePredCountInst('sqincp', 'Sqincp64', 'SimdAluOp', signedTypes,
+    svePredCountInst('sqincp', 'Sqincp64', 'SimdMiscAOp', signedTypes,
                      sqincp64Code, DestType.Scalar, SrcSize.Src64bit)
     # SQINCP (vector)
-    svePredCountInst('sqincp', 'Sqincpv', 'SimdAluOp', signedTypes,
+    svePredCountInst('sqincp', 'Sqincpv', 'SimdFloatAOp', signedTypes,
                      sqincpCode % 'Element', DestType.Vector)
     # SQSUB (immediate)
     sqsubCode = '''
@@ -4075,15 +4076,15 @@ let {{
     sveBinInst('sub', 'SubUnpred', 'SimdAddOp', unsignedTypes, subCode)
     # SUBR (immediate)
     subrCode = 'destElem = srcElem2 - srcElem1;'
-    sveWideImmInst('subr', 'SubrImm', 'SimdAddOp', unsignedTypes, subrCode)
+    sveWideImmInst('subr', 'SubrImm', 'SimdAluAOp', unsignedTypes, subrCode)
     # SUBR (vectors)
     sveBinInst('subr', 'Subr', 'SimdAddOp', unsignedTypes, subrCode,
                PredType.MERGE, True)
     # SUNPKHI
-    sveUnpackInst('sunpkhi', 'Sunpkhi', 'SimdAluOp', signedWideSDTypes,
+    sveUnpackInst('sunpkhi', 'Sunpkhi', 'SimdMiscAOp', signedWideSDTypes,
             unpackHalf = Unpack.High, regType = SrcRegType.Vector)
     # SUNPKLO
-    sveUnpackInst('sunpklo', 'Sunpklo', 'SimdAluOp', signedWideSDTypes,
+    sveUnpackInst('sunpklo', 'Sunpklo', 'SimdMiscAOp', signedWideSDTypes,
             unpackHalf = Unpack.Low, regType = SrcRegType.Vector)
     # SXTB
     sxtCode = 'destElem = sext<8 * sizeof(SElement)>(srcElem1);'
@@ -4099,7 +4100,7 @@ let {{
             ['uint32_t, uint64_t'],
             sxtCode, PredType.MERGE)
     # TBL
-    sveTblInst('tbl', 'Tbl', 'SimdAluOp')
+    sveTblInst('tbl', 'Tbl', 'SimdMiscAOp')
     # TRN1, TRN2 (predicates)
     trnPredIterCode = '''
         constexpr unsigned sz = sizeof(Element);
@@ -4127,9 +4128,9 @@ let {{
             AA64FpDest_x[2 * i + 1] = AA64FpOp2_x[s];
         }
     '''
-    sveBinInst('trn1', 'Trn1', 'SimdAluOp', unsignedTypes, '',
+    sveBinInst('trn1', 'Trn1', 'SimdMiscAOp', unsignedTypes, '',
                customIterCode=trnIterCode % 0)
-    sveBinInst('trn2', 'Trn2', 'SimdAluOp', unsignedTypes, '',
+    sveBinInst('trn2', 'Trn2', 'SimdMiscAOp', unsignedTypes, '',
                customIterCode=trnIterCode % 1)
     # UABD
     sveBinInst('uabd', 'Uabd', 'SimdAddOp', unsignedTypes, abdCode,
@@ -4161,15 +4162,15 @@ let {{
     sveBinInst('udivr', 'Udivr', 'SimdDivOp', unsignedTypes, udivrCode,
                PredType.MERGE, True)
     # UDOT (indexed)
-    sveDotInst('udot', 'Udoti', 'SimdAluOp', ['uint8_t, uint32_t',
+    sveDotInst('udot', 'Udoti', 'SimdMultAccOp', ['uint8_t, uint32_t',
         'uint16_t, uint64_t'], isIndexed = True)
     # UDOT (vectors)
-    sveDotInst('udot', 'Udotv', 'SimdAluOp', ['uint8_t, uint32_t',
+    sveDotInst('udot', 'Udotv', 'SimdMultAccOp', ['uint8_t, uint32_t',
         'uint16_t, uint64_t'], isIndexed = False)
     # UMAX (immediate)
     sveWideImmInst('umax', 'UmaxImm', 'SimdCmpOp', unsignedTypes, maxCode)
     # UMAX (vectors)
-    sveBinInst('umax', 'Umax', 'SimdCmpOp', unsignedTypes, maxCode,
+    sveBinInst('umax', 'Umax', 'SimdAluOp', unsignedTypes, maxCode,
                PredType.MERGE, True)
     # UMAXV
     sveAssocReducInst('umaxv', 'Umaxv', 'SimdReduceCmpOp', unsignedTypes,
@@ -4177,7 +4178,7 @@ let {{
     # UMIN (immediate)
     sveWideImmInst('umin', 'UminImm', 'SimdCmpOp', unsignedTypes, minCode)
     # UMIN (vectors)
-    sveBinInst('umin', 'Umin', 'SimdCmpOp', unsignedTypes, minCode,
+    sveBinInst('umin', 'Umin', 'SimdAluOp', unsignedTypes, minCode,
                PredType.MERGE, True)
     # UMINV
     sveAssocReducInst('uminv', 'Uminv', 'SimdReduceCmpOp', unsignedTypes,
@@ -4202,10 +4203,10 @@ let {{
             destElem = 0;
         }
     '''
-    sveElemCountInst('uqdec', 'Uqdec32', 'SimdAluOp', unsignedTypes,
+    sveElemCountInst('uqdec', 'Uqdec32', 'IntAlu2Op', unsignedTypes,
             uqdecCode, destType = DestType.Scalar, dstIs32b = True)
     # UQDECB, UQDECH, UQDECW, UQDECD (scalar) 64-bit
-    sveElemCountInst('uqdec', 'Uqdec', 'SimdAluOp', unsignedTypes,
+    sveElemCountInst('uqdec', 'Uqdec', 'IntAlu2Op', unsignedTypes,
             uqdecCode, destType = DestType.Scalar, dstIs32b = False)
     # UQDECH, UQDECW, UQDECD (vector)
     sveElemCountInst('uqdec', 'Uqdecv', 'SimdAluOp', bigUnsignedTypes,
@@ -4222,7 +4223,7 @@ let {{
         uint32_t destElem;''' + uqdecpCode + '''
         WDest = destElem;
     '''
-    svePredCountInst('uqdecp', 'Uqdecp32', 'SimdAluOp', unsignedTypes,
+    svePredCountInst('uqdecp', 'Uqdecp32', 'SimdMiscAOp', unsignedTypes,
                      uqdecp32Code, DestType.Scalar, SrcSize.Src32bit)
     # UQDECP (scalar) 64-bit
     uqdecp64Code = '''
@@ -4230,26 +4231,26 @@ let {{
         uint64_t destElem;''' + uqdecpCode + '''
         XDest = destElem;
     '''
-    svePredCountInst('uqdecp', 'Uqdecp64', 'SimdAluOp', unsignedTypes,
+    svePredCountInst('uqdecp', 'Uqdecp64', 'SimdMiscAOp', unsignedTypes,
                      uqdecp64Code, DestType.Scalar, SrcSize.Src64bit)
     # UQDECP (vector)
-    svePredCountInst('uqdecp', 'Uqdecpv', 'SimdAluOp', unsignedTypes,
+    svePredCountInst('uqdecp', 'Uqdecpv', 'SimdFloatAOp', unsignedTypes,
                      uqdecpCode, DestType.Vector)
-    # UQDECB, UQDECH, UQDECW, UQDECD (scalar) 32-bit
+    # UQINCB, UQINCH, UQINCW, UQINCD (scalar) 32-bit
     uqincCode = '''
         destElem = srcElem1 + (imm * count);
         if (destElem < srcElem1 || destElem < (imm * count)) {
             destElem = static_cast<%(destType)s>(-1);
         }
     '''
-    sveElemCountInst('uqinc', 'Uqinc32', 'SimdAluOp', unsignedTypes,
+    sveElemCountInst('uqinc', 'Uqinc32', 'IntAlu2Op', unsignedTypes,
             uqincCode%{'destType': 'uint32_t'}, destType = DestType.Scalar,
             dstIs32b = True)
-    # UQDECB, UQDECH, UQDECW, UQDECD (scalar) 64-bit
-    sveElemCountInst('uqinc', 'Uqinc', 'SimdAluOp', unsignedTypes,
+    # UQINCB, UQINCH, UQINCW, UQINCD (scalar) 64-bit
+    sveElemCountInst('uqinc', 'Uqinc', 'IntAlu2Op', unsignedTypes,
             uqincCode%{'destType': 'uint64_t'}, destType = DestType.Scalar,
             dstIs32b = False)
-    # UQDECH, UQDECW, UQDECD (vector)
+    # UQINH, UQINW, UQINCD (vector)
     sveElemCountInst('uqinc', 'Uqincv', 'SimdAluOp', bigUnsignedTypes,
             uqincCode%{'destType': 'Element'}, destType = DestType.Vector,
             dstIs32b = False)
@@ -4265,7 +4266,7 @@ let {{
         uint32_t destElem;''' + (uqincpCode % 'uint32_t') + '''
         XDest = destElem;
     '''
-    svePredCountInst('uqincp', 'Uqincp32', 'SimdAluOp', unsignedTypes,
+    svePredCountInst('uqincp', 'Uqincp32', 'SimdMiscAOp', unsignedTypes,
                      uqincp32Code, DestType.Scalar, SrcSize.Src32bit)
     # UQINCP (scalar) 64-bit
     uqincp64Code = '''
@@ -4273,10 +4274,10 @@ let {{
         uint64_t destElem;''' + (uqincpCode % 'uint64_t') + '''
         XDest = destElem;
     '''
-    svePredCountInst('uqincp', 'Uqincp64', 'SimdAluOp', unsignedTypes,
+    svePredCountInst('uqincp', 'Uqincp64', 'SimdMiscAOp', unsignedTypes,
                      uqincp64Code, DestType.Scalar, SrcSize.Src64bit)
     # UQINCP (vector)
-    svePredCountInst('uqincp', 'Uqincpv', 'SimdAluOp', unsignedTypes,
+    svePredCountInst('uqincp', 'Uqincpv', 'SimdFloatAOp', unsignedTypes,
                      uqincpCode % 'Element', DestType.Vector)
     # UQSUB (immediate)
     uqsubCode = '''
@@ -4289,10 +4290,10 @@ let {{
     # UQSUB (vectors)
     sveBinInst('uqsub', 'Uqsub', 'SimdAddOp', unsignedTypes, uqsubCode)
     # UUNPKHI
-    sveUnpackInst('uunpkhi', 'Uunpkhi', 'SimdAluOp', unsignedWideSDTypes,
+    sveUnpackInst('uunpkhi', 'Uunpkhi', 'SimdMiscAOp', unsignedWideSDTypes,
             unpackHalf = Unpack.High, regType = SrcRegType.Vector)
     # UUNPKLO
-    sveUnpackInst('uunpklo', 'Uunpklo', 'SimdAluOp', unsignedWideSDTypes,
+    sveUnpackInst('uunpklo', 'Uunpklo', 'SimdMiscAOp', unsignedWideSDTypes,
             unpackHalf = Unpack.Low, regType = SrcRegType.Vector)
     # UXTB
     uxtCode = 'destElem = srcElem1;'
@@ -4340,39 +4341,39 @@ let {{
             }
         }
     '''
-    sveBinInst('uzp1', 'Uzp1', 'SimdAluOp', unsignedTypes, '',
+    sveBinInst('uzp1', 'Uzp1', 'SimdMiscAOp', unsignedTypes, '',
                customIterCode=uzpIterCode % 0)
-    sveBinInst('uzp2', 'Uzp2', 'SimdAluOp', unsignedTypes, '',
+    sveBinInst('uzp2', 'Uzp2', 'SimdMiscAOp', unsignedTypes, '',
                customIterCode=uzpIterCode % 1)
     # WHILELE (32-bit)
     whileLECode = '''
             cond = srcElem1 <= srcElem2;
     '''
-    sveWhileInst('whilele', 'Whilele32', 'SimdCmpOp', signedTypes, whileLECode,
-                 SrcSize.Src32bit)
+    sveWhileInst('whilele', 'Whilele32', 'SimdPredCmpOp', signedTypes,
+                 whileLECode, SrcSize.Src32bit)
     # WHILELE (64-bit)
-    sveWhileInst('whilele', 'Whilele64', 'SimdCmpOp', signedTypes, whileLECode,
-                 SrcSize.Src64bit)
+    sveWhileInst('whilele', 'Whilele64', 'SimdPredCmpOp', signedTypes,
+                 whileLECode, SrcSize.Src64bit)
     # WHILELO (32-bit)
     whileLTCode = '''
             cond = srcElem1 < srcElem2;
     '''
-    sveWhileInst('whilelo', 'Whilelo32', 'SimdCmpOp', unsignedTypes,
+    sveWhileInst('whilelo', 'Whilelo32', 'SimdPredCmpOp', unsignedTypes,
                  whileLTCode, SrcSize.Src32bit)
     # WHILELO (64-bit)
-    sveWhileInst('whilelo', 'Whilelo64', 'SimdCmpOp', unsignedTypes,
+    sveWhileInst('whilelo', 'Whilelo64', 'SimdPredCmpOp', unsignedTypes,
                  whileLTCode, SrcSize.Src64bit)
     # WHILELS (32-bit)
-    sveWhileInst('whilels', 'Whilels32', 'SimdCmpOp', unsignedTypes,
+    sveWhileInst('whilels', 'Whilels32', 'SimdPredCmpOp', unsignedTypes,
                  whileLECode, SrcSize.Src32bit)
     # WHILELS (64-bit)
-    sveWhileInst('whilels', 'Whilels64', 'SimdCmpOp', unsignedTypes,
+    sveWhileInst('whilels', 'Whilels64', 'SimdPredCmpOp', unsignedTypes,
                  whileLECode, SrcSize.Src64bit)
     # WHILELT (32-bit)
-    sveWhileInst('whilelt', 'Whilelt32', 'SimdCmpOp', signedTypes,
+    sveWhileInst('whilelt', 'Whilelt32', 'SimdPredCmpOp', signedTypes,
                  whileLTCode, SrcSize.Src32bit)
     # WHILELT (64-bit)
-    sveWhileInst('whilelt', 'Whilelt64', 'SimdCmpOp', signedTypes,
+    sveWhileInst('whilelt', 'Whilelt64', 'SimdPredCmpOp', signedTypes,
                  whileLTCode, SrcSize.Src64bit)
     # WRFFR
     wrffrCode = '''
@@ -4409,9 +4410,9 @@ let {{
             AA64FpDest_x[2 * i + 1] = AA64FpOp2_x[s];
         }
     '''
-    sveBinInst('zip1', 'Zip1', 'SimdAluOp', unsignedTypes, '',
+    sveBinInst('zip1', 'Zip1', 'SimdMiscAOp', unsignedTypes, '',
                customIterCode=zipIterCode % 0)
-    sveBinInst('zip2', 'Zip2', 'SimdAluOp', unsignedTypes, '',
+    sveBinInst('zip2', 'Zip2', 'SimdMiscAOp', unsignedTypes, '',
                customIterCode=zipIterCode % 1)
 
 }};

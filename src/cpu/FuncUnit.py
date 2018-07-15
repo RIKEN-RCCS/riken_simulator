@@ -47,18 +47,19 @@ class OpClass(Enum):
             'FloatCmp', 'FloatCvt', 'FloatMult', 'FloatMultAcc', 'FloatDiv',
             'FloatMisc', 'FloatSqrt',
             'SimdAdd', 'SimdAddAcc', 'SimdAlu', 'SimdCmp', 'SimdCvt',
-            'SimdMisc', 'SimdMvp',
-            'SimdMult', 'SimdMultAcc', 'SimdShift', 'SimdShiftAcc',
-            'SimdDiv', 'SimdGpr', 'SimdSqrt', 'SimdFloatAdd', 'SimdFloatAlu',
+            'SimdMisc', 'SimdMult', 'SimdMultAcc', 'SimdShift', 'SimdShiftAcc',
+            'SimdDiv', 'SimdSqrt', 'SimdFloatAdd', 'SimdFloatAlu',
             'SimdFloatCmp', 'SimdFloatCvt', 'SimdFloatDiv', 'SimdFloatMisc',
             'SimdFloatMult', 'SimdFloatMultAcc', 'SimdFloatSqrt',
-            'SimdAluA', 'SimdAluB', 'SimdMiscA', 'SimdMiscB', 'SimdFloatA',
             'SimdReduceAdd', 'SimdReduceAlu', 'SimdReduceCmp',
             'SimdFloatReduceAdd', 'SimdFloatReduceCmp',
             'SimdPredAlu',
             'MemRead', 'MemWrite', 'FloatMemRead', 'FloatMemWrite',
-            'SveMemRead', 'SveMemWrite',
-            'IprAccess', 'InstPrefetch']
+            'IprAccess', 'InstPrefetch',
+            'IntAlu2', 'SimdPredCmp', 'SimdMvp', 'SimdGpr',
+            'SimdAluA', 'SimdAluB', 'SimdMiscA', 'SimdMiscB',
+            'SimdFloatA', 'SimdFloatReduceAddA',
+            'SveMemRead', 'SveMemWrite']
 
 class OpDesc(SimObject):
     type = 'OpDesc'
