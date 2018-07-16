@@ -3073,7 +3073,7 @@ let {{
     sveUnaryInst('cpy', 'CpySimdFpScalar', 'SimdMiscAOp', unsignedTypes,
                  dupCode, PredType.MERGE, srcRegType=SrcRegType.SimdFpScalar)
     # CNTP
-    svePredCountPredInst('cntp', 'Cntp', 'SimdAluOp', unsignedTypes)
+    svePredCountPredInst('cntp', 'Cntp', 'SimdPredCmpOp', unsignedTypes)
     # CTERMEQ
     cteqCode = '''
         destElem = srcElem1 == srcElem2;
@@ -3162,7 +3162,7 @@ let {{
     # FADD (immediate)
     fpBinOp = fpOp % 'fplib%s<Element>(srcElem1, srcElem2, fpscr)'
     faddCode = fpBinOp % 'Add'
-    sveBinImmInst('fadd', 'FaddImm', 'SimdFloatAOp', floatTypes, faddCode,
+    sveBinImmInst('fadd', 'FaddImm', 'SimdFloatAddAOp', floatTypes, faddCode,
                   PredType.MERGE)
     # FADD (vectors, predicated)
     sveBinInst('fadd', 'FaddPred', 'SimdFloatAddOp', floatTypes, faddCode,
@@ -3358,7 +3358,7 @@ let {{
     # FMUL (immediate)
     fpBinOp = fpOp % 'fplib%s<Element>(srcElem1, srcElem2, fpscr)'
     fmulCode = fpBinOp % 'Mul'
-    sveBinImmInst('fmul', 'FmulImm', 'SimdFloatAOp', floatTypes, fmulCode,
+    sveBinImmInst('fmul', 'FmulImm', 'SimdFloatMultAOp', floatTypes, fmulCode,
                   PredType.MERGE)
     # FMUL (vectors, predicated)
     fmulCode = fpBinOp % 'Mul'
@@ -3404,7 +3404,7 @@ let {{
                  frecpeCode)
     # FRECPS
     frecpsCode = fpBinOp % 'RecipStepFused'
-    sveBinInst('frecps', 'Frecps', 'SimdFloatAOp', floatTypes,
+    sveBinInst('frecps', 'Frecps', 'SimdFloatMultAOp', floatTypes,
                frecpsCode)
     # FRECPX
     frecpxCode = fpOp % "fplibRecpX<Element>(srcElem1, fpscr)"
@@ -3445,7 +3445,7 @@ let {{
                  frsqrteCode)
     # FRSQRTS
     frsqrtsCode = fpBinOp % 'RSqrtStepFused'
-    sveBinInst('frsqrts', 'Frsqrts', 'SimdFloatAOp', floatTypes,
+    sveBinInst('frsqrts', 'Frsqrts', 'SimdFloatMultAOp', floatTypes,
                frsqrtsCode)
     # FSCALE
     fscaleCode = fpBinOp % 'Scale'
@@ -3457,7 +3457,7 @@ let {{
                  PredType.MERGE)
     # FSUB (immediate)
     fsubCode = fpBinOp % 'Sub'
-    sveBinImmInst('fsub', 'FsubImm', 'SimdFloatAOp', floatTypes, fsubCode,
+    sveBinImmInst('fsub', 'FsubImm', 'SimdFloatAddAOp', floatTypes, fsubCode,
                   PredType.MERGE)
     # FSUB (vectors, predicated)
     sveBinInst('fsub', 'FsubPred', 'SimdFloatAddOp', floatTypes, fsubCode,
@@ -3466,8 +3466,8 @@ let {{
     sveBinInst('fsub', 'FsubUnpred', 'SimdFloatAddOp', floatTypes, fsubCode)
     # FSUBR (immediate)
     fsubrCode = fpBinRevOp % 'Sub'
-    sveBinImmInst('fsubr', 'FsubrImm', 'SimdFloatAOp', floatTypes, fsubrCode,
-                  PredType.MERGE)
+    sveBinImmInst('fsubr', 'FsubrImm', 'SimdFloatAddAOp', floatTypes,
+                  fsubrCode, PredType.MERGE)
     # FSUBR (vectors)
     sveBinInst('fsubr', 'Fsubr', 'SimdFloatAddOp', floatTypes, fsubrCode,
                PredType.MERGE, True)
@@ -3621,7 +3621,7 @@ let {{
     sveTerInst('msb', 'Msb', 'SimdMultAccOp', signedTypes, msbCode)
     # MUL (immediate)
     mulCode = 'destElem = srcElem1 * srcElem2;'
-    sveWideImmInst('mul', 'MulImm', 'SimdFloatAOp', unsignedTypes, mulCode)
+    sveWideImmInst('mul', 'MulImm', 'SimdFloatMultAOp', unsignedTypes, mulCode)
     # MUL (vectors)
     sveBinInst('mul', 'Mul', 'SimdMultOp', unsignedTypes, mulCode,
                PredType.MERGE, True)

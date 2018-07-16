@@ -58,8 +58,8 @@ class OpClass(Enum):
             'IprAccess', 'InstPrefetch',
             'IntAlu2', 'SimdPredCmp', 'SimdMvp', 'SimdGpr',
             'SimdAluA', 'SimdAluB', 'SimdMiscA', 'SimdMiscB',
-            'SimdFloatA', 'SimdFloatReduceAddA',
-            'SveMemRead', 'SveMemWrite']
+            'SimdFloatAddA', 'SimdFloatMultA', 'SimdFloatA',
+            'SimdFloatReduceAddA', 'SveMemRead', 'SveMemWrite']
 
 class OpDesc(SimObject):
     type = 'OpDesc'
