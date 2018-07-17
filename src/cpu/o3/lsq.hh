@@ -505,10 +505,16 @@ class LSQ {
         }
 
         bool
+        isPartialFault()
+        {
+            return _state == State::PartialFault;
+        }
+
+        bool
         isMemAccessRequired()
         {
             return (_state == State::Request ||
-                    (_state == State::PartialFault && isLoad()));
+                    (isPartialFault() && isLoad()));
         }
 
         /**
