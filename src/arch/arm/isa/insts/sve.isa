@@ -1411,7 +1411,7 @@ let {{
             AA64FpDest_x[i] = srcElem1 + i * srcElem2;
         }'''
         iop = InstObjParams('index', 'SveIndex'+fmt, 'SveIndex'+fmt+'Op',
-            {'code': code, 'op_class': 'SimdAluOp'})
+            {'code': code, 'op_class': 'SimdFloatAOp'})
         if fmt == IndexFormat.ImmImm:
             header_output += SveIndexIIOpDeclare.subst(iop)
         elif fmt == IndexFormat.ImmReg:
@@ -2913,8 +2913,8 @@ let {{
     sveSelectInst('clasta', 'Clasta', 'SimdGprOp', unsignedTypes, clastaCode,
             isCond = True, destType = DestType.Scalar)
     # CLASTA (vector)
-    sveSelectInst('clasta', 'Clastav', 'SimdAluOp', unsignedTypes, clastaCode,
-            isCond = True, destType = DestType.Vector)
+    sveSelectInst('clasta', 'Clastav', 'SimdMiscAOp', unsignedTypes,
+            clastaCode, isCond = True, destType = DestType.Vector)
     # CLASTB (scalar)
     clastbCode = '''
         destElem = AA64FpOp1_x[last];'''
@@ -3512,7 +3512,7 @@ let {{
     # INDEX (scalars)
     sveIndex(IndexFormat.RegReg)
     # INSR (scalar)
-    sveShiftAndInsertInst('insr', 'Insr', 'SimdAluOp', unsignedTypes,
+    sveShiftAndInsertInst('insr', 'Insr', 'SimdMiscAOp', unsignedTypes,
             srcType = SrcRegType.Scalar)
     # LASTA (scalar)
     lastaCode = '''
