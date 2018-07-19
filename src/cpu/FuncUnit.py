@@ -48,7 +48,7 @@ class OpClass(Enum):
             'FloatMisc', 'FloatSqrt',
             'SimdAdd', 'SimdAddAcc', 'SimdAlu', 'SimdCmp', 'SimdCvt',
             'SimdMisc', 'SimdMult', 'SimdMultAcc', 'SimdShift', 'SimdShiftAcc',
-            'SimdDiv', 'SimdSqrt', 'SimdFloatAdd', 'SimdFloatAlu',
+            'SimdDivS', 'SimdDiv', 'SimdSqrt', 'SimdFloatAdd', 'SimdFloatAlu',
             'SimdFloatCmp', 'SimdFloatCvt', 'SimdFloatDiv', 'SimdFloatMisc',
             'SimdFloatMult', 'SimdFloatMultAcc', 'SimdFloatSqrt',
             'SimdReduceAdd', 'SimdReduceAlu', 'SimdReduceCmp',

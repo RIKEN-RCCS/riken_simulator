@@ -86,6 +86,7 @@ class SIMD_Unit(FUDesc):
                OpDesc(opClass='SimdShift'),
                OpDesc(opClass='SimdShiftAcc'),
                OpDesc(opClass='SimdDiv'),
+               OpDesc(opClass='SimdDivS'),
                OpDesc(opClass='SimdSqrt'),
                OpDesc(opClass='SimdFloatAdd'),
                OpDesc(opClass='SimdFloatAlu'),

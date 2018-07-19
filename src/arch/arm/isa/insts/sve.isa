@@ -38,9 +38,14 @@
 // @file Definition of SVE instructions.
 
 output header {{
-
+    // Select SimdDiv Op class by element size
+    template <typename T> constexpr OpClass sveDivOp(){
+        return (sizeof(T)>=sizeof(int64_t)) ? Enums::SimdDiv :
+          Enums::SimdDivS;
+    }
     // Decodes unary, constructive, predicated (merging) SVE instructions,
     // handling signed and unsigned variants.
+
     template <template <typename T> class BaseS,
               template <typename T> class BaseU>
     StaticInstPtr
@@ -3789,7 +3794,7 @@ let {{
             (srcElem2 == -1 && srcElem1 == ELEM_MIN) ? ELEM_MIN :
                 (srcElem1 / srcElem2);
     '''
-    sveBinInst('sdiv', 'Sdiv', 'SimdDivOp', signedTypes, sdivCode,
+    sveBinInst('sdiv', 'Sdiv', 'sveDivOp<Element>()', signedTypes, sdivCode,
                PredType.MERGE, True)
     # SDIVR
     sdivrCode = '''
@@ -3798,7 +3803,7 @@ let {{
             (srcElem1 == -1 && srcElem2 == ELEM_MIN) ? ELEM_MIN :
                 (srcElem2 / srcElem1);
     '''
-    sveBinInst('sdivr', 'Sdivr', 'SimdDivOp', signedTypes, sdivrCode,
+    sveBinInst('sdivr', 'Sdivr', 'sveDivOp<Element>()', signedTypes, sdivrCode,
                PredType.MERGE, True)
     # SDOT (indexed)
     sveDotInst('sdot', 'Sdoti', 'SimdMultAccOp', ['int8_t, int32_t',
@@ -4155,12 +4160,12 @@ let {{
                ucvtfCode, CvtDir.Widen)
     # UDIV
     udivCode = 'destElem = (srcElem2 == 0) ? 0 : (srcElem1 / srcElem2);'
-    sveBinInst('udiv', 'Udiv', 'SimdDivOp', unsignedTypes, udivCode,
+    sveBinInst('udiv', 'Udiv', 'sveDivOp<Element>()', unsignedTypes, udivCode,
                PredType.MERGE, True)
     # UDIVR
     udivrCode = 'destElem = (srcElem1 == 0) ? 0 : (srcElem2 / srcElem1);'
-    sveBinInst('udivr', 'Udivr', 'SimdDivOp', unsignedTypes, udivrCode,
-               PredType.MERGE, True)
+    sveBinInst('udivr', 'Udivr', 'sveDivOp<Element>()',
+      unsignedTypes, udivrCode, PredType.MERGE, True)
     # UDOT (indexed)
     sveDotInst('udot', 'Udoti', 'SimdMultAccOp', ['uint8_t, uint32_t',
         'uint16_t, uint64_t'], isIndexed = True)
