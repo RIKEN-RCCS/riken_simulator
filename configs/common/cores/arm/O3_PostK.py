@@ -76,7 +76,7 @@ class O3_ARM_PostK_FLA(FUDesc):
                OpDesc(opClass='SimdAlu', opLat=4),
                OpDesc(opClass='SimdCmp', opLat=4),
                OpDesc(opClass='SimdDiv', opLat=178, pipelined=False),
-               OpDesc(opClass='SimdDivS', opLat=178, pipelined=False),
+               OpDesc(opClass='SimdDivS', opLat=114, pipelined=False),
                OpDesc(opClass='SimdGpr', opLat=25),
                OpDesc(opClass='SimdMisc', opLat=4),
                OpDesc(opClass='SimdCvt', opLat=9),

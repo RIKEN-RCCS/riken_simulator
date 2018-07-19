@@ -2926,8 +2926,8 @@ let {{
     sveSelectInst('clastb', 'Clastb', 'SimdGprOp', unsignedTypes, clastbCode,
             isCond = True, destType = DestType.Scalar)
     # CLASTB (vector)
-    sveSelectInst('clastb', 'Clastbv', 'SimdAluOp', unsignedTypes, clastbCode,
-            isCond = True, destType = DestType.Vector)
+    sveSelectInst('clastb', 'Clastbv', 'SimdMiscAOp', unsignedTypes,
+                  clastbCode, isCond = True, destType = DestType.Vector)
     # CLS
     clsCode = '''
         destElem = 0;
