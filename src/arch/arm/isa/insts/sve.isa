@@ -2411,6 +2411,8 @@ let {{
     def sveUnpackInst(name, Name, opClass, sdtypes, unpackHalf,
                       regType, decoder = 'Generic'):
         global header_output, exec_output, decoders
+        extraPrologCode = '''
+        auto& destPred = PDest;'''
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<DElement>(
                 xc->tcBase());
@@ -2423,6 +2425,7 @@ let {{
                 code +='''
             const SElement& srcElem1 = POp1_xs[i];'''
             code += '''
+            destPred.set_raw(i, 0);
             PDest_xd[i] = srcElem1;'''
         else:
             if unpackHalf == Unpack.High:
@@ -2438,6 +2441,8 @@ let {{
         '''
         iop = InstObjParams(name, 'Sve' + Name, 'SveUnpackOp',
                 {'code': code, 'op_class': opClass}, [])
+        if regType == SrcRegType.Predicate:
+            iop.snippets['code'] = extraPrologCode + iop.snippets['code']
         header_output += SveUnpackOpDeclare.subst(iop)
         exec_output += SveWideningOpExecute.subst(iop)
         for srcType, dstType in sdtypes:
