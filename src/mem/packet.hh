@@ -1082,16 +1082,7 @@ class Packet : public Printable
         if (p != getPtr<uint8_t>()) {
             // for packet with allocated dynamic data, we copy data from
             // one to the other, e.g. a forwarded response to a response
-            if (req->getByteEnable().size() != getSize()) {
-                std::memcpy(getPtr<uint8_t>(), p, getSize());
-            } else {
-                for (int i = 0; i < getSize(); i++) {
-                    if (req->getByteEnable()[i]) {
-                        *(getPtr<uint8_t>() + i) = p[i];
-                    }
-                    // Disabled bytes stay untouched
-                }
-            }
+            std::memcpy(getPtr<uint8_t>(), p, getSize());
         }
     }
 
@@ -1112,7 +1103,7 @@ class Packet : public Printable
     void
     writeData(uint8_t *p) const
     {
-        if (req->getByteEnable().empty()) {
+        if (req->getByteEnable().size() != getSize()) {
             std::memcpy(p, getConstPtr<uint8_t>(), getSize());
         } else {
             // Write only the enabled bytes
