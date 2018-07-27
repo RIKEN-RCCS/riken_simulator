@@ -1230,6 +1230,12 @@ let {{
         SimdFpScalar = 2
         Predicate = 3
 
+    class DstRegType(object):
+        Vector = 0
+        Scalar = 1
+        SimdFpScalar = 2
+        Predicate = 3
+
     class DestType(object):
         Scalar = 'false'
         Vector = 'true'
@@ -2269,7 +2275,7 @@ let {{
 
     # Generate definitions for scalar select instructions
     def sveSelectInst(name, Name, opClass, types, op, isCond,
-            destType = DestType.Scalar, decoder = 'Generic'):
+            destType = DstRegType.Scalar, decoder = 'Generic'):
         global header_output, exec_output, decoders
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
@@ -2287,24 +2293,39 @@ let {{
         code += '''
             Element destElem;
             %(op)s'''%{'op': op}
-        if destType == DestType.Vector:
+        if destType == DstRegType.Vector:
             code += '''
             for (unsigned i = 0; i < eCount; ++i)
                 AA64FpDest_x[i] = destElem;'''
-        elif destType == DestType.Scalar:
+        elif destType == DstRegType.Scalar:
             code += '''
             XDest = destElem;'''
+        elif destType == DstRegType.SimdFpScalar:
+            code += '''
+            AA64FpDest_x[0] = destElem;'''
         if isCond:
             code += '''
         }'''
-            if destType == DestType.Scalar:
+            if destType == DstRegType.Scalar:
                 code += ''' else {
             XDest = (Element) XDest;
+        }'''
+            elif destType == DstRegType.Vector:
+                code += ''' else {
+            for (unsigned i = 0; i < eCount; ++i)
+                AA64FpDest_x[i] = AA64FpDestMerge_x[i];
+        }'''
+            elif destType == DstRegType.SimdFpScalar:
+                code += ''' else {
+            AA64FpDest_x[0] = AA64FpDestMerge_x[0];
         }'''
         iop = InstObjParams(name, 'Sve' + Name, 'SveSelectOp',
                             {'code': code, 'op_class': opClass,
                              'isCond': 'true' if isCond else 'false',
-                             'isScalar': 'true' if destType == DestType.Scalar
+                             'isScalar': 'true'
+                             if destType == DstRegType.Scalar else 'false',
+                             'isSimdFp': 'true'
+                             if destType == DstRegType.SimdFpScalar
                              else 'false'},
                             [])
         header_output += SveSelectOpDeclare.subst(iop)
@@ -2916,18 +2937,24 @@ let {{
             last = 0;
         destElem = AA64FpOp1_x[last];'''
     sveSelectInst('clasta', 'Clasta', 'SimdAluOp', unsignedTypes, clastaCode,
-            isCond = True, destType = DestType.Scalar)
+            isCond = True, destType = DstRegType.Scalar)
+    # CLASTA (SIMD&FP scalar)
+    sveSelectInst('clasta', 'Clastaf', 'SimdAluOp', unsignedTypes, clastaCode,
+            isCond = True, destType = DstRegType.SimdFpScalar)
     # CLASTA (vector)
     sveSelectInst('clasta', 'Clastav', 'SimdAluOp', unsignedTypes, clastaCode,
-            isCond = True, destType = DestType.Vector)
+            isCond = True, destType = DstRegType.Vector)
     # CLASTB (scalar)
     clastbCode = '''
         destElem = AA64FpOp1_x[last];'''
     sveSelectInst('clastb', 'Clastb', 'SimdAluOp', unsignedTypes, clastbCode,
-            isCond = True, destType = DestType.Scalar)
+            isCond = True, destType = DstRegType.Scalar)
+    # CLASTB (SIMD&FP scalar)
+    sveSelectInst('clastb', 'Clastbf', 'SimdAluOp', unsignedTypes, clastbCode,
+            isCond = True, destType = DstRegType.SimdFpScalar)
     # CLASTB (vector)
     sveSelectInst('clastb', 'Clastbv', 'SimdAluOp', unsignedTypes, clastbCode,
-            isCond = True, destType = DestType.Vector)
+            isCond = True, destType = DstRegType.Vector)
     # CLS
     clsCode = '''
         destElem = 0;
@@ -3519,6 +3546,7 @@ let {{
     # INSR (scalar)
     sveShiftAndInsertInst('insr', 'Insr', 'SimdAluOp', unsignedTypes,
             srcType = SrcRegType.Scalar)
+    # TODO: INSR (SIMD&FP scalar)
     # LASTA (scalar)
     lastaCode = '''
         last++;
@@ -3528,6 +3556,7 @@ let {{
         destElem = AA64FpOp1_x[last];'''
     sveSelectInst('lasta', 'Lasta', 'SimdAluOp', unsignedTypes, lastaCode,
             isCond = False)
+    # TODO: LASTA (SIMD&FP scalar)
     # LASTB (scalar)
     lastbCode = '''
         if (last < 0) {
@@ -3536,6 +3565,7 @@ let {{
         destElem = AA64FpOp1_x[last];'''
     sveSelectInst('lastb', 'Lastb', 'SimdAluOp', unsignedTypes, lastbCode,
             isCond = False)
+    # TODO: LASTB (SIMD&FP scalar)
     # LSL (immediate, predicated)
     lslCode = '''
             if (srcElem2 == 0) {

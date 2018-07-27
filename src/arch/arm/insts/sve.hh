@@ -590,15 +590,17 @@ class SveSelectOp : public ArmStaticInst {
     IntRegIndex gp;
     bool conditional;
     bool scalar;
+    bool simdfp;
     size_t scalar_width;
 
     SveSelectOp(const char* mnem, ExtMachInst _machInst,
                       OpClass __opClass, IntRegIndex _dest,
                       IntRegIndex _op1, IntRegIndex _gp,
-                      bool _conditional, bool _scalar) :
+                      bool _conditional, bool _scalar,
+                      bool _simdfp) :
         ArmStaticInst(mnem, _machInst, __opClass),
         dest(_dest), op1(_op1), gp(_gp), conditional(_conditional),
-        scalar(_scalar)
+        scalar(_scalar), simdfp(_simdfp)
     {}
     std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;
 };

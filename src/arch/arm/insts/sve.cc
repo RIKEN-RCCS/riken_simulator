@@ -570,6 +570,8 @@ SveSelectOp::generateDisassembly(Addr pc,
     printMnemonic(ss, "", false);
     if (scalar)
         printIntReg(ss, dest, scalar_width);
+    else if (simdfp)
+        printFloatReg(ss, dest);
     else
         printVecReg(ss, dest, true);
     ccprintf(ss, ", ");
