@@ -393,7 +393,10 @@ const int one_billion = 1000000000;
 /// Approximate seconds since the epoch (1/1/1970).  About a billion,
 /// by my reckoning.  We want to keep this a constant (not use the
 /// real-world time) to keep simulations repeatable.
-const unsigned seconds_since_epoch = 1000000000;
+/// const unsigned seconds_since_epoch = 1000000000;
+/// But since this value causes a digit loss from ns to us
+/// in double precision, set it to 0.
+const unsigned seconds_since_epoch = 0;
 
 /// Helper function to convert current elapsed time to seconds and
 /// microseconds.
