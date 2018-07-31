@@ -287,6 +287,12 @@ if options.ruby:
 else:
     MemClass = Simulation.setMemClass(options)
     system.membus = SystemXBar()
+    system.membus.width=32
+    system.membus.respwidth=64
+    system.membus.clk_domain=system.cpu_clk_domain
+    system.membus.frontend_latency = 10
+    system.membus.forward_latency = 10
+    system.membus.response_latency = 10
     system.system_port = system.membus.slave
     CacheConfig.config_cache(options, system)
     MemConfig.config_mem(options, system)
