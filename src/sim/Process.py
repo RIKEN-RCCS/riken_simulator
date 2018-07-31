@@ -45,7 +45,8 @@ class Process(SimObject):
     useArchPT = Param.Bool('false', 'maintain an in-memory version of the page\
                             table in an architecture-specific format')
     kvmInSE = Param.Bool('false', 'initialize the process for KvmCPU in SE')
-    maxStackSize = Param.MemorySize('64MB', 'maximum size of the stack')
+    #maxStackSize = Param.MemorySize('64MB', 'maximum size of the stack')
+    maxStackSize = Param.MemorySize('256MB', 'maximum size of the stack')
 
     uid = Param.Int(100, 'user id')
     euid = Param.Int(100, 'effective user id')
