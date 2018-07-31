@@ -188,9 +188,9 @@ SnoopFilter::lookupSnoop(const Packet* cpkt)
     auto sf_it = cachedLocations.find(line_addr);
     bool is_hit = (sf_it != cachedLocations.end());
 
-    panic_if(!is_hit && (cachedLocations.size() >= maxEntryCount),
-             "snoop filter exceeded capacity of %d cache blocks\n",
-             maxEntryCount);
+    //panic_if(!is_hit && (cachedLocations.size() >= maxEntryCount),
+    //         "snoop filter exceeded capacity of %d cache blocks\n",
+    //         maxEntryCount);
 
     // If the snoop filter has no entry, simply return a NULL
     // portlist, there is no point creating an entry only to remove it

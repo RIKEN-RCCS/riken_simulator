@@ -211,7 +211,8 @@ Cache::satisfyRequest(PacketPtr pkt, CacheBlk *blk,
                 }
             } else if (blk->isWritable() && !pending_downgrade &&
                        !pkt->hasSharers() &&
-                       pkt->cmd != MemCmd::ReadCleanReq) {
+                       pkt->cmd != MemCmd::ReadCleanReq &&
+                       pkt->cmd != MemCmd::ReadSharedReq) {
                 // we can give the requester a writable copy on a read
                 // request if:
                 // - we have a writable copy at this level (& below)
@@ -559,7 +560,10 @@ Cache::doWritebacks(PacketList& writebacks, Tick forward_time)
             // CleanEvict and Writeback with BLOCK_CACHED flag cleared will
             // reset the bit corresponding to this address in the snoop filter
             // below.
-            allocateWriteBuffer(wbPkt, forward_time);
+            if (wbPkt->cmd == MemCmd::CleanEvict)
+                delete wbPkt;
+            else
+                allocateWriteBuffer(wbPkt, forward_time);
         }
         writebacks.pop_front();
     }
