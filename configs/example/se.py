@@ -132,6 +132,9 @@ if '--ruby' in sys.argv:
     Ruby.define_options(parser)
 
 (options, args) = parser.parse_args()
+if options.fastmem :
+    options.caches = False;
+    options.l2cache = False;
 
 if args:
     print("Error: script doesn't take any positional arguments")
