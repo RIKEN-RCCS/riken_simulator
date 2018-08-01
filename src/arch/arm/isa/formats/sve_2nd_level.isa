@@ -1034,6 +1034,9 @@ namespace Aarch64
             } else if (imm & 0x8) {
                 imm >>= 4;
                 return new SveDupIdx<uint64_t>(machInst, zd, zn, imm);
+            } else if (imm & 0x10) {
+                imm >>= 5;
+                return new SveDupIdx<__uint128_t>(machInst, zd, zn, imm);
             }
             return new Unknown64(machInst);
         } else if (bits(machInst, 23, 22) != 0x0 &&

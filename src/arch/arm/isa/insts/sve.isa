@@ -3140,7 +3140,8 @@ let {{
     sveWideImmInst('dup', 'DupImm', 'SimdAluOp', unsignedTypes, dupCode,
                    isUnary=True)
     # DUP (index)
-    sveDupIndexInst('mov', 'DupIdx', 'SimdAluOp', unsignedTypes)
+    sveDupIndexInst('mov', 'DupIdx', 'SimdAluOp',
+            list(unsignedTypes) + ['__uint128_t'])
     # DUP (scalar)
     sveUnaryInst('dup', 'DupScalar', 'SimdAluOp', unsignedTypes, dupCode,
                  PredType.NONE, srcRegType=SrcRegType.Scalar)
