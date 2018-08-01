@@ -2700,7 +2700,7 @@ let {{
             int segbase = i - i % (16 / sizeof(Element));
             int s = segbase + imm;'''
         code += '''
-            DElement res = destVect[i];
+            DElement res = AA64FpDest_xd[i];
             DElement srcElem1, srcElem2;
             for (int j = 0; j <= 3; ++j) {
                 srcElem1 = static_cast<DElement>(AA64FpOp1_xs[4 * i + j]);'''
@@ -2715,13 +2715,10 @@ let {{
             }
             AA64FpDestMerge_xd[i] = res;
         }'''
-        extraPrologCode = '''
-        auto& destVect = AA64FpDestMerge;'''
         iop = InstObjParams(name, 'Sve' + Name,
                 'SveDotProdIdxOp' if isIndexed else
                 'SveDotProdOp',
                 {'code': code, 'op_class': opClass}, [])
-        iop.snippets['code'] = extraPrologCode + iop.snippets['code']
         if isIndexed:
             header_output += SveWideningTerImmOpDeclare.subst(iop)
         else:
