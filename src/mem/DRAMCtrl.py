@@ -1186,3 +1186,66 @@ class HBM_1000_4H_1x64(HBM_1000_4H_1x128):
 
     # self refresh exit time
     tXS = '65ns'
+class HBM_1000_4H_x256(HBM_1000_4H_1x64):
+    # 256-bit pseudo-channel groups interface
+    device_bus_width = 256
+
+    # size of channel in bytes, 4H stack of 8Gb dies is 4GB per stack;
+    # with 4 channels, 1GB per channel
+    device_size = '1GB'
+
+    # page size is halved with pseudo-channel; maintaining the same same number
+    # of rows per pseudo-channel with 2X banks across 2 channels
+    device_rowbuffer_size = '4kB'
+
+# A single HBM2 x256 interface (one command and address bus), with
+# default timings based on HBM gen2 and data publically released
+# A 8H stack is defined, 8Gb per die for a total of 8GB of memory.
+# Note: This defines a virtual 256 bit channel with a unique controller
+# instantiated per 4 pseudo-channel
+# Modify the IO rate to 2Gbps, but others stay at
+# same to maintain timing relationship with
+# HBM gen1 class (HBM_1000_4H_x64) where possible
+class HBM_2000_8H_x256(HBM_1000_4H_x256):
+
+    # size of channel in bytes, 8H stack of 8Gb dies is 8GB per stack;
+    # with 4 channels, 2GB per channel
+    device_size = '2GB'
+
+    # HBM has 8 or 16 banks depending on capacity
+    # and 8Gb 8H has a SID (stack ID), which act as a bank address bit
+    banks_per_rank = 32
+
+    # 1GHz for 2Gbps DDR data rate
+    tCK = '1ns'
+
+    # BL2 and BL4 supported, default to BL4
+    # DDR @ 1 GHz means 4 * 1ns / 2 = 2ns
+    tBURST = '2ns'
+
+class HBM_2000_8H_x256_BL8(HBM_2000_8H_x256):
+    activation_limit = 0
+    # HBM pseudo-channel only supports BL4, but virtually set BL8
+    burst_length = 8
+
+    # DDR @ 1 GHz means 8 * 1ns / 2 = 4ns
+    tBURST = '4ns'
+
+class HBM_2000_8H_x256_BL8_PK(HBM_2000_8H_x256_BL8):
+    page_policy = 'close_adaptive'
+    addr_mapping = 'RoCoRaBaCh'
+    mem_sched_policy = 'frfcfs'
+    tRFC = '80ns'  # 160ns(single bank refresh) / 2
+    tXS  = '88ns'
+    tWR = '0ns'    # tCL includes write latency + tWR
+    tWTR = '0ns'   # tCL includes write latency + tWTR
+
+class HBM_2000_8H_x64(HBM_2000_8H_x256):
+    device_bus_width = 64
+    device_size = '512MB'
+    device_rowbuffer_size = '1kB'
+
+class HBM_2000_8H_x128(HBM_2000_8H_x256):
+    device_bus_width = 128
+    device_size = '1GB'
+    device_rowbuffer_size = '2kB'
