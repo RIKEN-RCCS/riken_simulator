@@ -135,6 +135,8 @@ DRAMCtrl::DRAMCtrl(const DRAMCtrlParams* p) :
 
     DPRINTF(DRAM, "Row buffer size %d bytes with %d columns per row buffer\n",
             rowBufferSize, columnsPerRowBuffer);
+    DPRINTF(DRAM, "summary addr: bank: row: cmd: readq: "
+            "respq: writeq: active: entry: activate: ready:\n");
 
     rowsPerBank = capacity / (rowBufferSize * banksPerRank * ranksPerChannel);
 
@@ -1079,6 +1081,7 @@ DRAMCtrl::doDRAMAccess(DRAMPacket* dram_pkt)
     // respect any constraints on the command (e.g. tRCD or tCCD)
     Tick cmd_at = std::max(bank.colAllowedAt, curTick());
 
+    Tick act_tick = 0;
     // Determine the access latency and update the bank state
     if (bank.openRow == dram_pkt->row) {
         // nothing to do
@@ -1092,7 +1095,7 @@ DRAMCtrl::doDRAMAccess(DRAMPacket* dram_pkt)
 
         // next we need to account for the delay in activating the
         // page
-        Tick act_tick = std::max(bank.actAllowedAt, curTick());
+        act_tick = std::max(bank.actAllowedAt, curTick());
 
         // Record the activation and deal with all the global timing
         // constraints caused be a new activation (tRRD and tXAW)
@@ -1222,6 +1225,11 @@ DRAMCtrl::doDRAMAccess(DRAMPacket* dram_pkt)
 
     DPRINTF(DRAM, "Access to %lld, ready at %lld bus busy until %lld.\n",
             dram_pkt->addr, dram_pkt->readyTime, busBusyUntil);
+    DPRINTF(DRAM, "summary %08llx %2d %4d %s %2d %2d %2d %2d %lld %lld %lld\n",
+            dram_pkt->addr, dram_pkt->bank, dram_pkt->row, mem_cmd,
+            readQueue.size(), respQueue.size(), writeQueue.size(),
+            rank.numBanksActive, dram_pkt->entryTime, act_tick,
+            dram_pkt->readyTime);
 
     dram_pkt->rankRef.cmdList.push_back(Command(command, dram_pkt->bank,
                                         cmd_at));
