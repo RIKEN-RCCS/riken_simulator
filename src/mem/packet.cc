@@ -103,6 +103,9 @@ MemCmd::commandInfo[] =
     /* SoftPFReq */
     { SET4(IsRead, IsRequest, IsSWPrefetch, NeedsResponse),
             SoftPFResp, "SoftPFReq" },
+    /* SoftPFExReq */
+    { SET6(IsRead, NeedsWritable, IsInvalidate, IsRequest,
+           IsSWPrefetch, NeedsResponse), SoftPFResp, "SoftPFExReq" },
     /* HardPFReq */
     { SET5(IsRead, IsRequest, IsHWPrefetch, NeedsResponse, FromCache),
             HardPFResp, "HardPFReq" },
