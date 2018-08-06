@@ -296,6 +296,8 @@ class O3_ARM_PostK_DCache(Cache):
     write_buffers = 21
     writeback_clean = False
     prefetch_on_access = True
+    downgrade_on_shared_req = False
+    forward_clean_evict = False
     #prefetcher = StridePrefetcher(degree=8, latency = 1)
     prefetcher = KPrefetcher(degree=2, latency=1,
                              slowstart=True, maxprfofs=2048,
@@ -328,6 +330,8 @@ class O3_ARM_PostK_L2(Cache):
     write_buffers = 64
 #    prefetch_on_access = True
     clusivity = 'mostly_incl'
+    downgrade_on_shared_req = False
+    forward_clean_evict = False
     # Simple stride prefetcher
 #    prefetcher = KPrefetcher(degree=8, latency = 1)
 #    tags = RandomRepl()

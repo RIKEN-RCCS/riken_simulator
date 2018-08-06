@@ -76,7 +76,9 @@ Cache::Cache(const CacheParams *p)
       tempBlockWriteback(nullptr),
       writebackTempBlockAtomicEvent([this]{ writebackTempBlockAtomic(); },
                                     name(), false,
-                                    EventBase::Delayed_Writeback_Pri)
+                                    EventBase::Delayed_Writeback_Pri),
+      downgradeOnSharedReq(p->downgrade_on_shared_req),
+      forwardCleanEvict(p->forward_clean_evict)
 {
     tempBlock = new CacheBlk();
     tempBlock->data = new uint8_t[blkSize];
@@ -212,7 +214,8 @@ Cache::satisfyRequest(PacketPtr pkt, CacheBlk *blk,
             } else if (blk->isWritable() && !pending_downgrade &&
                        !pkt->hasSharers() &&
                        pkt->cmd != MemCmd::ReadCleanReq &&
-                       pkt->cmd != MemCmd::ReadSharedReq) {
+                       (downgradeOnSharedReq ||
+                        pkt->cmd != MemCmd::ReadSharedReq)) {
                 // we can give the requester a writable copy on a read
                 // request if:
                 // - we have a writable copy at this level (& below)
@@ -560,7 +563,8 @@ Cache::doWritebacks(PacketList& writebacks, Tick forward_time)
             // CleanEvict and Writeback with BLOCK_CACHED flag cleared will
             // reset the bit corresponding to this address in the snoop filter
             // below.
-            if (wbPkt->cmd == MemCmd::CleanEvict)
+            if ((!forwardCleanEvict) &&
+                (wbPkt->cmd == MemCmd::CleanEvict))
                 delete wbPkt;
             else
                 allocateWriteBuffer(wbPkt, forward_time);

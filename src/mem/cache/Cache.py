@@ -85,6 +85,10 @@ class BaseCache(MemObject):
          "Address range for the CPU-side port (to allow striping)")
 
     system = Param.System(Parent.any, "System we belong to")
+    downgrade_on_shared_req = Param.Bool(True,
+                                    "forward downgrade on shared req")
+    forward_clean_evict = Param.Bool(True,
+                                  "forward clean evict on writeback")
 
 # Enum for cache clusivity, currently mostly inclusive or mostly
 # exclusive.

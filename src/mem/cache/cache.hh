@@ -261,6 +261,8 @@ class Cache : public BaseCache
      */
     EventFunctionWrapper writebackTempBlockAtomicEvent;
 
+    bool downgradeOnSharedReq;
+    bool forwardCleanEvict;
     /**
      * Store the outstanding requests that we are expecting snoop
      * responses from so we can determine which snoop responses we
