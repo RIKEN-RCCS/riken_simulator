@@ -773,7 +773,7 @@ class VecRegOperand(Operand):
         if self.is_dest and self.is_src:
             name += '_merger'
 
-        c_read =  '\t\t%s& tmp_s%s = xc->%s(this, %s);\n' \
+        c_read =  '\t\t%s tmp_s%s = xc->%s(this, %s);\n' \
                 % ('const TheISA::VecRegContainer', rindex, func, rindex)
         # If the parser has detected that elements are being access, create
         # the appropriate view
@@ -890,7 +890,7 @@ class PredRegOperand(Operand):
         else:
             rindex = '%d' % self.src_reg_idx
 
-        c_read =  '\t\t%s& tmp_s%s = xc->%s(this, %s);\n' % (
+        c_read =  '\t\t%s tmp_s%s = xc->%s(this, %s);\n' % (
                 'const TheISA::PredRegContainer', rindex, func, rindex)
         if self.ext:
             c_read += '\t\tauto %s = tmp_s%s.as<%s>();\n' % (
