@@ -163,6 +163,26 @@ output header {{
         }
         return new Unknown64(machInst);
     }
+    // Decodes SVE contiguous store instructions, scalar plus scalar form.
+    template <template <typename T1, typename T2> class Base>
+    StaticInstPtr
+    decodeSveContigNTSSInsts(uint8_t dtype, ExtMachInst machInst,
+                                IntRegIndex zt, IntRegIndex pg, IntRegIndex rn,
+                                IntRegIndex rm, bool isload)
+    {
+        const char* mn = (isload) ? "ldnt1": "stnt1";
+        switch (dtype) {
+          case 0x0:
+            return new Base<uint8_t, uint8_t>(mn, machInst, zt, pg, rn, rm);
+          case 0x4:
+            return new Base<uint16_t, uint16_t>(mn, machInst, zt, pg, rn, rm);
+          case 0x8:
+            return new Base<uint32_t, uint32_t>(mn, machInst, zt, pg, rn, rm);
+          case 0xc:
+            return new Base<uint64_t, uint64_t>(mn, machInst, zt, pg, rn, rm);
+        }
+        return new Unknown64(machInst);
+    }
 
     // Decodes SVE contiguous store instructions, scalar plus immediate form.
     template <template <typename T1, typename T2> class Base>
@@ -192,6 +212,26 @@ output header {{
           case 0xb:
             return new Base<uint64_t, uint32_t>(mn, machInst, zt, pg, rn, imm);
           case 0xf:
+            return new Base<uint64_t, uint64_t>(mn, machInst, zt, pg, rn, imm);
+        }
+        return new Unknown64(machInst);
+    }
+    // Decodes SVE NT contiguous instructions, scalar plus immediate form.
+    template <template <typename T1, typename T2> class Base>
+    StaticInstPtr
+    decodeSveContigNTSIInsts(uint8_t dtype, ExtMachInst machInst,
+                                IntRegIndex zt, IntRegIndex pg, IntRegIndex rn,
+                                int8_t imm, bool isload)
+    {
+        const char* mn = isload ? "ldnt1" : "stnt1";
+        switch (dtype) {
+          case 0x0:
+            return new Base<uint8_t, uint8_t>(mn, machInst, zt, pg, rn, imm);
+          case 0x4:
+            return new Base<uint16_t, uint16_t>(mn, machInst, zt, pg, rn, imm);
+          case 0x8:
+            return new Base<uint32_t, uint32_t>(mn, machInst, zt, pg, rn, imm);
+          case 0xc:
             return new Base<uint64_t, uint64_t>(mn, machInst, zt, pg, rn, imm);
         }
         return new Unknown64(machInst);

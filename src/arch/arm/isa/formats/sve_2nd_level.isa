@@ -2926,7 +2926,18 @@ namespace Aarch64
     StaticInstPtr
     decodeSveContigNTLoadSS(ExtMachInst machInst)
     {
-        return new Unknown64(machInst);
+        IntRegIndex zt = (IntRegIndex) (uint8_t) bits(machInst, 4, 0);
+        IntRegIndex rn = makeSP((IntRegIndex) (uint8_t) bits(machInst, 9, 5));
+        IntRegIndex rm = makeSP(
+            (IntRegIndex) (uint8_t) bits(machInst, 20, 16));
+        IntRegIndex pg = (IntRegIndex) (uint8_t) bits(machInst, 12, 10);
+
+        if (rm == 0x1f) {
+            return new Unknown64(machInst);
+        }
+
+        return decodeSveContigNTSSInsts<SveContigLoadSS>(
+            bits(machInst, 24, 21), machInst, zt, pg, rn, rm, true);
     }  // decodeSveContigNTLoadSS
 
     StaticInstPtr
@@ -2950,7 +2961,13 @@ namespace Aarch64
     StaticInstPtr
     decodeSveContigNTLoadSI(ExtMachInst machInst)
     {
-        return new Unknown64(machInst);
+        IntRegIndex zt = (IntRegIndex) (uint8_t) bits(machInst, 4, 0);
+        IntRegIndex rn = makeSP((IntRegIndex) (uint8_t) bits(machInst, 9, 5));
+        int8_t imm = sext<4>(bits(machInst, 19, 16));
+        IntRegIndex pg = (IntRegIndex) (uint8_t) bits(machInst, 12, 10);
+
+        return decodeSveContigNTSIInsts<SveContigLoadSI>(
+            bits(machInst, 24, 21), machInst, zt, pg, rn, imm, true);
     }  // decodeSveContigNTLoadSI
 
     StaticInstPtr
@@ -3153,13 +3170,29 @@ namespace Aarch64
     StaticInstPtr
     decodeSveContigNTStoreSS(ExtMachInst machInst)
     {
-        return new Unknown64(machInst);
+        IntRegIndex zt = (IntRegIndex) (uint8_t) bits(machInst, 4, 0);
+        IntRegIndex rn = makeSP((IntRegIndex) (uint8_t) bits(machInst, 9, 5));
+        IntRegIndex rm = makeSP(
+            (IntRegIndex) (uint8_t) bits(machInst, 20, 16));
+        IntRegIndex pg = (IntRegIndex) (uint8_t) bits(machInst, 12, 10);
+        if (rm == 0x1f) {
+            return new Unknown64(machInst);
+        }
+
+        return decodeSveContigNTSSInsts<SveContigStoreSS>(
+            bits(machInst, 24, 21), machInst, zt, pg, rn, rm, false);
     }  // decodeSveContigNTStoreSS
 
     StaticInstPtr
     decodeSveContigNTStoreSI(ExtMachInst machInst)
     {
-        return new Unknown64(machInst);
+        IntRegIndex zt = (IntRegIndex) (uint8_t) bits(machInst, 4, 0);
+        IntRegIndex rn = makeSP((IntRegIndex) (uint8_t) bits(machInst, 9, 5));
+        int8_t imm = sext<4>(bits(machInst, 19, 16));
+        IntRegIndex pg = (IntRegIndex) (uint8_t) bits(machInst, 12, 10);
+
+        return decodeSveContigNTSIInsts<SveContigStoreSI>(
+            bits(machInst, 24, 21), machInst, zt, pg, rn, imm, false);
     }  // decodeSveContigNTStoreSI
 
     StaticInstPtr
