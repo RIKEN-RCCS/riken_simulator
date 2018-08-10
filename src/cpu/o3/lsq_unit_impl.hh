@@ -1065,9 +1065,11 @@ LSQUnit<Impl>::trySendPacket(bool isLoad, PacketPtr data_pkt)
     bool cache_got_blocked = false;
 
     auto state = dynamic_cast<LSQSenderState*>(data_pkt->senderState);
+    PacketPtr main_pkt = state->request()->mainPacket();
 
     if (!lsq->cacheBlocked() &&
-        ((isLoad && lsq->cachePortAvailable(true)) ||
+        ((data_pkt != main_pkt)||
+         (isLoad && lsq->cachePortAvailable(true)) ||
          (!isLoad && lsq->cachePortAvailable(false)))) {
             if (!dcachePort->sendTimingReq(data_pkt)) {
                 ret = false;
@@ -1081,7 +1083,9 @@ LSQUnit<Impl>::trySendPacket(bool isLoad, PacketPtr data_pkt)
         if (!isLoad) {
             isStoreBlocked = false;
         }
-        lsq->cachePortBusy(isLoad);
+        if (main_pkt == data_pkt){
+                lsq->cachePortBusy(isLoad);
+        }
         state->outstanding++;
         state->request()->packetSent();
     } else {
