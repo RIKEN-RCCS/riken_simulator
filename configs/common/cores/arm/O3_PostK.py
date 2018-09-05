@@ -298,6 +298,7 @@ class O3_ARM_PostK_DCache(Cache):
     prefetch_on_access = True
     downgrade_on_shared_req = False
     forward_clean_evict = False
+    one_port = True
     #prefetcher = StridePrefetcher(degree=8, latency = 1)
     prefetcher = KPrefetcher(degree=2, latency=1,
                              slowstart=True, maxprfofs=2048,
@@ -332,6 +333,7 @@ class O3_ARM_PostK_L2(Cache):
     clusivity = 'mostly_incl'
     downgrade_on_shared_req = False
     forward_clean_evict = False
+#    one_port = True
     # Simple stride prefetcher
 #    prefetcher = KPrefetcher(degree=8, latency = 1)
 #    tags = RandomRepl()

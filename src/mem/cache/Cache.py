@@ -117,3 +117,5 @@ class Cache(BaseCache):
     # this should be set to True for anything but the last-level
     # cache.
     writeback_clean = Param.Bool(False, "Writeback clean lines")
+    one_port = Param.Bool(False,
+                          "Don't receive request while receiving response")

@@ -77,8 +77,11 @@ Cache::Cache(const CacheParams *p)
       writebackTempBlockAtomicEvent([this]{ writebackTempBlockAtomic(); },
                                     name(), false,
                                     EventBase::Delayed_Writeback_Pri),
+      onePortReleaseEvent([this]{clearBlocked(Blocked_Receiving);}, name()),
       downgradeOnSharedReq(p->downgrade_on_shared_req),
-      forwardCleanEvict(p->forward_clean_evict)
+      forwardCleanEvict(p->forward_clean_evict),
+      nextReqTime(0),
+      onePort(p->one_port)
 {
     tempBlock = new CacheBlk();
     tempBlock->data = new uint8_t[blkSize];
@@ -106,6 +109,12 @@ void
 Cache::regStats()
 {
     BaseCache::regStats();
+    recvOverlap
+        .name(name() + ".recv_overlap")
+        .desc("overlapped receive")
+        .flags(Stats::nozero)
+        ;
+
 }
 
 void
@@ -670,6 +679,12 @@ Cache::recvTimingReq(PacketPtr pkt)
         bool M5_VAR_USED success = memSidePort->sendTimingReq(pkt);
         assert(success);
         return true;
+    }
+    if (curTick() < nextReqTime){
+        recvOverlap++;
+        DPRINTF(Cache,
+                "Recv request while receiving response %d\n",
+                nextReqTime);
     }
 
     promoteWholeLineWrites(pkt);
@@ -1347,12 +1362,18 @@ Cache::recvTimingResp(PacketPtr pkt)
     // this is a prefetch response from above
     panic_if(pkt->headerDelay != 0 && pkt->cmd != MemCmd::HardPFResp,
              "%s saw a non-zero packet delay\n", name());
+    DPRINTF(Cache, "Payload delay %d\n", pkt->payloadDelay);
+    nextReqTime = curTick() + pkt->payloadDelay;
 
     bool is_error = pkt->isError();
 
     if (is_error) {
         DPRINTF(Cache, "%s: Cache received %s with error\n", __func__,
                 pkt->print());
+    }
+    if (onePort){
+        setBlocked(Blocked_Receiving);
+        schedule(onePortReleaseEvent, nextReqTime);
     }
 
     DPRINTF(Cache, "%s: Handling response %s\n", __func__,

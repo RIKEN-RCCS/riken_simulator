@@ -261,6 +261,8 @@ class Cache : public BaseCache
      */
     EventFunctionWrapper writebackTempBlockAtomicEvent;
 
+    EventFunctionWrapper onePortReleaseEvent;
+
     bool downgradeOnSharedReq;
     bool forwardCleanEvict;
     /**
@@ -537,6 +539,9 @@ class Cache : public BaseCache
     bool inMissQueue(Addr addr, bool is_secure) const override {
         return (mshrQueue.findMatch(addr, is_secure) != 0);
     }
+    Tick nextReqTime;
+    bool onePort;
+    Stats::Scalar recvOverlap;
 
     /**
      * Find next request ready time from among possible sources.
