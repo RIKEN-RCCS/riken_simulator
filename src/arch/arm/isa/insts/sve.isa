@@ -2715,9 +2715,9 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());'''
-        extraPrologCode = '''
-        Element destElem = AA64FpDest[0];'''
+        extraPrologCode = ''''''
         code += '''
+        Element destElem = AA64FpDestMerge_x[0];
         for (int i = 0; i < eCount; ++i) {
             if (GpOp_x[i]) {
                 Element srcElem1 = AA64FpOp1_x[i];
