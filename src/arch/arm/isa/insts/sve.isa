@@ -2047,19 +2047,23 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        TheISA::PredRegContainer tmpPredC;
+        auto tmpPred = tmpPredC.as<Element>();
+        for (unsigned i = 0; i < eCount; ++i)
+            tmpPred[i] = GpOp_x[i];
         destPred.reset();
         for (unsigned i = 0; i < eCount; ++i) {
             %(srcType)s srcElem1 = (%(srcType)s) AA64FpOp1_x[i];
             %(srcType)s srcElem2 = AA64FpOp2_%(op2Suffix)s[%(op2Index)s];
             bool destElem = false;
-            if (GpOp_x[i]) {
+            if (tmpPred[i]) {
                 %(op)s
             }
             PDest_x[i] = destElem;
         }
-        CondCodesNZ = (destPred.firstActive(GpOp, eCount) << 1) |
-                      destPred.noneActive(GpOp, eCount);
-        CondCodesC = !destPred.lastActive(GpOp, eCount);
+        CondCodesNZ = (destPred.firstActive(tmpPred, eCount) << 1) |
+                      destPred.noneActive(tmpPred, eCount);
+        CondCodesC = !destPred.lastActive(tmpPred, eCount);
         CondCodesV = 0;''' % {
                 'op': op,
                 'srcType': srcType,
@@ -2088,18 +2092,23 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        TheISA::PredRegContainer tmpPredC;
+        auto tmpPred = tmpPredC.as<Element>();
+        for (unsigned i = 0; i < eCount; ++i)
+            tmpPred[i] = GpOp_x[i];
+        destPred.reset();
         for (unsigned i = 0; i < eCount; ++i) {
             Element srcElem1 = AA64FpOp1_x[i];
             Element srcElem2 = static_cast<Element>(imm);
             bool destElem = false;
-            if (GpOp_x[i]) {
+            if (tmpPred[i]) {
                 %(op)s
             }
             PDest_x[i] = destElem;
         }
-        CondCodesNZ = (destPred.firstActive(GpOp, eCount) << 1) |
-                      destPred.noneActive(GpOp, eCount);
-        CondCodesC = !destPred.lastActive(GpOp, eCount);
+        CondCodesNZ = (destPred.firstActive(tmpPred, eCount) << 1) |
+                      destPred.noneActive(tmpPred, eCount);
+        CondCodesC = !destPred.lastActive(tmpPred, eCount);
         CondCodesV = 0;'''%{'op': op}
         iop = InstObjParams(name, 'Sve' + Name, 'SveIntCmpImmOp',
                             {'code': code, 'op_class': opClass,}, [])

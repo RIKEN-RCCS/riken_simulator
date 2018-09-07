@@ -451,9 +451,9 @@ SveIntCmpOp::generateDisassembly(Addr pc,
     std::stringstream ss;
     printMnemonic(ss, "", false);
     printPredReg(ss, dest);
-    ccprintf(ss, "/z, ");
-    printPredReg(ss, gp);
     ccprintf(ss, ", ");
+    printPredReg(ss, gp);
+    ccprintf(ss, "/z, ");
     printVecReg(ss, op1, true);
     ccprintf(ss, ", ");
     if (op2IsWide) {
