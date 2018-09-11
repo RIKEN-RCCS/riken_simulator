@@ -637,6 +637,10 @@ class BaseCPU : public MemObject
 
     Cycles syscallRetryLatency;
 
+    const int showFlops;
+    const int showFlopsDetailed;
+
+
   // Enables CPU to enter power gating on a configurable cycle count
   protected:
     void enterPwrGating();

@@ -90,6 +90,12 @@ BaseO3CPU::regStats()
     BaseCPU::regStats();
 }
 
+void
+BaseO3CPU::resetStats()
+{
+    BaseCPU::resetStats();
+}
+
 template<class Impl>
 bool
 FullO3CPU<Impl>::IcachePort::recvTimingResp(PacketPtr pkt)
@@ -284,6 +290,8 @@ FullO3CPU<Impl>::FullO3CPU(DerivO3CPUParams *params)
         renameMap[tid].init(&regFile, TheISA::ZeroReg, fpZeroReg,
                             &freeList, vecMode);
     }
+
+    sveLen = isa[0]->getCurSveVecLenInBits();
 
     // Initialize rename map to assign physical registers to the
     // architectural registers for active threads only.
@@ -576,6 +584,15 @@ FullO3CPU<Impl>::regStats()
         .name(name() + ".misc_regfile_writes")
         .desc("number of misc regfile writes")
         .prereq(miscRegfileWrites);
+}
+
+template <class Impl>
+ void
+FullO3CPU<Impl>::resetStats()
+{
+    BaseO3CPU::resetStats();
+    //std::cout << "reset" << std::endl;
+    this->commit.resetStats();
 }
 
 template <class Impl>

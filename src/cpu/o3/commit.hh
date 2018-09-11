@@ -145,6 +145,8 @@ class DefaultCommit
     /** Mark the thread as processing a trap. */
     void processTrapEvent(ThreadID tid);
 
+    int numReset;
+
   public:
     /** Construct a DefaultCommit with the given parameters. */
     DefaultCommit(O3CPU *_cpu, DerivO3CPUParams *params);
@@ -154,6 +156,8 @@ class DefaultCommit
 
     /** Registers statistics. */
     void regStats();
+
+    void resetStats();
 
     /** Registers probes. */
     void regProbePoints();
@@ -528,6 +532,37 @@ class DefaultCommit
     /** count zero insts commit*/
     Stats::Scalar zeroCommittedMem;
     Stats::Scalar zeroCommittedUop;
+
+    /** Total Flops (half precision, predicate-aware) **/
+    Stats::Scalar pahflops;
+    /** Total Flops (single precision, predicate-aware) **/
+    Stats::Scalar pasflops;
+    /** Total Flops (double precision, predicate-aware) **/
+    Stats::Scalar padflops;
+
+    /** Total Flops (half precision, predicate-unaware) **/
+    Stats::Scalar hflops;
+    /** Total Flops (single precision, predicate-unaware) **/
+    Stats::Scalar sflops;
+    /** Total Flops (double precision, predicate-unaware) **/
+    Stats::Scalar dflops;
+
+    /** Total Bytes (predicate-aware) **/
+    Stats::Scalar pabytes;
+
+    /** Total Bytes (predicate-unaware) **/
+    Stats::Scalar bytes;
+
+    /** F/B rate **/
+    Stats::Formula fbRate;
+
+    /** Total number of active elements used for predicate operations **/
+    Stats::Scalar numAPEs;
+
+    /** Total number of elements used for predicate operations **/
+    Stats::Scalar numPEs;
+
+
 };
 
 #endif // __CPU_O3_COMMIT_HH__

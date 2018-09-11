@@ -1424,6 +1424,7 @@ class InstObjParams(object):
         header += '\n\t_numIntDestRegs = 0;'
         header += '\n\t_numCCDestRegs = 0;'
 
+
         self.constructor = header + \
                            self.operands.concatAttrStrings('constructor')
 
@@ -1488,6 +1489,22 @@ class InstObjParams(object):
             self.fp_enable_check = 'fault = checkVecEnableFault(xc);'
         else:
             self.fp_enable_check = ''
+
+        '''
+        suffix = class_name[-1:]
+        if self.op_class == 'FloatAddOp' or self.op_class == 'SimdAddOp':
+            if suffix == 'H':
+                header += '\n\telemBits = 16;'
+            elif suffix == 'S':
+                header += '\n\telemBits = 32;'
+            elif suffix == 'D':
+                header += '\n\telemBits = 64;'
+            else:
+                header += '\n\telemBits = 0;'
+        else:
+            header += '\n\telemBits = 0;'
+        #print('{} {} {} {}'.format(mnem, class_name, self.op_class, base_class))
+        '''
 
 ##############
 # Stack: a simple stack object.  Used for both formats (formatStack)

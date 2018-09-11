@@ -143,6 +143,8 @@ def template SveContigLoadExecute {{
         bool aarch64 M5_VAR_USED = true;
         unsigned eCount = ArmStaticInst::getCurSveVecLen<RegElemType>(
             xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(RegElemType) * 8;
 
         %(op_decl)s;
         %(op_rd)s;
@@ -177,6 +179,9 @@ def template SveContigLoadInitiateAcc {{
         bool aarch64 M5_VAR_USED = true;
         unsigned eCount = ArmStaticInst::getCurSveVecLen<RegElemType>(
             xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(RegElemType) * 8;
+
 
         %(op_src_decl)s;
         %(op_rd)s;
@@ -201,6 +206,9 @@ def template SveContigLoadCompleteAcc {{
         bool aarch64 M5_VAR_USED = true;
         unsigned eCount = ArmStaticInst::getCurSveVecLen<RegElemType>(
             xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(RegElemType) * 8;
+
 
         %(op_decl)s;
         %(op_rd)s;
@@ -230,6 +238,9 @@ def template SveContigStoreExecute {{
         bool aarch64 M5_VAR_USED = true;
         unsigned eCount = ArmStaticInst::getCurSveVecLen<RegElemType>(
             xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(RegElemType) * 8;
+
 
         %(op_decl)s;
         %(op_rd)s;
@@ -267,6 +278,9 @@ def template SveContigStoreInitiateAcc {{
         bool aarch64 M5_VAR_USED = true;
         unsigned eCount = ArmStaticInst::getCurSveVecLen<RegElemType>(
             xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(RegElemType) * 8;
+
 
         %(op_decl)s;
         %(op_rd)s;
@@ -309,6 +323,9 @@ def template SveLoadAndReplExecute {{
         bool aarch64 M5_VAR_USED = true;
         unsigned eCount = ArmStaticInst::getCurSveVecLen<RegElemType>(
             xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(RegElemType) * 8;
+
 
         %(op_decl)s;
         %(op_rd)s;
@@ -364,6 +381,9 @@ def template SveLoadAndReplCompleteAcc {{
         bool aarch64 M5_VAR_USED = true;
         unsigned eCount = ArmStaticInst::getCurSveVecLen<RegElemType>(
             xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(RegElemType) * 8;
+
 
         %(op_decl)s;
         %(op_rd)s;
@@ -923,6 +943,9 @@ def template SveStructLoadExecute {{
         bool aarch64 M5_VAR_USED = true;
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
             xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
+
 
         %(op_decl)s;
         %(op_rd)s;
@@ -955,6 +978,9 @@ def template SveStructLoadInitiateAcc {{
         bool aarch64 M5_VAR_USED = true;
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
             xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
+
 
         %(op_src_decl)s;
         %(op_rd)s;
@@ -979,6 +1005,8 @@ def template SveStructLoadCompleteAcc {{
         bool aarch64 M5_VAR_USED = true;
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
             xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
 
         %(op_decl)s;
         %(op_rd)s;
@@ -1011,6 +1039,9 @@ def template SveStructStoreExecute {{
         bool aarch64 M5_VAR_USED = true;
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
             xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
+
 
         %(op_decl)s;
         %(op_rd)s;
@@ -1048,6 +1079,9 @@ def template SveStructStoreInitiateAcc {{
         bool aarch64 M5_VAR_USED = true;
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
             xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
+
 
         %(op_decl)s;
         %(op_rd)s;

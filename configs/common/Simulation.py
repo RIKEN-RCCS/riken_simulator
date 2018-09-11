@@ -468,6 +468,15 @@ def run(options, root, testsys, cpu_class):
         for i in xrange(np):
             testsys.cpu[i].max_insts_any_thread = options.maxinsts
 
+    if options.show_flops_detailed:
+        for i in xrange(np):
+            testsys.cpu[i].show_flops_detailed = options.show_flops_detailed
+    elif options.show_flops:
+        for i in xrange(np):
+            testsys.cpu[i].show_flops = options.show_flops
+
+
+
     if cpu_class:
         switch_cpus = [cpu_class(switched_out=True, cpu_id=(i))
                        for i in xrange(np)]

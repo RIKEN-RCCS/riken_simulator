@@ -127,6 +127,9 @@ def addNoISAOptions(parser):
                       help="Run to the specified absolute simulated time in "
                       "seconds")
 
+    parser.add_option("--show-flops", action="store_true", help="Display Flops and Bytes at every dumpstat (o3 only)")
+    parser.add_option("--show-flops-detailed", action="store_true", help="Display Flops and Bytes at every dumpstat - detailed version (o3 only)")
+
 # Add common options that assume a non-NULL ISA.
 def addCommonOptions(parser):
     # start by adding the base options that do not assume an ISA

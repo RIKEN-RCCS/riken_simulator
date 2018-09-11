@@ -206,6 +206,13 @@ class BaseCPU(MemObject):
               buildEnv['TARGET_ISA'])
         sys.exit(1)
 
+
+    show_flops = Param.Bool(False,
+        "Desplay Flops and Bytes at every dumpstat (o3 only)")
+    show_flops_detailed = Param.Bool(False,
+        "Desplay Flops and Bytes at every dumpstat - detailed version (o3 only)")
+
+
     max_insts_all_threads = Param.Counter(0,
         "terminate when all threads have reached this inst count")
     max_insts_any_thread = Param.Counter(0,

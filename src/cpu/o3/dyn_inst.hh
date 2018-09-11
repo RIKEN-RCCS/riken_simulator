@@ -77,6 +77,7 @@ class BaseO3DynInst : public BaseDynInst<Impl>
     static constexpr auto NumVecElemPerVecReg = TheISA::NumVecElemPerVecReg;
     using PredRegContainer = TheISA::PredRegContainer;
 
+
     /** Misc register type. */
     typedef TheISA::MiscReg  MiscReg;
 
@@ -110,6 +111,8 @@ class BaseO3DynInst : public BaseDynInst<Impl>
     /** Initializes variables. */
     void initVars();
 
+    mutable int numActiveElems = -1;//this->cpu->getSveLen();//0;
+
   protected:
     /** Explicitation of dependent names. */
     using BaseDynInst<Impl>::cpu;
@@ -141,6 +144,11 @@ class BaseO3DynInst : public BaseDynInst<Impl>
     int32_t commitTick;
     int32_t storeTick;
 #endif
+
+
+    //void setNumActiveElems(int val) {numActiveElems = val;}
+    int getNumActiveElems() {return numActiveElems;}
+
 
     /** Reads a misc. register, including any side-effects the read
      * might have as defined by the architecture.
@@ -376,6 +384,10 @@ class BaseO3DynInst : public BaseDynInst<Impl>
     const PredRegContainer&
     readPredRegOperand(const StaticInst *si, int idx) const override
     {
+        PredRegContainer val;
+        val = this->cpu->readPredReg(this->_srcRegIdx[idx]);
+        numActiveElems = val.get_num_active_elems();
+
         return this->cpu->readPredReg(this->_srcRegIdx[idx]);
     }
 

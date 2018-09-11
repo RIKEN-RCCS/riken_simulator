@@ -1257,6 +1257,9 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
+
         for (unsigned i = 0; i < eCount; i++) {
             const Element& srcElem1 = AA64FpOp1_x[i];
             Element srcElem2 = AA64FpOp2_x[i];
@@ -1286,6 +1289,8 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
         %(stype)s srcElem1 = static_cast<%(stype)s>(XOp1);
         %(stype)s srcElem2 = static_cast<%(stype)s>(XOp2);
         bool cond, first = false, none = true, last = true;
@@ -1345,6 +1350,14 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
+        numActiveElems = 0;
+        for (int i = 0; i < eCount; i++) {
+            if (GpOp_x[i]) {
+                numActiveElems ++;
+            }
+        }
         int count = 0;
         for (unsigned i = 0; i < eCount; i++) {
             if (GpOp_x[i]) {
@@ -1377,6 +1390,14 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
+        numActiveElems = 0;
+        for (int i = 0; i < eCount; i++) {
+            if (GpOp_x[i]) {
+                numActiveElems ++;
+            }
+        }
         int count = 0;
         for (unsigned i = 0; i < eCount; i++) {
             if (POp1_x[i] && GpOp_x[i]) {
@@ -1398,7 +1419,7 @@ let {{
         global header_output, exec_output, decoders
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
-                xc->tcBase());'''
+                xc->tcBase());numVecElems = eCount;elemBits = sizeof(Element) * 8;'''
         if fmt == IndexFormat.ImmReg or fmt == IndexFormat.ImmImm:
             code += '''
         const Element& srcElem1 = imm1;'''
@@ -1438,6 +1459,20 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<DElement>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(DElement) * 8;'''
+        if predType != PredType.NONE:
+            code += '''
+            numActiveElems = 0;
+            for (int i = 0; i < eCount; i++) {
+                if (GpOp_xd[i]) {
+                    numActiveElems ++;
+                }
+            }'''
+        else:
+            code += ''''''
+        code += '''
+
         for (unsigned i = 0; i < eCount; i++) {
             SElement srcElem1 = AA64FpOp1_xd[i];
             DElement destElem = 0;'''
@@ -1481,6 +1516,19 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;'''
+        if predType != PredType.NONE:
+            code += '''
+            numActiveElems = 0;
+            for (int i = 0; i < eCount; i++) {
+                if (GpOp_x[i]) {
+                    numActiveElems ++;
+                }
+            }'''
+        else:
+            code += ''''''
+        code += '''
         for (unsigned i = 0; i < eCount; i++) {
             Element srcElem1 = %s;
             Element destElem = 0;''' % op1
@@ -1522,6 +1570,14 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<%(bigElemType)s>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(%(bigElemType)s) * 8;
+        numActiveElems = 0;
+        for (int i = 0; i < eCount; i++) {
+            if (GpOp_x%(bigElemSuffix)s[i]) {
+                numActiveElems ++;
+            }
+        }
         for (unsigned i = 0; i < eCount; i++) {
             SElement srcElem1 = AA64FpOp1_x%(bigElemSuffix)s[i] &
                     mask(sizeof(SElement) * 8);
@@ -1554,6 +1610,14 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
+        numActiveElems = 0;
+        for (int i = 0; i < eCount; i++) {
+            if (GpOp_x[i]) {
+                numActiveElems ++;
+            }
+        }
         Element destElem = %(identity)s;
         for (unsigned i = 0; i < eCount; i++) {
             AA64FpDest_x[i] = 0;  // zero upper part
@@ -1580,9 +1644,17 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<SElement>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(SElement) * 8;
         unsigned eWideCount = ArmStaticInst::getCurSveVecLen<DElement>(
                 xc->tcBase());
         DElement destElem = %(identity)s;
+        numActiveElems = 0;
+        for (int i = 0; i < eCount; i++) {
+            if (GpOp_xs[i]) {
+                numActiveElems ++;
+            }
+        }
         for (unsigned i = 0; i < eCount; i++) {
             if (GpOp_xs[i]) {
                 DElement srcElem1 = AA64FpOp1_xs[i];
@@ -1610,13 +1682,20 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
         TheISA::VecRegContainer tmpVecC;
         auto tmpVec = tmpVecC.as<Element>();
         int ePow2Count = 1;
         while (ePow2Count < eCount) {
             ePow2Count *= 2;
         }
-
+        numActiveElems = 0;
+        for (int i = 0; i < eCount; i++) {
+            if (GpOp_x[i]) {
+                numActiveElems ++;
+            }
+        }
         for (unsigned i = 0; i < ePow2Count; i++) {
             if (i < eCount && GpOp_x[i]) {
                 tmpVec[i] = AA64FpOp1_x[i];
@@ -1659,6 +1738,19 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;'''
+        if predType != PredType.NONE:
+            code += '''
+            numActiveElems = 0;
+            for (int i = 0; i < eCount; i++) {
+                if (GpOp_x[i]) {
+                    numActiveElems ++;
+                }
+            }'''
+        else:
+            code += ''''''
+        code += '''
         for (unsigned i = 0; i < eCount; i++) {'''
         if predType != PredType.NONE:
             code += '''
@@ -1707,6 +1799,19 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;'''
+        if predType != PredType.NONE:
+            code += '''
+            numActiveElems = 0;
+            for (int i = 0; i < eCount; i++) {
+                if (GpOp_x[i]) {
+                    numActiveElems ++;
+                }
+            }'''
+        else:
+            code += ''''''
+        code += '''
         for (unsigned i = 0; i < eCount; i++) {'''
         # TODO: handle unsigned-to-signed conversion properly...
         if isUnary:
@@ -1755,6 +1860,19 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;'''
+        if predType != PredType.NONE:
+            code += '''
+            numActiveElems = 0;
+            for (int i = 0; i < eCount; i++) {
+                if (GpOp_x[i]) {
+                    numActiveElems ++;
+                }
+            }'''
+        else:
+            code += ''''''
+        code += '''
         for (unsigned i = 0; i < eCount; i++) {'''
         if predType != PredType.NONE:
             code += '''
@@ -1804,7 +1922,19 @@ let {{
         global header_output, exec_output, decoders
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
-                xc->tcBase());'''
+                xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;'''
+        if predType != PredType.NONE:
+            code += '''
+            numActiveElems = 0;
+            for (int i = 0; i < eCount; i++) {
+                if (GpOp_x[i]) {
+                    numActiveElems ++;
+                }
+            }'''
+        else:
+            code += ''''''
         if customIterCode is None:
             code += '''
         for (unsigned i = 0; i < eCount; i++) {'''
@@ -1865,6 +1995,14 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
+        numActiveElems = 0;
+        for (int i = 0; i < eCount; i++) {
+            if (GpOp_x[i]) {
+                numActiveElems ++;
+            }
+        }
         for (unsigned i = 0; i < eCount; i++) {
             bool srcElem1 = POp1_x[i];
             bool srcElem2 = POp2_x[i];
@@ -1903,7 +2041,9 @@ let {{
         global header_output, exec_output, decoders
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
-                xc->tcBase());'''
+                xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;'''
         code += iterCode
         iop = InstObjParams(name, 'Sve' + Name, 'SvePredBinPermOp',
                             {'code': code, 'op_class': opClass}, [])
@@ -1924,7 +2064,15 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
         destPred.reset();
+        numActiveElems = 0;
+        for (int i = 0; i < eCount; i++) {
+            if (GpOp_x[i]) {
+                numActiveElems ++;
+            }
+        }
         for (unsigned i = 0; i < eCount; i++) {
             const Element& srcElem1 = AA64FpOp1_x[i];
             %(src_elem_2_ty)s srcElem2 __attribute__((unused)) =
@@ -1960,6 +2108,14 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
+        numActiveElems = 0;
+        for (int i = 0; i < eCount; i++) {
+            if (GpOp_x[i]) {
+                numActiveElems ++;
+            }
+        }
         for (unsigned i = 0; i < eCount; i++) {
             const Element& srcElem1 = AA64FpOp1_x[i];
             const Element& srcElem2 = AA64FpOp2_x[i];
@@ -1985,6 +2141,8 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
         for (unsigned i = 0; i < eCount; i++) {
             const Element& srcElem2 = AA64FpOp2_x[i];
             Element srcElem3 = imm;
@@ -2010,6 +2168,8 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
         unsigned predCount = sveDecodePredCount(imm, eCount);
         destPred.reset();
         for (unsigned i = 0; i < eCount; i++) {
@@ -2046,7 +2206,15 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
         destPred.reset();
+        numActiveElems = 0;
+        for (int i = 0; i < eCount; i++) {
+            if (GpOp_x[i]) {
+                numActiveElems ++;
+            }
+        }
         for (unsigned i = 0; i < eCount; ++i) {
             %(srcType)s srcElem1 = (%(srcType)s) AA64FpOp1_x[i];
             %(srcType)s srcElem2 = AA64FpOp2_%(op2Suffix)s[%(op2Index)s];
@@ -2087,6 +2255,14 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
+        numActiveElems = 0;
+        for (int i = 0; i < eCount; i++) {
+            if (GpOp_x[i]) {
+                numActiveElems ++;
+            }
+        }
         for (unsigned i = 0; i < eCount; ++i) {
             Element srcElem1 = AA64FpOp1_x[i];
             Element srcElem2 = static_cast<Element>(imm);
@@ -2118,6 +2294,8 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
         unsigned count = sveDecodePredCount(pattern, eCount);
         '''
         if destType == DestType.Vector:
@@ -2164,6 +2342,14 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<uint8_t>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(uint8_t) * 8;
+        numActiveElems = 0;
+        for (int i = 0; i < eCount; i++) {
+            if (GpOp_ub[i]) {
+                numActiveElems ++;
+            }
+        }
         bool dobreak = false;
         for (unsigned i = 0; i < eCount; ++i) {
             bool element = POp1_ub[i] == 1;
@@ -2207,6 +2393,14 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<uint8_t>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(uint8_t) * 8;
+        numActiveElems = 0;
+        for (int i = 0; i < eCount; i++) {
+            if (GpOp_ub[i]) {
+                numActiveElems ++;
+            }
+        }
         bool last = POp1_ub.lastActive(GpOp_ub, eCount);
         for (unsigned i = 0; i < eCount; ++i) {
             if (GpOp_ub[i]) {'''
@@ -2244,6 +2438,8 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<uint8_t>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(uint8_t) * 8;
         bool last = POp1_ub.lastActive(GpOp_ub, eCount);
         if (!last) {
             for (unsigned i = 0; i < eCount; i++) {
@@ -2277,6 +2473,14 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
+        numActiveElems = 0;
+        for (int i = 0; i < eCount; i++) {
+            if (GpOp_x[i]) {
+                numActiveElems ++;
+            }
+        }
         int last;
         for (last = eCount - 1; last >= 0; --last) {
             if (GpOp_x[last]) {
@@ -2324,6 +2528,8 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
         int last;
         for (last = eCount - 1; last >= 0; --last) {
             if (POp1_x[last]) {
@@ -2361,6 +2567,8 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
         int first = -1;
         for (int i = 0; i < eCount; ++i) {
             if (GpOp_x[i] && first == -1) {
@@ -2391,6 +2599,8 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
         for (int i = 0; i < eCount; ++i) {
             Element idx = AA64FpOp2_x[i];
             Element val;
@@ -2417,6 +2627,8 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<DElement>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(DElement) * 8;
         for (int i = 0; i < eCount; ++i) {'''
         if regType == SrcRegType.Predicate:
             if unpackHalf == Unpack.High:
@@ -2454,6 +2666,8 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<uint8_t>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(uint8_t) * 8;
         CondCodesNZ = (POp1_ub.firstActive(GpOp_ub, eCount) << 1) |
                        POp1_ub.noneActive(GpOp_ub, eCount);
         CondCodesC = !POp1_ub.lastActive(GpOp_ub, eCount);
@@ -2469,6 +2683,14 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
+        numActiveElems = 0;
+        for (int i = 0; i < eCount; i++) {
+            if (GpOp_x[i]) {
+                numActiveElems ++;
+            }
+        }
         unsigned x = 0;
         for (unsigned i = 0; i < eCount; ++i) {
             AA64FpDest_x[i] = 0;
@@ -2535,6 +2757,8 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
         uint64_t pos = imm;
         if (pos >= eCount)
             pos = 0;
@@ -2559,6 +2783,14 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
+        numActiveElems = 0;
+        for (int i = 0; i < eCount; i++) {
+            if (GpOp_x[i]) {
+                numActiveElems ++;
+            }
+        }
         int firstelem = -1, lastelem = -2;
         for (int i = 0; i < eCount; ++i) {
             if (GpOp_x[i]) {
@@ -2590,6 +2822,8 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
         Element srcElem1 = 0;
         if (imm < eCount) {
             srcElem1 = AA64FpOp1_x[imm];
@@ -2614,7 +2848,7 @@ let {{
         auto& destPred = PDest;'''
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
-                xc->tcBase());'''
+                xc->tcBase());numVecElems = eCount;elemBits = sizeof(Element) * 8;'''
         if srcType == SrcRegType.Predicate:
             code += '''
         PDest_x[0] = 0;'''
@@ -2645,7 +2879,7 @@ let {{
         global header_output, exec_output, decoders
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
-                xc->tcBase());'''
+                xc->tcBase());numVecElems = eCount;elemBits = sizeof(Element) * 8;'''
         if srcType == SrcRegType.Scalar:
             code += '''
             auto& srcElem1 = XOp1;'''
@@ -2671,6 +2905,8 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
         for (int i = 0; i < eCount; ++i) {'''
         if isIndexed:
             code += '''
@@ -2714,10 +2950,16 @@ let {{
         global header_output, exec_output, decoders
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
-                xc->tcBase());'''
+                xc->tcBase());numVecElems = eCount;elemBits = sizeof(Element) * 8;'''
         extraPrologCode = ''''''
         code += '''
         Element destElem = AA64FpDestMerge_x[0];
+        numActiveElems = 0;
+        for (int i = 0; i < eCount; i++) {
+            if (GpOp_x[i]) {
+                numActiveElems ++;
+            }
+        }
         for (int i = 0; i < eCount; ++i) {
             if (GpOp_x[i]) {
                 Element srcElem1 = AA64FpOp1_x[i];
@@ -2769,6 +3011,8 @@ let {{
     addvlCode = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<uint%d_t>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = ArmStaticInst::getCurSveVecLenInBits(xc->tcBase()) / eCount;
         XDest = XOp1 + eCount * (int64_t) imm;
     '''
     buildXImmDataInst('addpl', addvlCode % 64, buildCc=False)
@@ -3705,6 +3949,14 @@ let {{
     rdffrPredCode = '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<uint8_t>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(uint8_t) * 8;
+        numActiveElems = 0;
+        for (int i = 0; i < eCount; i++) {
+            if (GpOp_ub[i]) {
+                numActiveElems ++;
+            }
+        }
         for (unsigned i = 0; i < eCount; i++) {
             if (GpOp_ub[i]) {
                 PDest_ub[i] = Ffr_ub[i];
@@ -3720,6 +3972,9 @@ let {{
     rdffrUnpredCode = '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<uint8_t>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(uint8_t) * 8;
+
         for (unsigned i = 0; i < eCount; i++) {
             PDest_ub[i] = Ffr_ub[i];
         }'''
@@ -3729,6 +3984,8 @@ let {{
     rdvlCode = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<uint8_t>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(uint8_t) * 8;
         XDest = eCount * (int64_t) imm;
     '''
     rdvlIop = InstObjParams('rdvl', 'SveRdvl', 'RegImmOp', rdvlCode, [])
@@ -4384,6 +4641,8 @@ let {{
     wrffrCode = '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<uint8_t>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(uint8_t) * 8;
         for (unsigned i = 0; i < eCount; i++) {
             Ffr_ub[i] = POp1_ub[i];
         }'''

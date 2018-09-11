@@ -64,6 +64,7 @@
 #include "debug/Drain.hh"
 #include "debug/ExecFaulting.hh"
 #include "debug/O3PipeView.hh"
+#include "debug/Predicate.hh"
 #include "debug/ROBEntries.hh"
 #include "params/DerivO3CPU.hh"
 #include "sim/faults.hh"
@@ -147,6 +148,7 @@ DefaultCommit<Impl>::DefaultCommit(O3CPU *_cpu, DerivO3CPUParams *params)
         renameMap[tid] = nullptr;
     }
     interrupt = NoFault;
+    numReset = 0;
 }
 
 template <class Impl>
@@ -303,7 +305,80 @@ DefaultCommit<Impl>::regStats()
       .name(name()+".zerocommitted_uop")
       .desc("Number of cycle only commit uop.")
       ;
+
+    pahflops
+        .name(name() + ".hflops")
+        .desc("Number of flops committed (half)")
+        ;
+
+    pasflops
+        .name(name() + ".sflops")
+        .desc("Number of flops committed (single)")
+        ;
+
+    padflops
+        .name(name() + ".dflops")
+        .desc("Number of flops committed (double)")
+        ;
+
+    //printf("%lf\n", flops.value());
+
+    pabytes
+        .name(name() + ".bytes")
+        .desc("Number of bytes transferred")
+        ;
+
+    fbRate
+        .name(name() + ".fb_rate")
+        .desc("Flops per bytes rate")
+        .flags(total)
+        ;
+    fbRate = (pahflops + pasflops + padflops) / pabytes;
+
+
+
 }
+
+template <class Impl>
+void
+DefaultCommit<Impl>::resetStats()
+{
+    double exec_time = simTicks.value() / simFreq.value();
+    numReset ++;
+    if (exec_time > 1e-10 && numReset % 2) {
+        if (cpu->showFlops) {
+            std::cout << "===========================" << cpu->name() << "===========================" << std::endl;
+            std::cout << "Execution Time[s]:" << exec_time << std::endl;
+            std::cout << "CPU Throughput[GFLOPS]:" << (pahflops.value() + pasflops.value() + padflops.value()) / exec_time * 1e-9  << std::endl;
+            std::cout << "Bandwidth[GB/s]:" << pabytes.value() / exec_time * 1e-9 << std::endl;
+            std::cout << "Arithmetic Intensity[flops/bytes]:" << (pahflops.value() + pasflops.value() + padflops.value()) / pabytes.value() << std::endl;
+            std::cout << "=================================================================" << std::endl;
+        } else if (cpu->showFlopsDetailed) {
+            std::cout << "===========================" << cpu->name() << "===========================" << std::endl;
+            std::cout << "Execution Time[s]:" << exec_time << std::endl;
+            std::cout << "Active Rate of Predicated Operations [%]:" << numAPEs.value() / numPEs.value() * 100 << " (Max:100)" << std::endl;
+            std::cout << "CPU Throughput (Active Elements Only):" << std::endl;
+            std::cout << "\tHalf Precision[GFLOPS]:" << pahflops.value() / exec_time * 1e-9  << std::endl;
+            std::cout << "\tSingle Precision[GFLOPS]:" << pasflops.value() / exec_time * 1e-9  << std::endl;
+            std::cout << "\tDouble Precision[GFLOPS]:" << padflops.value() / exec_time * 1e-9  << std::endl;
+            std::cout << "\tTotal[GFLOPS]:" << (pahflops.value() + pasflops.value() + padflops.value()) / exec_time * 1e-9  << std::endl;
+            std::cout << "CPU Throughput (Active + Inactive Elements):" << std::endl;
+            std::cout << "\tHalf Precision[GFLOPS]:" << hflops.value() / exec_time * 1e-9  << std::endl;
+            std::cout << "\tSingle Precision[GFLOPS]:" << sflops.value() / exec_time * 1e-9  << std::endl;
+            std::cout << "\tDouble Precision[GFLOPS]:" << dflops.value() / exec_time * 1e-9  << std::endl;
+            std::cout << "\tTotal[GFLOPS]:" << (hflops.value() + sflops.value() + dflops.value()) / exec_time * 1e-9  << std::endl;
+            std::cout << "Bandwidth:" << std::endl;
+            std::cout << "\tActive Elements Only[GB/s]:" << pabytes.value() / exec_time * 1e-9 << std::endl;
+            std::cout << "\tActive + Inactive Elements[GB/s]:" << bytes.value() / exec_time * 1e-9 << std::endl;
+            std::cout << "Arithmetic Intensity:" << std::endl;
+
+            std::cout << "\tActive Elements Only[flops/bytes]:" << (pahflops.value() + pasflops.value() + padflops.value()) / pabytes.value() << std::endl;
+            std::cout << "\tActive + Inactive Elements[flops/bytes]:" << (hflops.value() + sflops.value() + dflops.value()) / bytes.value() << std::endl;
+            std::cout << "=================================================================" << std::endl;
+        }
+    }
+}
+
 
 template <class Impl>
 void
@@ -1462,6 +1537,128 @@ DefaultCommit<Impl>::updateComInstStats(const DynInstPtr &inst)
     // Function Calls
     if (inst->isCall())
         statComFunctionCalls[tid]++;
+
+
+/** Here, the number of float/memory operetions the committed instruction has is counted in accordance with its opClass (or its mnemonic (e.g., fadd) if necessary - use inst->staticInst->getName()) as well as the associated predicate register for each floating precision **/
+    int numActiveElems = inst->staticInst->getNumActiveElems();//counting active (unmasked) elements
+    int numVectorElems = inst->staticInst->getNumVecElems();
+    int predicate = 0;
+
+    if (numActiveElems >= 0) {//with predicate
+        if ((inst->opClass() == OpClass::SimdFloatAdd) ||
+           (inst->opClass() == OpClass::SimdFloatAlu) ||
+           (inst->opClass() == OpClass::SimdFloatDiv) ||
+           (inst->opClass() == OpClass::SimdFloatMult) ||
+           (inst->opClass() == OpClass::SimdFloatMultAcc) ||
+           (inst->opClass() == OpClass::SimdFloatReduceAdd) ||
+           (inst->opClass() == OpClass::SimdFloatAddA) ||
+           (inst->opClass() == OpClass::SimdFloatMultA) ||
+           (inst->opClass() == OpClass::SimdFloatReduceAddA) ||
+           (inst->opClass() == OpClass::SveMemRead) ||
+           (inst->opClass() == OpClass::SveMemWrite)) {
+
+            numAPEs += numActiveElems;
+            numPEs += numVectorElems;
+            predicate = 1;
+            if ((numReset + 1) % 2)
+                DPRINTF(Predicate, "%s, %d, %d, %d (mnemonic, FP element size, # of active elements, # of elements)\n", inst->staticInst->getName(), inst->staticInst->getElemBits(), numActiveElems, numVectorElems);
+        }
+    }
+
+    //if (inst->isVector())
+    //    if (numVectorElems < numActiveElems || numVectorElems <= 0)
+    //        panic("numVectorElems is not set correctly in the arm isa.\n");
+
+    int addFlops = 0;
+    int addMemops = 0;
+
+    switch(inst->opClass()) {//floating operations: arithmetic(+-*/) or sqrt
+        case OpClass::IntAlu:break;
+        case OpClass::IntMult:break;
+        case OpClass::IntDiv:break;
+        case OpClass::FloatAdd:addFlops = 1;break;
+        case OpClass::FloatCmp:break;
+        case OpClass::FloatCvt:break;
+        case OpClass::FloatMult:addFlops = 1;break;
+        case OpClass::FloatMultAcc:addFlops = 2;break;//e.g., FMADD
+        case OpClass::FloatDiv:addFlops = 1;break;
+        case OpClass::FloatMisc:break;
+        case OpClass::FloatSqrt:addFlops = 1;break;
+        case OpClass::SimdAdd:break;
+        case OpClass::SimdAddAcc:break;
+        case OpClass::SimdAlu:break;
+        case OpClass::SimdCmp:break;
+        case OpClass::SimdCvt:break;
+        case OpClass::SimdMisc:break;
+        case OpClass::SimdMult:break;
+        case OpClass::SimdMultAcc:break;
+        case OpClass::SimdShift:break;
+        case OpClass::SimdShiftAcc:break;
+        case OpClass::SimdDiv:break;
+        case OpClass::SimdSqrt:break;
+        case OpClass::SimdReduceAdd:break;
+        case OpClass::SimdReduceAlu:break;
+        case OpClass::SimdReduceCmp:break;
+        case OpClass::SimdFloatAdd:addFlops = numVectorElems;break;
+        case OpClass::SimdFloatAlu:addFlops = numVectorElems;break;
+        case OpClass::SimdFloatCmp:break;
+        case OpClass::SimdFloatCvt:break;
+        case OpClass::SimdFloatDiv:addFlops = numVectorElems;break;
+        case OpClass::SimdFloatMisc:break;
+        case OpClass::SimdFloatMult:addFlops = numVectorElems;break;
+        case OpClass::SimdFloatMultAcc:addFlops = numVectorElems * 2;break;//e.g., fmad
+        case OpClass::SimdFloatSqrt:addFlops = numVectorElems;break;
+        case OpClass::SimdFloatReduceCmp:break;
+        case OpClass::SimdFloatReduceAdd:addFlops = numVectorElems;break;//faddv
+        case OpClass::SimdPredAlu:break;
+        case OpClass::MemRead:addMemops = 1;break;
+        case OpClass::MemWrite:addMemops = 1;break;
+        case OpClass::FloatMemRead:addMemops = 1;break;
+        case OpClass::FloatMemWrite:addMemops = 1;break;
+        case OpClass::IprAccess:break;
+        case OpClass::InstPrefetch:break;
+        case OpClass::IntAlu2:break;
+        case OpClass::SimdPredCmp:break;
+        case OpClass::SimdMvp:break;
+        case OpClass::SimdGpr:break;
+        case OpClass::SimdAluA:break;
+        case OpClass::SimdAluB:break;
+        case OpClass::SimdMiscA:break;
+        case OpClass::SimdMiscB:break;
+        case OpClass::SimdFloatAddA:addFlops = numVectorElems;break;//fadd(imm),fsub(imm),fsubr(imm)
+        case OpClass::SimdFloatMultA:addFlops = numVectorElems;break;//fmul(imm),frsqrts,frecps
+        case OpClass::SimdFloatA:break;//incp,sqdecp,sqincp,uqdecp,uqincp <-integer?
+        case OpClass::SimdFloatReduceAddA:addFlops = numVectorElems;break;//fadda
+        case OpClass::SveMemRead:addMemops = numVectorElems;break;
+        case OpClass::SveMemWrite:addMemops = numVectorElems;break;
+        default: break;
+    }
+
+    switch(inst->staticInst->getElemBits()) {
+        case 16:hflops += addFlops;bytes += addMemops * 2;break;
+        case 32:sflops += addFlops;bytes += addMemops * 4;break;
+        case 64:dflops += addFlops;bytes += addMemops * 8;break;
+        default:bytes += addMemops * 8;break;// this should be modified
+    }
+
+    int addPAFlops = addFlops;
+    int addPAMemops = addMemops;
+
+    if (predicate) {
+        if (numVectorElems <= 0)
+            numVectorElems = 8;
+            //panic("numVectorElems is not set correctly in the arm isa.\n");
+
+        addPAFlops = (addFlops * numActiveElems) / numVectorElems;
+        addPAMemops = (addMemops * numActiveElems) / numVectorElems;
+    }
+
+    switch(inst->staticInst->getElemBits()) {
+        case 16:pahflops += addPAFlops;pabytes += addPAMemops * 2;break;
+        case 32:pasflops += addPAFlops;pabytes += addPAMemops * 4;break;
+        case 64:padflops += addPAFlops;pabytes += addPAMemops * 8;break;
+        default:pabytes += addPAMemops * 8;break;// this should be modified
+    }
 
 }
 

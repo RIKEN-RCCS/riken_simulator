@@ -168,6 +168,13 @@ class DerivO3CPU(BaseCPU):
     needsTSO = Param.Bool(buildEnv['TARGET_ISA'] == 'x86',
                           "Enable TSO Memory model")
 
+    showFlops = Param.Bool(False,
+        "Show Flops and Bytes statistics")
+    showFlopsDetailed = Param.Bool(False,
+        "Show detailed Flops and Bytes statistics")
+
+
+
     def addCheckerCpu(self):
         if buildEnv['TARGET_ISA'] in ['arm']:
             from ArmTLB import ArmTLB

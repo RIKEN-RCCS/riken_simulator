@@ -317,6 +317,18 @@ class PredRegContainer
         return v;
     }
 
+    /// Returns the number of active elements (# of 1s)
+    int get_num_active_elems()
+    {
+        int val = 0;
+        for (int i = 0; i < NumBits; i++) {
+            if (container[i])
+                val ++;
+        }
+        return val;
+    }
+
+
     /// Set a subset of bits starting from a specific element in the
     /// container.
     void set_bits(size_t idx, uint8_t nbits, uint8_t bval)
@@ -334,7 +346,7 @@ class PredRegContainer
     friend std::ostream& operator<<(std::ostream& os, const MyClass& v)
     {
         for (auto b: v.container) {
-            os << csprintf("%d", b);
+            os << csprintf("%d ", b);
         }
         return os;
     }

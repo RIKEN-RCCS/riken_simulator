@@ -922,6 +922,12 @@ let {{
             eaCode += '(XOffset * sizeof(MemElemType));'
         loadRdEnableCode = '''
         auto rdEn = std::vector<bool>(sizeof(MemElemType) * eCount, true);
+        numActiveElems = 0;
+        for (int i = 0; i < eCount; i++) {
+            if (GpOp_x[i]) {
+                numActiveElems ++;
+            }
+        }
         for (int i = 0; i < eCount; i++) {
             if (!GpOp_x[i]) {
                 for (int j = 0; j < sizeof(MemElemType); j++) {
@@ -931,6 +937,12 @@ let {{
         }
         '''
         loadMemAccCode = '''
+        numActiveElems = 0;
+        for (int i = 0; i < eCount; i++) {
+            if (GpOp_x[i]) {
+                numActiveElems ++;
+            }
+        }
         for (int i = 0; i < eCount; i++) {
             if (GpOp_x[i]) {
                 AA64FpDest_x[i] = memDataView[i];
@@ -940,6 +952,12 @@ let {{
         }
         '''
         storeMemAccCode = '''
+        numActiveElems = 0;
+        for (int i = 0; i < eCount; i++) {
+            if (GpOp_x[i]) {
+                numActiveElems ++;
+            }
+        }
         for (int i = 0; i < eCount; i++) {
             if (GpOp_x[i]) {
                 memDataView[i] = AA64FpDest_x[i];
@@ -957,6 +975,12 @@ let {{
         ffrReadBackCode = '''
         auto& firstFaultReg = Ffr;'''
         fautlingLoadmemAccCode = '''
+        numActiveElems = 0;
+        for (int i = 0; i < eCount; i++) {
+            if (GpOp_x[i]) {
+                numActiveElems ++;
+            }
+        }
         for (int i = 0; i < eCount; i++) {
             if (GpOp_x[i] && firstFaultReg[i * sizeof(RegElemType)]) {
                 AA64FpDest_x[i] = memDataView[i];
@@ -1077,6 +1101,12 @@ let {{
         eaCode = SPAlignmentCheckCode + '''
         EA = XBase + imm * sizeof(MemElemType);'''
         memAccCode = '''
+        numActiveElems = 0;
+        for (int i = 0; i < eCount; i++) {
+            if (GpOp_x[i]) {
+                numActiveElems ++;
+            }
+        }
         for (int i = 0; i < eCount; i++) {
             if (GpOp_x[i]) {
                 AA64FpDest_x[i] = memData;
@@ -1238,6 +1268,8 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<uint8_t>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(uint8_t) * 8;
         for (unsigned i = 0; i < eCount; i++) {
             AA64FpUreg0_ub[i] = AA64FpOp1_ub[i];
         }'''
@@ -1254,6 +1286,8 @@ let {{
         code2 = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
         for (unsigned int i = 0; i < eCount; ++i) {
             unsigned int absIdx = regIndex * eCount + i;
             unsigned int srcIdx = absIdx / numRegs;
@@ -1267,6 +1301,8 @@ let {{
         code3 = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
         for (unsigned int i = 0; i < eCount; ++i) {
             unsigned int absIdx = regIndex * eCount + i;
             unsigned int srcIdx = absIdx / numRegs;
@@ -1282,6 +1318,8 @@ let {{
         code4 = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
         for (unsigned int i = 0; i < eCount; ++i) {
             unsigned int absIdx = regIndex * eCount + i;
             unsigned int srcIdx = absIdx / numRegs;
@@ -1328,6 +1366,8 @@ let {{
         code2 = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
         for (unsigned int i = 0; i < eCount; ++i) {
             unsigned int absIdx = (regIndex + numRegs * i);
             unsigned int srcIdx = absIdx % eCount;
@@ -1341,6 +1381,8 @@ let {{
         code3 = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
         for (unsigned int i = 0; i < eCount; ++i) {
             unsigned int absIdx = (regIndex + numRegs * i);
             unsigned int srcIdx = absIdx % eCount;
@@ -1356,6 +1398,8 @@ let {{
         code4 = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        numVecElems = eCount;
+        elemBits = sizeof(Element) * 8;
         for (unsigned int i = 0; i < eCount; ++i) {
             unsigned int absIdx = (regIndex + numRegs * i);
             unsigned int srcIdx = absIdx % eCount;
@@ -1408,6 +1452,12 @@ let {{
         else:
             eaCode += '(XOffset * sizeof(Element));'
         loadMemAccCode = '''
+        numActiveElems = 0;
+        for (int i = 0; i < eCount; i++) {
+            if (GpOp_x[i]) {
+                numActiveElems ++;
+            }
+        }
         for (int i = 0; i < eCount; i++) {
             int gpIdx = (regIndex * eCount + i) / numRegs;
             if (GpOp_x[gpIdx]) {
@@ -1418,6 +1468,12 @@ let {{
         }
         '''
         storeMemAccCode = '''
+        numActiveElems = 0;
+        for (int i = 0; i < eCount; i++) {
+            if (GpOp_x[i]) {
+                numActiveElems ++;
+            }
+        }
         for (int i = 0; i < eCount; i++) {
             int gpIdx = (regIndex * eCount + i) / numRegs;
             if (GpOp_x[gpIdx]) {

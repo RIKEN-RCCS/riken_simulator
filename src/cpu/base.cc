@@ -138,6 +138,8 @@ BaseCPU::BaseCPU(Params *p, bool is_checker)
       currentFunctionEnd(0), functionEntryTick(0),
       addressMonitor(p->numThreads),
       syscallRetryLatency(p->syscallRetryLatency),
+      showFlops(p->show_flops),
+      showFlopsDetailed(p->show_flops_detailed),
       pwrGatingLatency(p->pwr_gating_latency),
       powerGatingOnIdle(p->power_gating_on_idle),
       enterPwrGatingEvent([this]{ enterPwrGating(); }, name())
@@ -262,6 +264,7 @@ BaseCPU::BaseCPU(Params *p, bool is_checker)
         fatal("Number of ISAs (%i) assigned to the CPU does not equal number "
               "of threads (%i).\n", params()->isa.size(), numThreads);
     }
+
 }
 
 void

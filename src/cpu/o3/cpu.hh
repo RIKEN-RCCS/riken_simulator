@@ -88,6 +88,8 @@ class BaseO3CPU : public BaseCPU
     BaseO3CPU(BaseCPUParams *params);
 
     void regStats();
+    void resetStats();
+
 };
 
 /**
@@ -256,6 +258,7 @@ class FullO3CPU : public BaseO3CPU
 
     /** Registers statistics. */
     void regStats() override;
+    void resetStats() override;
 
     ProbePointArg<PacketPtr> *ppInstAccessComplete;
     ProbePointArg<std::pair<DynInstPtr, PacketPtr> > *ppDataAccessComplete;
@@ -694,6 +697,8 @@ class FullO3CPU : public BaseO3CPU
     /** The IEW stage's instruction queue. */
     TimeBuffer<IEWStruct> iewQueue;
 
+    int getSveLen() { return sveLen; }
+
   private:
     /** The activity recorder; used to tell if the CPU has any
      * activity remaining or if it can go to idle and deschedule
@@ -701,6 +706,7 @@ class FullO3CPU : public BaseO3CPU
      */
     ActivityRecorder activityRec;
 
+    int sveLen;
   public:
     /** Records that there was time buffer activity this cycle. */
     void activityThisCycle() { activityRec.activity(); }

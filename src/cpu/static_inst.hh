@@ -119,7 +119,14 @@ class StaticInst : public RefCounted, public StaticInstFlags
     int8_t _numPredDestRegs;
     /** @} */
     int8_t vecLen;
+    mutable int numVecElems;
+    mutable int elemBits; //element size in bits
+    mutable int numActiveElems;
   public:
+    int8_t getVecLen() const { return vecLen; }
+    int8_t getNumVecElems() const { return numVecElems; }
+    int8_t getElemBits() const { return elemBits; }
+    int8_t getNumActiveElems() const { return numActiveElems; }
 
     /// @name Register information.
     /// The sum of numFPDestRegs(), numIntDestRegs(), numVecDestRegs(),
@@ -205,6 +212,9 @@ class StaticInst : public RefCounted, public StaticInstFlags
     void setDelayedCommit() { flags[IsDelayedCommit] = true; }
     void setFlag(Flags f) { flags[f] = true; }
 
+    void setNumVecElems(int8_t i) { numVecElems = i; }
+
+
     /// Operation class.  Used to select appropriate function unit in issue.
     OpClass opClass()     const { return _opClass; }
 
@@ -253,6 +263,8 @@ class StaticInst : public RefCounted, public StaticInstFlags
     virtual std::string
     generateDisassembly(Addr pc, const SymbolTable *symtab) const = 0;
 
+
+
     /// Constructor.
     /// It's important to initialize everything here to a sane
     /// default, since the decoder generally only overrides
@@ -263,7 +275,9 @@ class StaticInst : public RefCounted, public StaticInstFlags
           _numFPDestRegs(0), _numIntDestRegs(0), _numCCDestRegs(0),
           _numVecDestRegs(0), _numVecElemDestRegs(0), _numPredDestRegs(0),
           machInst(_machInst), mnemonic(_mnemonic), cachedDisassembly(0)
-    { }
+    {
+        numActiveElems = -1;
+    }
 
   public:
     virtual ~StaticInst();
