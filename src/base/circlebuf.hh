@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015,2017 ARM Limited
+ * Copyright (c) 2015,2017-2018 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -67,6 +67,7 @@ class CircleBuf : public circularQueue<T>
     explicit CircleBuf(size_t size)
         : circularQueue<T>(size) {}
     using circularQueue<T>::empty;
+    using circularQueue<T>::num_elements;
     using circularQueue<T>::begin;
     using circularQueue<T>::end;
     using circularQueue<T>::pop_front;
@@ -78,12 +79,7 @@ class CircleBuf : public circularQueue<T>
     size_t capacity() const { return _size; }
     /** Return the number of elements stored in the buffer. */
     size_t size() const {
-        if (_head > _tail)
-            return _head - _tail + 1;
-        else if (_empty)
-            return 0;
-        else
-            return _head + _size - _tail + 1;
+        return num_elements();
     }
     /**
      * Remove all the elements in the buffer.

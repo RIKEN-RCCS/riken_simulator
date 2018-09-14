@@ -1235,6 +1235,12 @@ let {{
         SimdFpScalar = 2
         Predicate = 3
 
+    class DstRegType(object):
+        Vector = 0
+        Scalar = 1
+        SimdFpScalar = 2
+        Predicate = 3
+
     class DestType(object):
         Scalar = 'false'
         Vector = 'true'
@@ -2208,6 +2214,11 @@ let {{
                 xc->tcBase());
         numVecElems = eCount;
         elemBits = sizeof(Element) * 8;
+        TheISA::PredRegContainer tmpPredC;
+        auto tmpPred = tmpPredC.as<Element>();
+        for (unsigned i = 0; i < eCount; ++i)
+            tmpPred[i] = GpOp_x[i];
+
         destPred.reset();
         numActiveElems = 0;
         for (int i = 0; i < eCount; i++) {
@@ -2219,14 +2230,14 @@ let {{
             %(srcType)s srcElem1 = (%(srcType)s) AA64FpOp1_x[i];
             %(srcType)s srcElem2 = AA64FpOp2_%(op2Suffix)s[%(op2Index)s];
             bool destElem = false;
-            if (GpOp_x[i]) {
+            if (tmpPred[i]) {
                 %(op)s
             }
             PDest_x[i] = destElem;
         }
-        CondCodesNZ = (destPred.firstActive(GpOp, eCount) << 1) |
-                      destPred.noneActive(GpOp, eCount);
-        CondCodesC = !destPred.lastActive(GpOp, eCount);
+        CondCodesNZ = (destPred.firstActive(tmpPred, eCount) << 1) |
+                      destPred.noneActive(tmpPred, eCount);
+        CondCodesC = !destPred.lastActive(tmpPred, eCount);
         CondCodesV = 0;''' % {
                 'op': op,
                 'srcType': srcType,
@@ -2263,18 +2274,23 @@ let {{
                 numActiveElems ++;
             }
         }
+        TheISA::PredRegContainer tmpPredC;
+        auto tmpPred = tmpPredC.as<Element>();
+        for (unsigned i = 0; i < eCount; ++i)
+            tmpPred[i] = GpOp_x[i];
+        destPred.reset();
         for (unsigned i = 0; i < eCount; ++i) {
             Element srcElem1 = AA64FpOp1_x[i];
             Element srcElem2 = static_cast<Element>(imm);
             bool destElem = false;
-            if (GpOp_x[i]) {
+            if (tmpPred[i]) {
                 %(op)s
             }
             PDest_x[i] = destElem;
         }
-        CondCodesNZ = (destPred.firstActive(GpOp, eCount) << 1) |
-                      destPred.noneActive(GpOp, eCount);
-        CondCodesC = !destPred.lastActive(GpOp, eCount);
+        CondCodesNZ = (destPred.firstActive(tmpPred, eCount) << 1) |
+                      destPred.noneActive(tmpPred, eCount);
+        CondCodesC = !destPred.lastActive(tmpPred, eCount);
         CondCodesV = 0;'''%{'op': op}
         iop = InstObjParams(name, 'Sve' + Name, 'SveIntCmpImmOp',
                             {'code': code, 'op_class': opClass,}, [])
@@ -2441,9 +2457,11 @@ let {{
         numVecElems = eCount;
         elemBits = sizeof(uint8_t) * 8;
         bool last = POp1_ub.lastActive(GpOp_ub, eCount);
-        if (!last) {
-            for (unsigned i = 0; i < eCount; i++) {
+        for (unsigned i = 0; i < eCount; i++) {
+            if (!last) {
                 PDest_ub[i] = 0;
+            } else {
+                PDest_ub[i] = PDestMerge_ub[i];
             }
         }'''
         extraPrologCode = ''
@@ -2468,7 +2486,7 @@ let {{
 
     # Generate definitions for scalar select instructions
     def sveSelectInst(name, Name, opClass, types, op, isCond,
-            destType = DestType.Scalar, decoder = 'Generic'):
+            destType = DstRegType.Scalar, decoder = 'Generic'):
         global header_output, exec_output, decoders
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
@@ -2494,24 +2512,39 @@ let {{
         code += '''
             Element destElem;
             %(op)s'''%{'op': op}
-        if destType == DestType.Vector:
+        if destType == DstRegType.Vector:
             code += '''
             for (unsigned i = 0; i < eCount; ++i)
                 AA64FpDest_x[i] = destElem;'''
-        elif destType == DestType.Scalar:
+        elif destType == DstRegType.Scalar:
             code += '''
             XDest = destElem;'''
+        elif destType == DstRegType.SimdFpScalar:
+            code += '''
+            AA64FpDest_x[0] = destElem;'''
         if isCond:
             code += '''
         }'''
-            if destType == DestType.Scalar:
+            if destType == DstRegType.Scalar:
                 code += ''' else {
             XDest = (Element) XDest;
+        }'''
+            elif destType == DstRegType.Vector:
+                code += ''' else {
+            for (unsigned i = 0; i < eCount; ++i)
+                AA64FpDest_x[i] = AA64FpDestMerge_x[i];
+        }'''
+            elif destType == DstRegType.SimdFpScalar:
+                code += ''' else {
+            AA64FpDest_x[0] = AA64FpDestMerge_x[0];
         }'''
         iop = InstObjParams(name, 'Sve' + Name, 'SveSelectOp',
                             {'code': code, 'op_class': opClass,
                              'isCond': 'true' if isCond else 'false',
-                             'isScalar': 'true' if destType == DestType.Scalar
+                             'isScalar': 'true'
+                             if destType == DstRegType.Scalar else 'false',
+                             'isSimdFp': 'true'
+                             if destType == DstRegType.SimdFpScalar
                              else 'false'},
                             [])
         header_output += SveSelectOpDeclare.subst(iop)
@@ -2624,6 +2657,8 @@ let {{
     def sveUnpackInst(name, Name, opClass, sdtypes, unpackHalf,
                       regType, decoder = 'Generic'):
         global header_output, exec_output, decoders
+        extraPrologCode = '''
+        auto& destPred = PDest;'''
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<DElement>(
                 xc->tcBase());
@@ -2638,6 +2673,7 @@ let {{
                 code +='''
             const SElement& srcElem1 = POp1_xs[i];'''
             code += '''
+            destPred.set_raw(i, 0);
             PDest_xd[i] = srcElem1;'''
         else:
             if unpackHalf == Unpack.High:
@@ -2653,6 +2689,8 @@ let {{
         '''
         iop = InstObjParams(name, 'Sve' + Name, 'SveUnpackOp',
                 {'code': code, 'op_class': opClass}, [])
+        if regType == SrcRegType.Predicate:
+            iop.snippets['code'] = extraPrologCode + iop.snippets['code']
         header_output += SveUnpackOpDeclare.subst(iop)
         exec_output += SveWideningOpExecute.subst(iop)
         for srcType, dstType in sdtypes:
@@ -2913,7 +2951,7 @@ let {{
             int segbase = i - i % (16 / sizeof(Element));
             int s = segbase + imm;'''
         code += '''
-            DElement res = destVect[i];
+            DElement res = AA64FpDest_xd[i];
             DElement srcElem1, srcElem2;
             for (int j = 0; j <= 3; ++j) {
                 srcElem1 = static_cast<DElement>(AA64FpOp1_xs[4 * i + j]);'''
@@ -2928,13 +2966,10 @@ let {{
             }
             AA64FpDestMerge_xd[i] = res;
         }'''
-        extraPrologCode = '''
-        auto& destVect = AA64FpDestMerge;'''
         iop = InstObjParams(name, 'Sve' + Name,
                 'SveDotProdIdxOp' if isIndexed else
                 'SveDotProdOp',
                 {'code': code, 'op_class': opClass}, [])
-        iop.snippets['code'] = extraPrologCode + iop.snippets['code']
         if isIndexed:
             header_output += SveWideningTerImmOpDeclare.subst(iop)
         else:
@@ -2972,7 +3007,6 @@ let {{
         AA64FpDest_x[0] = destElem;'''%{'op': op}
         iop = InstObjParams(name, 'Sve' + Name, 'SveOrdReducOp',
                 {'code': code, 'op_class': opClass}, [])
-        iop.snippets['code'] = extraPrologCode + iop.snippets['code']
         header_output += SveReducOpDeclare.subst(iop)
         exec_output += SveOpExecute.subst(iop)
         for type in types:
@@ -3164,11 +3198,17 @@ let {{
     # CLASTA (vector)
     sveSelectInst('clasta', 'Clastav', 'SimdMiscAOp', unsignedTypes,
             clastaCode, isCond = True, destType = DestType.Vector)
+    # CLASTA (SIMD&FP scalar) XXX OpClass
+    sveSelectInst('clasta', 'Clastaf', 'SimdAluOp', unsignedTypes, clastaCode,
+            isCond = True, destType = DstRegType.SimdFpScalar)
     # CLASTB (scalar)
     clastbCode = '''
         destElem = AA64FpOp1_x[last];'''
     sveSelectInst('clastb', 'Clastb', 'SimdGprOp', unsignedTypes, clastbCode,
             isCond = True, destType = DestType.Scalar)
+    # CLASTB (SIMD&FP scalar) XXX OpClass
+    sveSelectInst('clastb', 'Clastbf', 'SimdAluOp', unsignedTypes, clastbCode,
+            isCond = True, destType = DstRegType.SimdFpScalar)
     # CLASTB (vector)
     sveSelectInst('clastb', 'Clastbv', 'SimdMiscAOp', unsignedTypes,
                   clastbCode, isCond = True, destType = DestType.Vector)
@@ -3360,7 +3400,8 @@ let {{
     sveWideImmInst('dup', 'DupImm', 'SimdAluAOp', unsignedTypes, dupCode,
                    isUnary=True)
     # DUP (index)
-    sveDupIndexInst('mov', 'DupIdx', 'SimdMiscAOp', unsignedTypes)
+    sveDupIndexInst('mov', 'DupIdx', 'SimdMiscAOp',
+            list(unsignedTypes) + ['__uint128_t'])
     # DUP (scalar)
     sveUnaryInst('dup', 'DupScalar', 'SimdMiscAOp', unsignedTypes, dupCode,
                  PredType.NONE, srcRegType=SrcRegType.Scalar)
@@ -3763,6 +3804,7 @@ let {{
     # INSR (scalar)
     sveShiftAndInsertInst('insr', 'Insr', 'SimdMiscAOp', unsignedTypes,
             srcType = SrcRegType.Scalar)
+    # TODO: INSR (SIMD&FP scalar)
     # LASTA (scalar)
     lastaCode = '''
         last++;
@@ -3772,6 +3814,7 @@ let {{
         destElem = AA64FpOp1_x[last];'''
     sveSelectInst('lasta', 'Lasta', 'SimdGprOp', unsignedTypes, lastaCode,
             isCond = False)
+    # TODO: LASTA (SIMD&FP scalar)
     # LASTB (scalar)
     lastbCode = '''
 
@@ -3781,6 +3824,7 @@ let {{
         destElem = AA64FpOp1_x[last];'''
     sveSelectInst('lastb', 'Lastb', 'SimdGprOp', unsignedTypes, lastbCode,
             isCond = False)
+    # TODO: LASTB (SIMD&FP scalar)
     # LSL (immediate, predicated)
     lslCode = '''
             if (srcElem2 == 0) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 ARM Limited
+ * Copyright (c) 2017-2018 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -419,7 +419,7 @@ class circularQueue : public std::vector<T>
     static uint32_t
     subM(const uint32_t& op1, const uint32_t& op2, const uint32_t& size)
     {
-        auto ret = (op1 - op2) % size;
+        int ret = (int32_t)(op1 - op2) % size;
         return ret >= 0 ? ret : ret + size;
     }
 
@@ -526,6 +526,14 @@ class circularQueue : public std::vector<T>
     const uint32_t& size() const { return _size; }
     const uint32_t& head() const { return _head; }
     const uint32_t& tail() const { return _tail; }
+
+    uint32_t num_elements() const {
+        if (_empty)
+            return 0;
+        else if (_head <= _tail)
+            return _tail - _head + 1;
+        else return _size - _head + _tail + 1;
+    }
 
     template <typename NumT>
     void increase (NumT& v) const { increase(v, _size); }

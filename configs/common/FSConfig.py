@@ -1,4 +1,4 @@
-# Copyright (c) 2010-2012, 2015-2017 ARM Limited
+# Copyright (c) 2010-2012, 2015-2018 ARM Limited
 # All rights reserved.
 #
 # The license below extends only to copyright in the software and shall
@@ -207,7 +207,7 @@ def makeSparcSystem(mem_mode, mdesc=None, cmdline=None):
 def makeArmSystem(mem_mode, machine_type, num_cpus=1, mdesc=None,
                   dtb_filename=None, bare_metal=False, cmdline=None,
                   external_memory="", ruby=False, security=False,
-                  ignore_dtb=False):
+                  ignore_dtb=False, sve_vl=0):
     assert machine_type
 
     default_dtbs = {
@@ -230,6 +230,12 @@ def makeArmSystem(mem_mode, machine_type, num_cpus=1, mdesc=None,
         self = ArmSystem()
     else:
         self = LinuxArmSystem()
+
+    if sve_vl:
+        self.have_sve = True
+        self.sve_vl = sve_vl
+    else:
+        self.have_sve = False
 
     if not mdesc:
         # generic system
