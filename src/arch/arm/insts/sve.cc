@@ -587,7 +587,7 @@ SveSelectOp::generateDisassembly(Addr pc,
     printMnemonic(ss, "", false);
     if (scalar)
         printIntReg(ss, dest, scalar_width);
-    else if (simdfp)
+    else if (simdFp)
         printFloatReg(ss, dest);
     else
         printVecReg(ss, dest, true);
@@ -738,7 +738,11 @@ SveUnarySca2VecUnpredOp::generateDisassembly(Addr pc,
     printMnemonic(ss, "", false);
     printVecReg(ss, dest, true);
     ccprintf(ss, ", ");
-    printIntReg(ss, op1);
+    if (simdFp) {
+        printFloatReg(ss, op1);
+    } else {
+        printIntReg(ss, op1);
+    }
     return ss.str();
 }
 

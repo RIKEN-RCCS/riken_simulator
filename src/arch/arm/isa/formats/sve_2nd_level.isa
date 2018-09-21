@@ -1008,8 +1008,10 @@ namespace Aarch64
             IntRegIndex rm = (IntRegIndex) (uint8_t) bits(machInst, 9, 5);
             return decodeSveUnaryUnpredU<SveInsr>(size, machInst, zdn, rm);
         } else if (bits(machInst, 20, 16) == 0x14 && b12_10 == 0x6) {
-            // INSR (SIMD&FP scalar)
-            return new Unknown64(machInst);
+            uint8_t size = bits(machInst, 23, 22);
+            IntRegIndex zdn = (IntRegIndex) (uint8_t) bits(machInst, 4, 0);
+            IntRegIndex vm = (IntRegIndex) (uint8_t) bits(machInst, 9, 5);
+            return decodeSveUnaryUnpredU<SveInsrf>(size, machInst, zdn, vm);
         } else if (bits(machInst, 20, 16) == 0x18 && b12_10 == 0x6) {
             uint8_t size = bits(machInst, 23, 22);
             IntRegIndex zd = (IntRegIndex) (uint8_t) bits(machInst, 4, 0);
