@@ -535,6 +535,7 @@ ISA::readMiscReg(int misc_reg, ThreadContext *tc)
             fpscrMask.ixe = ones;
             fpscrMask.ide = ones;
             fpscrMask.len    = ones;
+            fpscrMask.fz16   = ones;
             fpscrMask.stride = ones;
             fpscrMask.rMode  = ones;
             fpscrMask.fz     = ones;
@@ -874,6 +875,7 @@ ISA::setMiscReg(int misc_reg, const MiscReg &val, ThreadContext *tc)
                 fpscrMask.ufe = ones;
                 fpscrMask.ixe = ones;
                 fpscrMask.ide = ones;
+                fpscrMask.fz16 = ones;
                 fpscrMask.len = ones;
                 fpscrMask.stride = ones;
                 fpscrMask.rMode = ones;
@@ -922,6 +924,7 @@ ISA::setMiscReg(int misc_reg, const MiscReg &val, ThreadContext *tc)
                 fpscrMask.ufe = ones;
                 fpscrMask.ixe = ones;
                 fpscrMask.ide = ones;
+                fpscrMask.fz16   = ones;
                 fpscrMask.len    = ones;
                 fpscrMask.stride = ones;
                 fpscrMask.rMode  = ones;
