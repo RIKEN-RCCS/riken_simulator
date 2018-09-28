@@ -77,10 +77,11 @@ def addNoISAOptions(parser):
     parser.add_option("--list-mem-types",
                       action="callback", callback=_listMemTypes,
                       help="List available memory types")
-    parser.add_option("--mem-type", type="choice", default="DDR3_1600_8x8",
+    parser.add_option("--mem-type", type="choice",
+                      default="HBM_2000_8H_x256_BL8_PK",
                       choices=MemConfig.mem_names(),
                       help = "type of memory to use")
-    parser.add_option("--mem-channels", type="int", default=1,
+    parser.add_option("--mem-channels", type="int", default=4,
                       help = "number of memory channels")
     parser.add_option("--mem-ranks", type="int", default=None,
                       help = "number of memory ranks per channel")
