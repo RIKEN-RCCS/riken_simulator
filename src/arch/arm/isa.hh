@@ -639,6 +639,9 @@ namespace ArmISA
 
         int getCurSveVecLenInBits() const;
 
+        static void zeroSveVecRegUpperPart(VecRegContainer &vc,
+                                           unsigned eCount);
+
         void serialize(CheckpointOut &cp) const
         {
             DPRINTF(Checkpoint, "Serializing Arm Misc Registers\n");

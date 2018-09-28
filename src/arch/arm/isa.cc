@@ -1944,6 +1944,15 @@ ISA::getCurSveVecLenInBits() const
     return (len + 1) * 128;
 }
 
+void
+ISA::zeroSveVecRegUpperPart(VecRegContainer &vc, unsigned eCount)
+{
+    auto vv = vc.as<uint64_t>();
+    for (int i = 2; i < eCount; ++i) {
+        vv[i] = 0;
+    }
+}
+
 }  // namespace ArmISA
 
 ArmISA::ISA *

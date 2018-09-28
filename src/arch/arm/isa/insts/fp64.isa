@@ -44,6 +44,11 @@ let {{
     decoder_output = ""
     exec_output = ""
 
+    zeroSveVecRegUpperPartCode = '''
+        TheISA::ISA::zeroSveVecRegUpperPart(%s,
+            ArmStaticInst::getCurSveVecLen<uint64_t>(xc->tcBase()));
+    '''
+
     fmovImmSCode = vfp64EnabledCheckCode + '''
         AA64FpDestP0_uw = bits(imm, 31, 0);
         AA64FpDestP1_uw = 0;
@@ -53,6 +58,7 @@ let {{
     fmovImmSIop = InstObjParams("fmov", "FmovImmS", "FpRegImmOp",
                                 { "code": fmovImmSCode,
                                   "op_class": "FloatMiscOp" }, [])
+    fmovImmSIop.snippets["code"] += zeroSveVecRegUpperPartCode % "AA64FpDest"
     header_output  += FpRegImmOpDeclare.subst(fmovImmSIop);
     decoder_output += FpRegImmOpConstructor.subst(fmovImmSIop);
     exec_output    += BasicExecute.subst(fmovImmSIop);
@@ -66,6 +72,7 @@ let {{
     fmovImmDIop = InstObjParams("fmov", "FmovImmD", "FpRegImmOp",
                                 { "code": fmovImmDCode,
                                   "op_class": "FloatMiscOp" }, [])
+    fmovImmDIop.snippets["code"] += zeroSveVecRegUpperPartCode % "AA64FpDest"
     header_output  += FpRegImmOpDeclare.subst(fmovImmDIop);
     decoder_output += AA64FpRegImmOpConstructor.subst(fmovImmDIop);
     exec_output    += BasicExecute.subst(fmovImmDIop);
@@ -79,6 +86,7 @@ let {{
     fmovRegSIop = InstObjParams("fmov", "FmovRegS", "FpRegRegOp",
                                 { "code": fmovRegSCode,
                                   "op_class": "FloatMiscOp" }, [])
+    fmovRegSIop.snippets["code"] += zeroSveVecRegUpperPartCode % "AA64FpDest"
     header_output  += FpRegRegOpDeclare.subst(fmovRegSIop);
     decoder_output += AA64FpRegRegOpConstructor.subst(fmovRegSIop);
     exec_output    += BasicExecute.subst(fmovRegSIop);
@@ -92,6 +100,7 @@ let {{
     fmovRegDIop = InstObjParams("fmov", "FmovRegD", "FpRegRegOp",
                                 { "code": fmovRegDCode,
                                   "op_class": "FloatMiscOp" }, [])
+    fmovRegDIop.snippets["code"] += zeroSveVecRegUpperPartCode % "AA64FpDest"
     header_output  += FpRegRegOpDeclare.subst(fmovRegDIop);
     decoder_output += AA64FpRegRegOpConstructor.subst(fmovRegDIop);
     exec_output    += BasicExecute.subst(fmovRegDIop);
@@ -105,6 +114,8 @@ let {{
     fmovCoreRegWIop = InstObjParams("fmov", "FmovCoreRegW", "FpRegRegOp",
                                     { "code": fmovCoreRegWCode,
                                       "op_class": "FloatMiscOp" }, [])
+    fmovCoreRegWIop.snippets["code"] += zeroSveVecRegUpperPartCode % \
+        "AA64FpDest"
     header_output  += FpRegRegOpDeclare.subst(fmovCoreRegWIop);
     decoder_output += AA64FpRegRegOpConstructor.subst(fmovCoreRegWIop);
     exec_output    += BasicExecute.subst(fmovCoreRegWIop);
@@ -118,6 +129,8 @@ let {{
     fmovCoreRegXIop = InstObjParams("fmov", "FmovCoreRegX", "FpRegRegOp",
                                     { "code": fmovCoreRegXCode,
                                       "op_class": "FloatMiscOp" }, [])
+    fmovCoreRegXIop.snippets["code"] += zeroSveVecRegUpperPartCode % \
+        "AA64FpDest"
     header_output  += FpRegRegOpDeclare.subst(fmovCoreRegXIop);
     decoder_output += AA64FpRegRegOpConstructor.subst(fmovCoreRegXIop);
     exec_output    += BasicExecute.subst(fmovCoreRegXIop);
@@ -131,6 +144,8 @@ let {{
     fmovUCoreRegXIop = InstObjParams("fmov", "FmovUCoreRegX", "FpRegRegOp",
                                     { "code": fmovUCoreRegXCode,
                                       "op_class": "FloatMiscOp" }, [])
+    fmovUCoreRegXIop.snippets["code"] += zeroSveVecRegUpperPartCode % \
+        "AA64FpDest"
     header_output  += FpRegRegOpDeclare.subst(fmovUCoreRegXIop);
     decoder_output += AA64FpRegRegOpConstructor.subst(fmovUCoreRegXIop);
     exec_output    += BasicExecute.subst(fmovUCoreRegXIop);
