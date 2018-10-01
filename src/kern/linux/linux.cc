@@ -56,7 +56,8 @@ Linux::openSpecialFile(std::string path, Process *process,
         data = Linux::etcPasswd(process, tc);
         matched = true;
     } else if (path.compare(0, 30, "/sys/devices/system/cpu/online") == 0) {
-      data = Linux::sysDevicesSystemCpuOnline(process, tc);
+        data = Linux::sysDevicesSystemCpuOnline(process, tc);
+        matched = true;
     } else {
       warn("Attempting to open special file: %s. Ignoring. Simulation may"
            " take un-expected code path or be non-deterministic until proper"
@@ -72,19 +73,12 @@ Linux::openSpecialFile(std::string path, Process *process,
         rewind(f);
         return fd;
     } else {
-        // warn("Attempting to open special file: %s. "
-        //      "Ignoring. Simulation may "
-        //      "take un-expected code path or be non-deterministic "
-        //      "until proper handling is implemented.\n", path.c_str());
-        // errno = EACCES;
-        // return -1;
-        FILE *f = tmpfile();
-        int fd = fileno(f);
-        size_t ret M5_VAR_USED = fwrite(data.c_str(), 1, data.size(), f);
-        assert(ret == data.size());
-        rewind(f);
-        errno = EACCES;
-        return fd;
+        warn("Attempting to open special file: %s. "
+             "Ignoring. Simulation may "
+             "take un-expected code path or be non-deterministic "
+             "until proper handling is implemented.\n", path.c_str());
+         errno = EACCES;
+         return -1;
     }
 }
 
