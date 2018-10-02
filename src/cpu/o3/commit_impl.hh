@@ -163,8 +163,7 @@ void
 DefaultCommit<Impl>::regProbePoints()
 {
     ppCommit = new ProbePointArg<DynInstPtr>(cpu->getProbeManager(), "Commit");
-    ppCommitStall = new ProbePointArg<DynInstPtr>
-      (cpu->getProbeManager(), "CommitStall");
+    ppCommitStall = new ProbePointArg<DynInstPtr>(cpu->getProbeManager(), "CommitStall");
     ppSquash = new ProbePointArg<DynInstPtr>(cpu->getProbeManager(), "Squash");
 }
 
@@ -192,7 +191,7 @@ DefaultCommit<Impl>::regStats()
     numCommittedDist
         .init(0,commitWidth,1)
         .name(name() + ".committed_per_cycle")
-        .desc("Number of insts committed each cycle")
+        .desc("Number of insts commited each cycle")
         .flags(Stats::pdf)
         ;
 
@@ -951,8 +950,7 @@ DefaultCommit<Impl>::commit()
 
             if (fromIEW->mispredictInst[tid]) {
                 DPRINTF(Commit,
-                    "[tid:%i]: Squashing due to branch mispred\
-                    PC:%#x [sn:%i]\n",
+                    "[tid:%i]: Squashing due to branch mispred PC:%#x [sn:%i]\n",
                     tid,
                     fromIEW->mispredictInst[tid]->instAddr(),
                     fromIEW->squashedSeqNum[tid]);
@@ -1104,8 +1102,7 @@ DefaultCommit<Impl>::commitInsts()
 
         assert(tid == commit_thread);
 
-        DPRINTF(Commit, "Trying to commit head instruction,\
-                [sn:%i] [tid:%i]\n",
+        DPRINTF(Commit, "Trying to commit head instruction, [sn:%i] [tid:%i]\n",
                 head_inst->seqNum, tid);
 
         // If the head instruction is squashed, it is ready to retire
@@ -1208,8 +1205,7 @@ DefaultCommit<Impl>::commitInsts()
                            !thread[tid]->trapPending);
                     do {
                         oldpc = pc[tid].instAddr();
-                        cpu->system->pcEventQueue.service
-                          (thread[tid]->getTC());
+                        cpu->system->pcEventQueue.service(thread[tid]->getTC());
                         count++;
                     } while (oldpc != pc[tid].instAddr());
                     if (count > 1) {
@@ -1225,8 +1221,7 @@ DefaultCommit<Impl>::commitInsts()
                 // pipeline reached a place to handle the interrupt. In that
                 // case squash now to make sure the interrupt is handled.
                 //
-                // If we don't do this, we might end up in a
-                // live lock situation
+                // If we don't do this, we might end up in a live lock situation
                 if (!interrupt && avoidQuiesceLiveLock &&
                     onInstBoundary && cpu->checkInterrupts(cpu->tcBase(0)))
                     squashAfter(tid, head_inst);

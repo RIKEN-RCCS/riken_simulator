@@ -239,9 +239,7 @@ class CoherentXBar : public BaseXBar
         /**
          * Provided as necessary.
          */
-        void recvReqRetry() {
-          panic("SnoopRespPort should never see retry\n");
-        }
+        void recvReqRetry() { panic("SnoopRespPort should never see retry\n"); }
 
         /**
          * Provided as necessary.
@@ -331,8 +329,8 @@ class CoherentXBar : public BaseXBar
 
     /**
      * Forward a timing packet to a selected list of snoopers, potentially
-     * excluding one of the connected coherent masters
-     * to avoid sending a packet back to where it came from.
+     * excluding one of the connected coherent masters to avoid sending a packet
+     * back to where it came from.
      *
      * @param pkt Packet to forward
      * @param exclude_slave_port_id Id of slave port to exclude
@@ -368,8 +366,8 @@ class CoherentXBar : public BaseXBar
 
     /**
      * Forward an atomic packet to a selected list of snoopers, potentially
-     * excluding one of the connected coherent masters
-     * to avoid sending a packet back to where it came from.
+     * excluding one of the connected coherent masters to avoid sending a packet
+     * back to where it came from.
      *
      * @param pkt Packet to forward
      * @param exclude_slave_port_id Id of slave port to exclude

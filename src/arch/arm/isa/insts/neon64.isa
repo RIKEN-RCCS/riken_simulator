@@ -975,10 +975,8 @@ let {{
             }
             destElem = count;
     '''
-    twoEqualRegInstX("cls", "ClsDX", "SimdAluAOp", smallSignedTypes,
-                     2, clsCode)
-    twoEqualRegInstX("cls", "ClsQX", "SimdAluAOp", smallSignedTypes,
-                     4, clsCode)
+    twoEqualRegInstX("cls", "ClsDX", "SimdAluAOp", smallSignedTypes, 2, clsCode)
+    twoEqualRegInstX("cls", "ClsQX", "SimdAluAOp", smallSignedTypes, 4, clsCode)
     # CLZ
     clzCode = '''
             unsigned count = 0;
@@ -988,10 +986,8 @@ let {{
             }
             destElem = count;
     '''
-    twoEqualRegInstX("clz", "ClzDX", "SimdAluAOp", smallSignedTypes,
-                     2, clzCode)
-    twoEqualRegInstX("clz", "ClzQX", "SimdAluAOp", smallSignedTypes,
-                     4, clzCode)
+    twoEqualRegInstX("clz", "ClzDX", "SimdAluAOp", smallSignedTypes, 2, clzCode)
+    twoEqualRegInstX("clz", "ClzQX", "SimdAluAOp", smallSignedTypes, 4, clzCode)
     # CMEQ (register)
     cmeqCode = "destElem = (srcElem1 == srcElem2) ? (Element)(-1) : 0;"
     threeEqualRegInstX("cmeq", "CmeqDX", "SimdCmpOp", unsignedTypes, 2,

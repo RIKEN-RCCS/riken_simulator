@@ -71,8 +71,8 @@ CoherentXBar::CoherentXBar(const CoherentXBarParams *p)
         masterPorts.push_back(bp);
         reqLayers.push_back(new ReqLayer(*bp, *this,
                                          csprintf(".reqLayer%d", i)));
-        snoopLayers.push_back(new SnoopRespLayer
-                              (*bp, *this, csprintf(".snoopLayer%d", i)));
+        snoopLayers.push_back(new SnoopRespLayer(*bp, *this,
+                                                 csprintf(".snoopLayer%d", i)));
     }
 
     // see if we have a default slave device connected and if so add
