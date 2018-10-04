@@ -2020,6 +2020,39 @@ let {{
                          'class_name' : 'Sve' + Name}
             exec_output += SveOpExecDeclare.subst(substDict)
 
+    # Generates definitions for ternary SVE instructions with indexed operand
+    def sveTerIdxInst(name, Name, opClass, types, op, decoder='Generic'):
+        global header_output, exec_output, decoders
+        code = sveEnabledCheckCode + '''
+        unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
+                xc->tcBase());
+
+        // Number of elements in a 128 bit segment
+        constexpr unsigned ePerSegment = 128 / sizeof(Element);
+
+        for (unsigned i = 0; i < eCount; i++) {
+            const auto segmentBase = i - i % ePerSegment;
+            const auto segmentIdx = segmentBase + index;
+
+            const Element& srcElem1 = AA64FpOp1_x[i];
+            const Element& srcElem2 = AA64FpOp2_x[segmentIdx];
+            Element destElem = AA64FpDestMerge_x[i];
+        '''
+
+        code += '''
+            %(op)s
+            AA64FpDest_x[i] = destElem;
+        }''' % {'op': op}
+
+        iop = InstObjParams(name, 'Sve' + Name, 'SveBinIdxUnpredOp',
+                            {'code': code, 'op_class': opClass}, [])
+        header_output += SveBinIdxUnpredOpDeclare.subst(iop)
+        exec_output += SveOpExecute.subst(iop)
+        for type in types:
+            substDict = {'targs' : type,
+                         'class_name' : 'Sve' + Name}
+            exec_output += SveOpExecDeclare.subst(substDict)
+
     # Generates definitions for ternary SVE intructions with immediate operand
     # (always unpredicated)
     def sveTerImmInst(name, Name, opClass, types, op, decoder='Generic'):
@@ -3418,16 +3451,20 @@ let {{
     fminvCode = fpReduceOp % 'Min'
     sveNonAssocReducInst('fminv', 'Fminv', 'SimdFloatReduceCmpOp', floatTypes,
                          fminvCode, 'fplibInfinity<Element>(0)')
-    # TODO: FMLA (indexed)
-    # FMLA (vectors)
     fmlaCode = fpOp % ('fplibMulAdd<Element>('
                        'destElem, srcElem1, srcElem2, fpscr)')
+    # FMLA (indexed)
+    sveTerIdxInst('fmla', 'FmlaIdx', 'SimdFloatMultAccOp', floatTypes,
+                  fmlaCode, PredType.MERGE)
+    # FMLA (vectors)
     sveTerInst('fmla', 'Fmla', 'SimdFloatMultAccOp', floatTypes, fmlaCode,
                PredType.MERGE)
-    # TODO: FMLS (indexed)
-    # FMLS (vectors)
     fmlsCode = fpOp % ('fplibMulAdd<Element>(destElem, '
                        'fplibNeg<Element>(srcElem1), srcElem2, fpscr)')
+    # FMLS (indexed)
+    sveTerIdxInst('fmls', 'FmlsIdx', 'SimdFloatMultAccOp', floatTypes,
+                  fmlsCode, PredType.MERGE)
+    # FMLS (vectors)
     sveTerInst('fmls', 'Fmls', 'SimdFloatMultAccOp', floatTypes, fmlsCode,
                PredType.MERGE)
     # FMSB
