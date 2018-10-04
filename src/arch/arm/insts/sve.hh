@@ -319,7 +319,7 @@ class SveBinConstrPredOp : public ArmStaticInst {
     std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;
 };
 
-/// Binary, unpredicated SVE instruction
+/// Binary, unpredicated SVE instruction with indexed operand
 class SveBinUnpredOp : public ArmStaticInst {
   protected:
     IntRegIndex dest, op1, op2;
@@ -328,6 +328,22 @@ class SveBinUnpredOp : public ArmStaticInst {
                    IntRegIndex _dest, IntRegIndex _op1, IntRegIndex _op2) :
         ArmStaticInst(mnem, _machInst, __opClass),
         dest(_dest), op1(_op1), op2(_op2)
+    {}
+
+    std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;
+};
+
+/// Binary, unpredicated SVE instruction
+class SveBinIdxUnpredOp : public ArmStaticInst {
+  protected:
+    IntRegIndex dest, op1, op2;
+    uint8_t index;
+
+    SveBinIdxUnpredOp(const char* mnem, ExtMachInst _machInst,
+                      OpClass __opClass, IntRegIndex _dest, IntRegIndex _op1,
+                      IntRegIndex _op2, uint8_t _index) :
+        ArmStaticInst(mnem, _machInst, __opClass),
+        dest(_dest), op1(_op1), op2(_op2), index(_index)
     {}
 
     std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;

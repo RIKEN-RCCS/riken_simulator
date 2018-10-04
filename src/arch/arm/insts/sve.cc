@@ -308,6 +308,23 @@ SveBinUnpredOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 }
 
 std::string
+SveBinIdxUnpredOp::generateDisassembly(Addr pc,
+                                       const SymbolTable *symtab) const
+{
+    std::stringstream ss;
+    printMnemonic(ss, "", false);
+    printVecReg(ss, dest, true);
+    ccprintf(ss, ", ");
+    printVecReg(ss, op1, true);
+    ccprintf(ss, ", ");
+    printVecReg(ss, op2, true);
+    ccprintf(ss, "[");
+    ss << (uint64_t)index;
+    ccprintf(ss, "]");
+    return ss.str();
+}
+
+std::string
 SvePredLogicalOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;

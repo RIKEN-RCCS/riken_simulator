@@ -2714,6 +2714,37 @@ namespace Aarch64
         return new Unknown64(machInst);
     }  // decodeSveFpFusedMulAdd
 
+
+    StaticInstPtr
+    decodeSveFpMulIndexed(ExtMachInst machInst)
+    {
+        IntRegIndex zd = (IntRegIndex) (uint8_t) bits(machInst, 4, 0);
+        IntRegIndex zn = (IntRegIndex) (uint8_t) bits(machInst, 9, 5);
+
+        uint8_t size = bits(machInst, 23, 22);
+        switch (size) {
+          case 0x0:
+          case 0x1:
+            return new SveFmulIdx<uint16_t>(
+                machInst, zd, zn,
+                (IntRegIndex) (uint8_t) bits(machInst, 18, 16),
+                bits(machInst, 20, 19) | (bits(machInst, 22) << 2));
+          case 0x2:
+            return new SveFmulIdx<uint32_t>(
+                machInst, zd, zn,
+                (IntRegIndex) (uint8_t) bits(machInst, 18, 16),
+                bits(machInst, 20, 19));
+          case 0x3:
+            return new SveFmulIdx<uint64_t>(
+                machInst, zd, zn,
+                (IntRegIndex) (uint8_t) bits(machInst, 19, 16),
+                bits(machInst, 20));
+          default:
+            return new Unknown64(machInst);
+        }
+
+    } // decodeSveFpMulIndexed
+
     StaticInstPtr
     decodeSveMemGather32(ExtMachInst machInst)
     {
