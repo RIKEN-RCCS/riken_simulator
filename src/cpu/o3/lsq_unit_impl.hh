@@ -165,6 +165,7 @@ LSQUnit<Impl>::init(O3CPU *cpu_ptr, IEW *iew_ptr, DerivO3CPUParams *params,
     depCheckShift = params->LSQDepCheckShift;
     checkLoads = params->LSQCheckLoads;
     needsTSO = params->needsTSO;
+    countSplit = params->countSplit;
 
     resetState();
 }
@@ -1078,7 +1079,7 @@ LSQUnit<Impl>::trySendPacket(bool isLoad, PacketPtr data_pkt)
     PacketPtr main_pkt = state->request()->mainPacket();
 
     if (!lsq->cacheBlocked() &&
-        ((data_pkt != main_pkt)||
+        ((!countSplit && (data_pkt != main_pkt))||
          (isLoad && lsq->cachePortAvailable(true)) ||
          (!isLoad && lsq->cachePortAvailable(false)))) {
             if (!dcachePort->sendTimingReq(data_pkt)) {
@@ -1093,7 +1094,7 @@ LSQUnit<Impl>::trySendPacket(bool isLoad, PacketPtr data_pkt)
         if (!isLoad) {
             isStoreBlocked = false;
         }
-        if (main_pkt == data_pkt){
+        if (countSplit || (main_pkt == data_pkt)){
                 lsq->cachePortBusy(isLoad);
         }
         state->outstanding++;

@@ -268,7 +268,7 @@ class O3_ARM_PostK_3(DerivO3CPU):
     cacheLoadPorts=2
     cacheStorePorts=1
     storePortUsageRatio = 2
-
+    countSplit = False
     switched_out = False
     branchPred = O3_ARM_PostK_BP()
 
