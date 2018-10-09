@@ -2052,9 +2052,9 @@ namespace Aarch64
     {
         IntRegIndex zd = (IntRegIndex) (uint8_t) bits(machInst, 4, 0);
         uint8_t size = bits(machInst, 23, 22);
-        uint64_t imm = vfp_modified_imm(bits(machInst, 12, 5), size);
 
         if (bits(machInst, 18, 17) == 0x0 && size != 0x0) {
+            uint64_t imm = vfp_modified_imm(bits(machInst, 12, 5), size);
             return decodeSveWideImmUnpredF<SveFdup>(size, machInst, zd, imm);
         }
 
