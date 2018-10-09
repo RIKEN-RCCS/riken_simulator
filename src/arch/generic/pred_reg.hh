@@ -346,7 +346,7 @@ class PredRegContainer
     friend std::ostream& operator<<(std::ostream& os, const MyClass& v)
     {
         for (auto b: v.container) {
-            os << csprintf("%d ", b);
+            os << csprintf("%d", b);
         }
         return os;
     }
