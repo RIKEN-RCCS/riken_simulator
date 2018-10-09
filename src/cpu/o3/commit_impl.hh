@@ -1238,6 +1238,7 @@ DefaultCommit<Impl>::commitInsts()
 
     DPRINTF(CommitRate, "%i\n", num_committed);
 
+    numCommittedDist.sample(num_committed);
     numCommittedInst.sample(num_committed_insts);
 
     if (num_committed_insts == 0){
