@@ -1090,7 +1090,7 @@ DefaultCommit<Impl>::commitInsts()
 
         ThreadID commit_thread = getCommittingThread();
 
-        if (commit_thread == -1 || !rob->isHeadReady(commit_thread))
+        if (commit_thread == -1 || rob->isEmpty())
             break;
 
         head_inst = rob->readHeadInst(commit_thread);
@@ -1098,6 +1098,8 @@ DefaultCommit<Impl>::commitInsts()
             head_is_memref = 1;
         }
 
+        if (!rob->isHeadReady(commit_thread))
+            break;
         ThreadID tid = head_inst->threadNumber;
 
         assert(tid == commit_thread);
