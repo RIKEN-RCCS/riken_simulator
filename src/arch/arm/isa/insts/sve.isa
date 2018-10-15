@@ -1762,7 +1762,7 @@ let {{
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
         TheISA::VecRegContainer tmpVecC;
-        auto auxOp2 = tmpVecC.as<uint64_t>();
+        auto auxOp2 = tmpVecC.as<Element>();
         for (unsigned i = 0; i < eCount; i++) {
             auxOp2[i] = AA64FpOp2_ud[i];
         }
