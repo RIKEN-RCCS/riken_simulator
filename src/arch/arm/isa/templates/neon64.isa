@@ -263,7 +263,7 @@ def template MicroNeonMemDeclare64 {{
                              _ura, _imm),
             baseIsSP(_baseIsSP), accSize(_accSize), eSize(_eSize)
         {
-            memAccessFlags |= extraMemFlags;
+            memAccessFlags = memAccessFlags | extraMemFlags;
             %(constructor)s;
         }
 

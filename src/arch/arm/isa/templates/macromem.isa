@@ -125,7 +125,7 @@ def template MicroNeonMemDeclare {{
             : %(base_class)s("%(mnemonic)s", machInst,
                               %(op_class)s, _dest, _ura, _imm)
         {
-            memAccessFlags |= extraMemFlags;
+            memAccessFlags = memAccessFlags | extraMemFlags;
             %(constructor)s;
             if (!(condCode == COND_AL || condCode == COND_UC)) {
                 for (int x = 0; x < _numDestRegs; x++) {

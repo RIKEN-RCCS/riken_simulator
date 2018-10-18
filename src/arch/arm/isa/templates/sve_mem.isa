@@ -419,7 +419,7 @@ def template SveIndexedMemVIMicroopDeclare {{
         int numElems;
         bool firstFault;
 
-        unsigned memAccessFlags;
+        Request::Flags memAccessFlags;
 
       public:
         %(class_name)s(const char* mnem, ExtMachInst machInst,
@@ -497,7 +497,7 @@ def template SveIndexedMemSVMicroopDeclare {{
         int numElems;
         bool firstFault;
 
-        unsigned memAccessFlags;
+        Request::Flags memAccessFlags;
 
       public:
         %(class_name)s(const char* mnem, ExtMachInst machInst,
@@ -852,7 +852,7 @@ def template SveStructMemSIMicroopDeclare {{
         uint8_t numRegs;
         int regIndex;
 
-        unsigned memAccessFlags;
+        Request::Flags memAccessFlags;
 
         bool baseIsSP;
 
@@ -1130,7 +1130,7 @@ def template SveStructMemSSMicroopDeclare {{
         uint8_t numRegs;
         int regIndex;
 
-        unsigned memAccessFlags;
+        Request::Flags memAccessFlags;
 
         bool baseIsSP;
 

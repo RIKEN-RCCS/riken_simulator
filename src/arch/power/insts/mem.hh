@@ -44,6 +44,7 @@ class MemOp : public PowerStaticInst
   protected:
 
     /// Memory request flags.  See mem_req_base.hh.
+    //// This must be Request::Flags
     unsigned memAccessFlags;
 
     /// Constructor

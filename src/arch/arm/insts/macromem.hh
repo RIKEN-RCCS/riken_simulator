@@ -114,7 +114,7 @@ class MicroNeonMemOp : public MicroOp
   protected:
     RegIndex dest, ura;
     uint32_t imm;
-    unsigned memAccessFlags;
+    Request::Flags memAccessFlags;
 
     MicroNeonMemOp(const char *mnem, ExtMachInst machInst, OpClass __opClass,
                    RegIndex _dest, RegIndex _ura, uint32_t _imm)
@@ -383,7 +383,7 @@ class MicroMemOp : public MicroIntImmOp
 {
   protected:
     bool up;
-    unsigned memAccessFlags;
+    Request::Flags memAccessFlags;
 
     MicroMemOp(const char *mnem, ExtMachInst machInst, OpClass __opClass,
                RegIndex _ura, RegIndex _urb, bool _up, uint8_t _imm)
@@ -401,7 +401,7 @@ class MicroMemPairOp : public MicroOp
     RegIndex dest, dest2, urb;
     bool up;
     int32_t imm;
-    unsigned memAccessFlags;
+    Request::Flags memAccessFlags;
 
     MicroMemPairOp(const char *mnem, ExtMachInst machInst, OpClass __opClass,
             RegIndex _dreg1, RegIndex _dreg2, RegIndex _base,

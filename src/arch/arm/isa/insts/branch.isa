@@ -189,7 +189,7 @@ let {{
     for isTbh in (0, 1):
         if isTbh:
             eaCode = '''
-            unsigned memAccessFlags = ArmISA::TLB::AllowUnaligned |
+            Request::Flags memAccessFlags = ArmISA::TLB::AllowUnaligned |
                                       ArmISA::TLB::AlignHalfWord |
                                       ArmISA::TLB::MustBeOne;
             EA = Op1 + Op2 * 2
@@ -198,7 +198,7 @@ let {{
             mnem = "tbh"
         else:
             eaCode = '''
-            unsigned memAccessFlags = ArmISA::TLB::AllowUnaligned |
+            Request::Flags memAccessFlags = ArmISA::TLB::AllowUnaligned |
                                       ArmISA::TLB::AlignByte |
                                       ArmISA::TLB::MustBeOne;
             EA = Op1 + Op2
