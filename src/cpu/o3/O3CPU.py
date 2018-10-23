@@ -167,7 +167,7 @@ class DerivO3CPU(BaseCPU):
                                        "Branch Predictor")
     needsTSO = Param.Bool(buildEnv['TARGET_ISA'] == 'x86',
                           "Enable TSO Memory model")
-    countSplit = Param.Bool(True, "Consume port for split packet")
+    splitUnalignedAccess = Param.Bool(True, "Consume port for split packet")
 
     showFlops = Param.Bool(False,
         "Show Flops and Bytes statistics")

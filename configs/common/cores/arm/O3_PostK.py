@@ -253,7 +253,7 @@ class O3_ARM_PostK_3(DerivO3CPU):
     iewToCommitDelay = 1
     renameToROBDelay = 1
     commitWidth = 4
-    squashWidth = 4
+    squashWidth = 40
     trapLatency = 13
 #    backComSize = 5
 #    forwardComSize = 4
@@ -268,7 +268,7 @@ class O3_ARM_PostK_3(DerivO3CPU):
     cacheLoadPorts=2
     cacheStorePorts=1
     storePortUsageRatio = 2
-    countSplit = False
+    splitUnalignedAccess = False
     switched_out = False
     branchPred = O3_ARM_PostK_BP()
 

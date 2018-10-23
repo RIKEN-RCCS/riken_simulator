@@ -165,7 +165,7 @@ LSQUnit<Impl>::init(O3CPU *cpu_ptr, IEW *iew_ptr, DerivO3CPUParams *params,
     depCheckShift = params->LSQDepCheckShift;
     checkLoads = params->LSQCheckLoads;
     needsTSO = params->needsTSO;
-    countSplit = params->countSplit;
+    splitUnalignedAccess = params->splitUnalignedAccess;
 
     resetState();
 }
@@ -1076,10 +1076,11 @@ LSQUnit<Impl>::trySendPacket(bool isLoad, PacketPtr data_pkt)
     bool cache_got_blocked = false;
 
     auto state = dynamic_cast<LSQSenderState*>(data_pkt->senderState);
-    PacketPtr main_pkt = state->request()->mainPacket();
+    Request *main_req = state->request()->request();
 
     if (!lsq->cacheBlocked() &&
-        ((!countSplit && (data_pkt != main_pkt))||
+        ((!splitUnalignedAccess &&
+          (state->isSplit && (data_pkt->req != main_req)))||
          (isLoad && lsq->cachePortAvailable(true)) ||
          (!isLoad && lsq->cachePortAvailable(false)))) {
             if (!dcachePort->sendTimingReq(data_pkt)) {
@@ -1094,7 +1095,8 @@ LSQUnit<Impl>::trySendPacket(bool isLoad, PacketPtr data_pkt)
         if (!isLoad) {
             isStoreBlocked = false;
         }
-        if (countSplit || (main_pkt == data_pkt)){
+        if (splitUnalignedAccess ||
+            (!state->isSplit) ||(main_req == data_pkt->req)){
                 lsq->cachePortBusy(isLoad);
         }
         state->outstanding++;
