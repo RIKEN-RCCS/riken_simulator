@@ -77,4 +77,16 @@ isAnyActiveElement(const std::vector<bool>::const_iterator& it_start,
     return (it_tmp != it_end);
 }
 
+/**
+ * Test if all elements are active in an enablement range
+ */
+inline bool
+isAllActiveElement(const std::vector<bool>::const_iterator& it_start,
+                   const std::vector<bool>::const_iterator& it_end)
+{
+    auto it_tmp = it_start;
+    for (;it_tmp != it_end && (*it_tmp); ++it_tmp);
+    return (it_tmp == it_end);
+}
+
 #endif // __CPU_UTILS_HH__
