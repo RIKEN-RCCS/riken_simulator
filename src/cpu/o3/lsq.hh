@@ -59,8 +59,6 @@ struct DerivO3CPUParams;
 template <class Impl>
 class LSQ {
   public:
-    /** XXX Fix this */
-    static constexpr auto lineWidth = 512;
     typedef typename Impl::O3CPU O3CPU;
     typedef typename Impl::DynInstPtr DynInstPtr;
     typedef typename Impl::CPUPol::IEW IEW;
@@ -929,9 +927,10 @@ class LSQ {
 
     /** The CPU pointer. */
     O3CPU *cpu;
-
     /** The IEW stage pointer. */
     IEW *iewStage;
+    /** request line widht*/
+    int lineWidth;
 
     /** Is D-cache blocked? */
     bool cacheBlocked() const;

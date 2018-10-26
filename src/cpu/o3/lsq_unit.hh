@@ -81,10 +81,7 @@ struct DerivO3CPUParams;
 template <class Impl>
 class LSQUnit {
   public:
-    /* TODO: This is the width of the bus between the LSQ Unit and the data
-     * cache. It is fixed to 512, but once the model is working, this should
-     * be a parametre of the lsq_unit / data cache */
-    static constexpr auto lineWidth = 512;
+    int lineWidth;
 
     static constexpr auto MaxDataBytes = MaxVecRegLenInBytes;
 

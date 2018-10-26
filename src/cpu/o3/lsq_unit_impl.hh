@@ -162,6 +162,7 @@ LSQUnit<Impl>::init(O3CPU *cpu_ptr, IEW *iew_ptr, DerivO3CPUParams *params,
 
     DPRINTF(LSQUnit, "Creating LSQUnit%i object.\n",lsqID);
 
+    lineWidth = params->requestLineWidth;
     depCheckShift = params->LSQDepCheckShift;
     checkLoads = params->LSQCheckLoads;
     needsTSO = params->needsTSO;

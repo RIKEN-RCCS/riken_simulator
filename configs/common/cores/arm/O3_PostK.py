@@ -270,6 +270,7 @@ class O3_ARM_PostK_3(DerivO3CPU):
     storePortUsageRatio = 2
     splitUnalignedAccess = False
     switched_out = False
+    requestLineWidth=2048
     branchPred = O3_ARM_PostK_BP()
 
 # Instruction Cache

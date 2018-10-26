@@ -61,6 +61,7 @@ using namespace std;
 template <class Impl>
 LSQ<Impl>::LSQ(O3CPU *cpu_ptr, IEW *iew_ptr, DerivO3CPUParams *params)
     : cpu(cpu_ptr), iewStage(iew_ptr),
+      lineWidth(params->requestLineWidth),
       _cacheBlocked(false),
       cacheStorePorts(params->cacheStorePorts), usedStorePorts(0),
       cacheLoadPorts(params->cacheLoadPorts), usedLoadPorts(0),
