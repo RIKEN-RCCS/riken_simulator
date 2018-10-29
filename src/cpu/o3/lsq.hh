@@ -929,7 +929,7 @@ class LSQ {
     O3CPU *cpu;
     /** The IEW stage pointer. */
     IEW *iewStage;
-    /** request line widht*/
+    /** request line width */
     int lineWidth;
 
     /** Is D-cache blocked? */
