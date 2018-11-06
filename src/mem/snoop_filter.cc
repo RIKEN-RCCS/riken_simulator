@@ -68,7 +68,7 @@ SnoopFilter::lookupRequest(const Packet* cpkt, const SlavePort& slave_port)
 
     // check if the packet came from a cache
     bool allocate = !cpkt->req->isUncacheable() && slave_port.isSnooping() &&
-        cpkt->fromCache();
+        cpkt->fromCache() && cpkt->pfdepth;
     Addr line_addr = cpkt->getBlockAddr(linesize);
     if (cpkt->isSecure()) {
         line_addr |= LineSecure;
@@ -250,7 +250,8 @@ SnoopFilter::updateSnoopResponse(const Packet* cpkt,
     // if this snoop response is due to an uncacheable request, or is
     // being turned into a normal response, there is nothing more to
     // do
-    if (cpkt->req->isUncacheable() || !req_port.isSnooping()) {
+    if (cpkt->req->isUncacheable() || !req_port.isSnooping()
+        || cpkt->pfdepth) {
         return;
     }
 
@@ -340,7 +341,8 @@ SnoopFilter::updateResponse(const Packet* cpkt, const SlavePort& slave_port)
 
     // we only allocate if the packet actually came from a cache, but
     // start by checking if the port is snooping
-    if (cpkt->req->isUncacheable() || !slave_port.isSnooping())
+    if (cpkt->req->isUncacheable() || !slave_port.isSnooping()
+        || cpkt->pfdepth)
         return;
 
     // next check if we actually allocated an entry

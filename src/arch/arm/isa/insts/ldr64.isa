@@ -78,6 +78,7 @@ let {{
                 self.instFlags = ['IsDataPrefetch']
                 self.memFlags.append("((((dest>>3)&3)==2)? \
                 (Request::PF_EXCLUSIVE):(Request::PREFETCH))")
+                self.memFlags.append("Request::pfDepthToFlag((dest>>1)&3)")
             if self.micro:
                 self.instFlags.append("IsMicroop")
 

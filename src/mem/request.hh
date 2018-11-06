@@ -196,6 +196,9 @@ class Request
         /** Bits to define the destination of a request */
         DST_BITS                    = 0x0000003000000000,
 
+        PF_L1                       = 0x0000000000000000L,
+        PF_L2                       = 0x0000010000000000L,
+        PF_L3                       = 0x0000020000000000L,
         /**
          * These flags are *not* cleared when a Request object is
          * reused (assigned a new address).
@@ -514,7 +517,10 @@ class Request
         _paddr = paddr;
         privateFlags.set(VALID_PADDR);
     }
-
+    static Flags pfDepthToFlag(uint64_t depth)
+    {
+        return (depth << 40);
+    }
     /**
      * Generate two requests as if this request had been split into two
      * pieces. The original request can't have been translated already.
@@ -574,6 +580,14 @@ class Request
      * (e.g. 0 = L1; 1 = L2).
      */
     mutable int depth;
+    /**
+     * Level of the cache hierachy where this prefetch
+     * request should respond.
+     */
+    int pfdepth()
+    {
+        return (_flags >>40)&3;
+    }
 
     /**
      *  Accessor for size.

@@ -247,7 +247,7 @@ MSHR::allocate(Addr blk_addr, unsigned blk_size, PacketPtr target,
     order = _order;
     assert(target);
     isForward = false;
-    _isUncacheable = target->req->isUncacheable();
+    _isUncacheable = target->req->isUncacheable()|| target->pfdepth;
     inService = false;
     downstreamPending = false;
     assert(targets.isReset());
@@ -457,7 +457,7 @@ MSHR::handleSnoop(PacketPtr pkt, Counter _order)
         }
     }
 
-    if (!pkt->needsWritable() && !pkt->req->isUncacheable()) {
+    if (!pkt->needsWritable() && !pkt->req->isUncacheable() && !pkt->pfdepth) {
         // This transaction will get a read-shared copy, downgrading
         // our copy if we had a writable one
         postDowngrade = true;

@@ -500,8 +500,8 @@ Cache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
         // if this a write-through packet it will be sent to cache
         // below
         return !pkt->writeThrough();
-    } else if (blk && (pkt->needsWritable() ? blk->isWritable() :
-                       blk->isReadable())) {
+    } else if (blk && ((pkt->needsWritable() ? blk->isWritable() :
+                        blk->isReadable())||pkt->pfdepth)) {
         // OK to satisfy access
         incHitCount(pkt);
         satisfyRequest(pkt, blk);
@@ -840,7 +840,7 @@ Cache::recvTimingReq(PacketPtr pkt)
 
         // ignore any existing MSHR if we are dealing with an
         // uncacheable request
-        MSHR *mshr = pkt->req->isUncacheable() ? nullptr :
+        MSHR *mshr = (pkt->req->isUncacheable()|| pkt->pfdepth) ? nullptr :
             mshrQueue.findMatch(blk_addr, pkt->isSecure());
 
         // Software prefetch handling:
@@ -870,6 +870,7 @@ Cache::recvTimingReq(PacketPtr pkt)
                                              pkt->req->getFlags(),
                                              pkt->req->masterId());
                 pf = new Packet(req, pkt->cmd);
+                pf->pfdepth = pkt->pfdepth;
                 pf->allocate();
                 assert(pf->getAddr() == pkt->getAddr());
                 assert(pf->getSize() == pkt->getSize());
@@ -948,7 +949,7 @@ Cache::recvTimingReq(PacketPtr pkt)
         } else {
             // no MSHR
             assert(pkt->req->masterId() < system->maxMasters());
-            if (pkt->req->isUncacheable()) {
+            if (pkt->req->isUncacheable()||pkt->pfdepth) {
                 mshr_uncacheable[pkt->cmdToIndex()][pkt->req->masterId()]++;
             } else {
                 mshr_misses[pkt->cmdToIndex()][pkt->req->masterId()]++;
@@ -979,6 +980,12 @@ Cache::recvTimingReq(PacketPtr pkt)
                     // internally, and have a sufficiently weak memory
                     // model, this is probably unnecessary, but at some
                     // point it must have seemed like we needed it...
+                    if (!((pkt->needsWritable() && !blk->isWritable()) ||
+                         pkt->req->isCacheMaintenance())){
+                        pkt->print(std::cout);
+                        std::cout<<std::endl;
+                        DPRINTF(Cache,"ASSERT FAILED\n");
+                    }
                     assert((pkt->needsWritable() && !blk->isWritable()) ||
                            pkt->req->isCacheMaintenance());
                     blk->status &= ~BlkReadable;
@@ -1018,6 +1025,13 @@ Cache::createMissPacket(PacketPtr cpu_pkt, CacheBlk *blk,
         cpu_pkt->cmd == MemCmd::InvalidateReq || cpu_pkt->isClean()) {
         // uncacheable requests and upgrades from upper-level caches
         // that missed completely just go through as is
+        return nullptr;
+    }
+
+    if (cpu_pkt->pfdepth){
+        //  and go through
+        DPRINTF(Cache, "SWPrefetch depth %d flags %lx\n", cpu_pkt->pfdepth,
+            cpu_pkt->req->getFlags());
         return nullptr;
     }
 
@@ -1160,6 +1174,9 @@ Cache::recvAtomic(PacketPtr pkt)
             // just forwarding the same request to the next level
             // no local cache operation involved
             bus_pkt = pkt;
+            //decrement pfdepth for deeper prefetch
+            if (pkt->pfdepth)
+                pkt->pfdepth --;
         }
 
         DPRINTF(Cache, "%s: Sending an atomic %s\n", __func__,
@@ -1403,7 +1420,9 @@ Cache::recvTimingResp(PacketPtr pkt)
     int stats_cmd_idx = initial_tgt->pkt->cmdToIndex();
     Tick miss_latency = curTick() - initial_tgt->recvTime;
 
-    if (pkt->req->isUncacheable()) {
+    if (pkt->req->isUncacheable() ||
+        pkt->cmd.isSWPrefetch() //lower layer prefetch response
+        ) {
         assert(pkt->req->masterId() < system->maxMasters());
         mshr_uncacheable_lat[stats_cmd_idx][pkt->req->masterId()] +=
             miss_latency;
@@ -2216,7 +2235,7 @@ Cache::handleSnoop(PacketPtr pkt, CacheBlk *blk, bool is_timing,
         // which means we go from Modified to Owned (and will respond
         // below), remain in Owned (and will respond below), from
         // Exclusive to Shared, or remain in Shared
-        if (!pkt->req->isUncacheable())
+        if (!pkt->req->isUncacheable()&&!pkt->pfdepth)
             blk->status &= ~BlkWritable;
         DPRINTF(Cache, "new state is %s\n", blk->print());
     }
@@ -2374,7 +2393,8 @@ Cache::recvTimingSnoopReq(PacketPtr pkt)
         bool have_writable = !wb_pkt->hasSharers();
         bool invalidate = pkt->isInvalidate();
 
-        if (!pkt->req->isUncacheable() && pkt->isRead() && !invalidate) {
+        if (!pkt->req->isUncacheable() && pkt->isRead() && !invalidate
+            &&!pkt->pfdepth) {
             assert(!pkt->needsWritable());
             pkt->setHasSharers();
             wb_pkt->setHasSharers();
@@ -2653,6 +2673,10 @@ Cache::sendMSHRQueuePacket(MSHR* mshr)
         // make copy of current packet to forward, keep current
         // copy for response handling
         pkt = new Packet(tgt_pkt, false, true);
+        //decrement pfdepth for deeper prefetch
+        if (tgt_pkt->pfdepth){
+            pkt->pfdepth --;
+        }
         assert(!pkt->isWrite());
     }
 
@@ -2666,6 +2690,7 @@ Cache::sendMSHRQueuePacket(MSHR* mshr)
         // there will be a follow-up write packet as well.
         pkt->setSatisfied();
     }
+    DPRINTF(Cache, "pfdepth %d\n", pkt->pfdepth);
 
     if (!memSidePort->sendTimingReq(pkt)) {
         // we are awaiting a retry, but we

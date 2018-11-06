@@ -322,6 +322,7 @@ class Packet : public Printable
 
     /// A pointer to the original request.
     const RequestPtr req;
+    int pfdepth;
 
   private:
    /**
@@ -760,6 +761,7 @@ class Packet : public Printable
             size = req->getSize();
             flags.set(VALID_SIZE);
         }
+        pfdepth = req->pfdepth();
     }
 
     /**
@@ -777,6 +779,7 @@ class Packet : public Printable
             flags.set(VALID_ADDR);
             _isSecure = req->isSecure();
         }
+        pfdepth = 0;
         size = _blkSize;
         flags.set(VALID_SIZE);
     }
@@ -802,7 +805,7 @@ class Packet : public Printable
             flags.set(pkt->flags & COPY_FLAGS);
 
         flags.set(pkt->flags & (VALID_ADDR|VALID_SIZE));
-
+        pfdepth = pkt->pfdepth;
         // should we allocate space for data, or not, the express
         // snoops do not need to carry any data as they only serve to
         // co-ordinate state changes
