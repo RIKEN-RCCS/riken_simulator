@@ -308,6 +308,23 @@ SveBinUnpredOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 }
 
 std::string
+SveBinIdxUnpredOp::generateDisassembly(Addr pc,
+                                       const SymbolTable *symtab) const
+{
+    std::stringstream ss;
+    printMnemonic(ss, "", false);
+    printVecReg(ss, dest, true);
+    ccprintf(ss, ", ");
+    printVecReg(ss, op1, true);
+    ccprintf(ss, ", ");
+    printVecReg(ss, op2, true);
+    ccprintf(ss, "[");
+    ss << (uint64_t)index;
+    ccprintf(ss, "]");
+    return ss.str();
+}
+
+std::string
 SvePredLogicalOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
@@ -570,7 +587,7 @@ SveSelectOp::generateDisassembly(Addr pc,
     printMnemonic(ss, "", false);
     if (scalar)
         printIntReg(ss, dest, scalar_width);
-    else if (simdfp)
+    else if (simdFp)
         printFloatReg(ss, dest);
     else
         printVecReg(ss, dest, true);
@@ -721,7 +738,11 @@ SveUnarySca2VecUnpredOp::generateDisassembly(Addr pc,
     printMnemonic(ss, "", false);
     printVecReg(ss, dest, true);
     ccprintf(ss, ", ");
-    printIntReg(ss, op1);
+    if (simdFp) {
+        printFloatReg(ss, op1);
+    } else {
+        printIntReg(ss, op1);
+    }
     return ss.str();
 }
 

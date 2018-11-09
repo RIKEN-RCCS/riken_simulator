@@ -356,6 +356,8 @@ Execute::handleMemResponse(MinorDynInstPtr inst,
         DPRINTF(MinorMem, "Completing failed request inst: %s\n",
             *inst);
         use_context_predicate = false;
+        if (!context.readMemAccPredicate())
+            inst->staticInst->completeAcc(nullptr, &context, inst->traceData);
     } else if (packet->isError()) {
         DPRINTF(MinorMem, "Trying to commit error response: %s\n",
             *inst);
@@ -487,9 +489,6 @@ Execute::executeMemRefInst(MinorDynInstPtr inst, BranchData &branch,
              * predicate */
             if (!context.readMemAccPredicate()) {
                 DPRINTF(MinorMem, "No memory access for inst: %s\n", *inst);
-
-                inst->staticInst->completeAcc(nullptr, &context,
-                                              inst->traceData);
                 assert(context.readPredicate());
             }
             passed_predicate = context.readPredicate();

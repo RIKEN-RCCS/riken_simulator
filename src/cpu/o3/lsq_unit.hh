@@ -206,6 +206,14 @@ class LSQUnit {
     };
     using LQEntry = LSQEntry;
 
+    /** Coverage of one address range with another */
+    enum AddrRangeCoverage
+    {
+        PartialAddrRangeCoverage, /* Two ranges partly overlap */
+        FullAddrRangeCoverage, /* One range fully covers another */
+        NoAddrRangeCoverage /* Two ranges are disjoint */
+    };
+
   public:
     using LoadQueue = circularQueue<LQEntry>;
     using StoreQueue = circularQueue<SQEntry>;
@@ -718,12 +726,35 @@ LSQUnit<Impl>::read(LSQRequest *req, int load_idx)
             bool lower_load_has_store_part = req_s < st_e;
             bool upper_load_has_store_part = req_e > st_s;
 
-            // If the store's data has all of the data needed and the load
-            // isn't LLSC then
-            // we can forward.
+            AddrRangeCoverage coverage = NoAddrRangeCoverage;
+
             if (store_has_lower_limit && store_has_upper_limit &&
                 !req->mainRequest()->isLLSC()) {
+                // If the store's data has all of the data needed and the load
+                // isn't LLSC then we can forward. Execept if the store request
+                // has a byte strobe mask. In the latter case, we fall back
+                // to PartialAddrRangeCoverage to disable forward.
+                const auto& store_req = store_it->request()->mainRequest();
+                if (store_req->getByteEnable().empty())
+                    coverage = FullAddrRangeCoverage;
+                else
+                    coverage = PartialAddrRangeCoverage;
+            } else if (
+                (!req->mainRequest()->isLLSC() &&
+                 ((store_has_lower_limit && lower_load_has_store_part) ||
+                  (store_has_upper_limit && upper_load_has_store_part) ||
+                  (lower_load_has_store_part && upper_load_has_store_part))) ||
+                (req->mainRequest()->isLLSC() &&
+                 ((store_has_lower_limit || upper_load_has_store_part) &&
+                  (store_has_upper_limit || lower_load_has_store_part)))) {
+                // This is the partial store-load forwarding case where a store
+                // has only part of the load's data and the load isn't LLSC or
+                // the load is LLSC and the store has all or part of the load's
+                // data
+                coverage = PartialAddrRangeCoverage;
+            }
 
+            if (coverage == FullAddrRangeCoverage) {
                 // Get shift amount for offset into the store's data.
                 int shift_amt = req->mainRequest()->getVaddr() -
                     store_it->instruction()->effAddr;
@@ -770,19 +801,7 @@ LSQUnit<Impl>::read(LSQRequest *req, int load_idx)
                 ++lsqForwLoads;
 
                 return NoFault;
-            } else if (
-                (!req->mainRequest()->isLLSC() &&
-                 ((store_has_lower_limit && lower_load_has_store_part) ||
-                  (store_has_upper_limit && upper_load_has_store_part) ||
-                  (lower_load_has_store_part && upper_load_has_store_part))) ||
-                (req->mainRequest()->isLLSC() &&
-                 ((store_has_lower_limit || upper_load_has_store_part) &&
-                  (store_has_upper_limit || lower_load_has_store_part)))) {
-                // This is the partial store-load forwarding case where a store
-                // has only part of the load's data and the load isn't LLSC or
-                // the load is LLSC and the store has all or part of the load's
-                // data
-
+            } else if (coverage == PartialAddrRangeCoverage) {
                 // If it's already been written back, then don't worry about
                 // stalling on it.
                 if (store_it->completed()) {

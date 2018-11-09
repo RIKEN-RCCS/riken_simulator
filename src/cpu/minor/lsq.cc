@@ -56,22 +56,18 @@ namespace Minor
 {
 
 LSQ::LSQRequest::LSQRequest(LSQ &port_, MinorDynInstPtr inst_, bool isLoad_,
-    PacketDataPtr data_, uint64_t *res_,
-    const std::vector<bool>& byteEnable_) :
+    PacketDataPtr data_, uint64_t *res_) :
     SenderState(),
     port(port_),
     inst(inst_),
     isLoad(isLoad_),
     data(data_),
     packet(NULL),
-    request(),
     res(res_),
-    byteEnable(byteEnable_),
     skipped(false),
     issuedToMemory(false),
     isTranslationDelayed(false),
-    state(NotIssued)
-{ }
+    state(NotIssued) { }
 
 void
 LSQ::LSQRequest::tryToSuppressFault()
@@ -141,9 +137,17 @@ LSQ::LSQRequest::containsAddrRangeOf(
 LSQ::AddrRangeCoverage
 LSQ::LSQRequest::containsAddrRangeOf(LSQRequestPtr other_request)
 {
-    return containsAddrRangeOf(request.getPaddr(), request.getSize(),
+    AddrRangeCoverage ret;
+    ret = containsAddrRangeOf(request.getPaddr(), request.getSize(),
         other_request->request.getPaddr(), other_request->request.getSize());
+    /* If there is a strobe mask then store data forwarding might not be
+     * correct. Instead of checking enablemant of every byte we just fall back
+     * to PartialAddrRangeCoverage to prohibit store data forwarding */
+    if (ret == FullAddrRangeCoverage && !request.getByteEnable().empty())
+        ret = PartialAddrRangeCoverage;
+    return ret;
 }
+
 
 bool
 LSQ::LSQRequest::isBarrier()
@@ -382,9 +386,8 @@ LSQ::SplitDataRequest::finish(const Fault &fault, RequestPtr request_,
 }
 
 LSQ::SplitDataRequest::SplitDataRequest(LSQ &port_, MinorDynInstPtr inst_,
-    bool isLoad_, PacketDataPtr data_, uint64_t *res_,
-    const std::vector<bool>& byteEnable_) :
-    LSQRequest(port_, inst_, isLoad_, data_, res_, byteEnable_),
+    bool isLoad_, PacketDataPtr data_, uint64_t *res_) :
+    LSQRequest(port_, inst_, isLoad_, data_, res_),
     translationEvent([this]{ sendNextFragmentToTranslation(); },
                      "translationEvent"),
     numFragments(0),
@@ -572,8 +575,7 @@ LSQ::SplitDataRequest::makeFragmentPackets()
         assert(fragment->hasPaddr());
 
         PacketPtr fragment_packet =
-            makePacketForRequest(*fragment, isLoad, this, request_data,
-                                 fragment->getByteEnable());
+            makePacketForRequest(*fragment, isLoad, this, request_data);
 
         fragmentPackets.push_back(fragment_packet);
         /* Accumulate flags in parent request */
@@ -1609,10 +1611,10 @@ LSQ::pushRequest(MinorDynInstPtr inst, bool isLoad, uint8_t *data,
 
         if (needs_burst) {
             request = new SplitDataRequest(
-                *this, inst, isLoad, request_data, res, byteEnable);
+                *this, inst, isLoad, request_data, res);
         } else {
             request = new SingleDataRequest(
-                *this, inst, isLoad, request_data, res, byteEnable);
+                *this, inst, isLoad, request_data, res);
         }
 
         if (inst->traceData)
@@ -1625,7 +1627,9 @@ LSQ::pushRequest(MinorDynInstPtr inst, bool isLoad, uint8_t *data,
                                  /* I've no idea why we need the PC, but give
                                   * it */
                                  inst->pc.instAddr(),
-                                 byteEnable);
+                                 isAllActiveElement(byteEnable.cbegin(),
+                                                    byteEnable.cend()) ?
+                                 std::vector<bool>() : byteEnable);
 
         requests.push(request);
         inst->inLSQ = true;
@@ -1666,8 +1670,7 @@ LSQ::StoreBuffer::StoreBuffer(std::string name_, LSQ &lsq_,
 
 PacketPtr
 makePacketForRequest(Request &request, bool isLoad,
-    Packet::SenderState *sender_state, PacketDataPtr data,
-    const std::vector<bool>& byteEnable)
+    Packet::SenderState *sender_state, PacketDataPtr data)
 {
     PacketPtr ret = isLoad ? Packet::createRead(&request)
                            : Packet::createWrite(&request);
@@ -1707,8 +1710,7 @@ LSQ::LSQRequest::makePacket()
     if (packet)
         return;
 
-    packet = makePacketForRequest(request, isLoad, this, data,
-                                  byteEnable);
+    packet = makePacketForRequest(request, isLoad, this, data);
     /* Null the ret data so we know not to deallocate it when the
      * ret is destroyed.  The data now belongs to the ret and
      * the ret is responsible for its destruction */

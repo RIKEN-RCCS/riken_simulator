@@ -148,9 +148,6 @@ class LSQ : public Named
         /** Res from pushRequest */
         uint64_t *res;
 
-        /** Byte-enable mask for writes */
-        std::vector<bool> byteEnable;
-
         /** Was skipped.  Set to indicate any reason (faulted, bad
          *  stream sequence number, in a fault shadow) that this
          *  request did not perform a memory transfer */
@@ -200,8 +197,7 @@ class LSQ : public Named
 
       public:
         LSQRequest(LSQ &port_, MinorDynInstPtr inst_, bool isLoad_,
-            PacketDataPtr data_ = NULL, uint64_t *res_ = NULL,
-            const std::vector<bool>& byteEnable_ = std::vector<bool>());
+            PacketDataPtr data_ = NULL, uint64_t *res_ = NULL);
 
         virtual ~LSQRequest();
 
@@ -377,9 +373,8 @@ class LSQ : public Named
 
       public:
         SingleDataRequest(LSQ &port_, MinorDynInstPtr inst_,
-            bool isLoad_, PacketDataPtr data_ = NULL, uint64_t *res_ = NULL,
-            const std::vector<bool>& byteEnable_ = std::vector<bool>()) :
-            LSQRequest(port_, inst_, isLoad_, data_, res_, byteEnable_),
+            bool isLoad_, PacketDataPtr data_ = NULL, uint64_t *res_ = NULL) :
+            LSQRequest(port_, inst_, isLoad_, data_, res_),
             packetInFlight(false),
             packetSent(false)
         { }
@@ -424,8 +419,7 @@ class LSQ : public Named
       public:
         SplitDataRequest(LSQ &port_, MinorDynInstPtr inst_,
             bool isLoad_, PacketDataPtr data_ = NULL,
-            uint64_t *res_ = NULL,
-            const std::vector<bool>& byteEnable_ = std::vector<bool>());
+            uint64_t *res_ = NULL);
 
         ~SplitDataRequest();
 
@@ -736,8 +730,7 @@ class LSQ : public Named
  *  data will be the payload data.  If sender_state is NULL, it won't be
  *  pushed into the packet as senderState */
 PacketPtr makePacketForRequest(Request &request, bool isLoad,
-    Packet::SenderState *sender_state = NULL, PacketDataPtr data = NULL,
-    const std::vector<bool>& byteEnable = std::vector<bool>());
+    Packet::SenderState *sender_state = NULL, PacketDataPtr data = NULL);
 }
 
 #endif /* __CPU_MINOR_NEW_LSQ_HH__ */

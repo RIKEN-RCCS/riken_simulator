@@ -1012,7 +1012,7 @@ class Packet : public Printable
     getPtr()
     {
         assert(flags.isSet(STATIC_DATA|DYNAMIC_DATA));
-        assert(!isWrite() || req->getByteEnable().empty());
+        assert(!isMaskedWrite());
         return (T*)data;
     }
 
@@ -1106,9 +1106,10 @@ class Packet : public Printable
     void
     writeData(uint8_t *p) const
     {
-        if (req->getByteEnable().size() != getSize()) {
+        if (!isMaskedWrite()) {
             std::memcpy(p, getConstPtr<uint8_t>(), getSize());
         } else {
+            assert(req->getByteEnable().size() == getSize());
             // Write only the enabled bytes
             for (int i = 0; i < getSize(); i++) {
                 if (req->getByteEnable()[i]) {
@@ -1179,7 +1180,7 @@ class Packet : public Printable
     bool
     checkFunctional(PacketPtr other)
     {
-        if (other->isWrite() && !other->req->getByteEnable().empty()) {
+        if (other->isMaskedWrite()) {
             if (getAddr() <= (other->getAddr() + other->getSize() - 1) &&
                 other->getAddr() <= (getAddr() + getSize() - 1)) {
                 warn("Trying to check against a masked write, skipping."
@@ -1219,7 +1220,7 @@ class Packet : public Printable
     bool
     isMaskedWrite() const
     {
-        return !req->getByteEnable().empty();
+        return (cmd == MemCmd::WriteReq && !req->getByteEnable().empty());
     }
 
     /**

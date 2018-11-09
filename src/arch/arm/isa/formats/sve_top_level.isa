@@ -82,6 +82,8 @@ namespace Aarch64
     StaticInstPtr decodeSveFpUnaryPred(ExtMachInst machInst);
     StaticInstPtr decodeSveFpCmpVec(ExtMachInst machInst);
     StaticInstPtr decodeSveFpFusedMulAdd(ExtMachInst machInst);
+    StaticInstPtr decodeSveFpMulAddIndexed(ExtMachInst machInst);
+    StaticInstPtr decodeSveFpMulIndexed(ExtMachInst machInst);
 
     StaticInstPtr decodeSveMemGather32(ExtMachInst machInst);
     StaticInstPtr decodeSveMemContigLoad(ExtMachInst machInst);
@@ -226,8 +228,18 @@ namespace Aarch64
                           bits(machInst, 21);
         switch (b_24_21) {
           case 0x0:
-          case 0x1:
             return new Unknown64(machInst);
+          case 0x1:
+            switch (bits(machInst, 13, 11)) {
+              case 0:
+                return decodeSveFpMulAddIndexed(machInst);
+              case 4:
+                if (!bits(machInst, 10))
+                    return decodeSveFpMulIndexed(machInst);
+                M5_FALLTHROUGH;
+              default:
+                return new Unknown64(machInst);
+            }
           case 0x2:
             {
                 if (bits(machInst, 14)) {

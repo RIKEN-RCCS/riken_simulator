@@ -275,6 +275,9 @@ class LSQ {
         {
             flags[(int)Flag::IsLoad] = isLoad;
             flags[(int)Flag::WbStore] = _inst->isStoreConditional();
+            if (!byteEnable.empty() &&
+                isAllActiveElement(byteEnable.cbegin(), byteEnable.cend()))
+                _byteEnable = std::vector<bool>();
             install();
         }
 

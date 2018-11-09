@@ -319,7 +319,7 @@ class SveBinConstrPredOp : public ArmStaticInst {
     std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;
 };
 
-/// Binary, unpredicated SVE instruction
+/// Binary, unpredicated SVE instruction with indexed operand
 class SveBinUnpredOp : public ArmStaticInst {
   protected:
     IntRegIndex dest, op1, op2;
@@ -328,6 +328,22 @@ class SveBinUnpredOp : public ArmStaticInst {
                    IntRegIndex _dest, IntRegIndex _op1, IntRegIndex _op2) :
         ArmStaticInst(mnem, _machInst, __opClass),
         dest(_dest), op1(_op1), op2(_op2)
+    {}
+
+    std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;
+};
+
+/// Binary, unpredicated SVE instruction
+class SveBinIdxUnpredOp : public ArmStaticInst {
+  protected:
+    IntRegIndex dest, op1, op2;
+    uint8_t index;
+
+    SveBinIdxUnpredOp(const char* mnem, ExtMachInst _machInst,
+                      OpClass __opClass, IntRegIndex _dest, IntRegIndex _op1,
+                      IntRegIndex _op2, uint8_t _index) :
+        ArmStaticInst(mnem, _machInst, __opClass),
+        dest(_dest), op1(_op1), op2(_op2), index(_index)
     {}
 
     std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;
@@ -590,17 +606,17 @@ class SveSelectOp : public ArmStaticInst {
     IntRegIndex gp;
     bool conditional;
     bool scalar;
-    bool simdfp;
+    bool simdFp;
     size_t scalar_width;
 
     SveSelectOp(const char* mnem, ExtMachInst _machInst,
                       OpClass __opClass, IntRegIndex _dest,
                       IntRegIndex _op1, IntRegIndex _gp,
                       bool _conditional, bool _scalar,
-                      bool _simdfp) :
+                      bool _simdFp) :
         ArmStaticInst(mnem, _machInst, __opClass),
         dest(_dest), op1(_op1), gp(_gp), conditional(_conditional),
-        scalar(_scalar), simdfp(_simdfp)
+        scalar(_scalar), simdFp(_simdFp)
     {}
     std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;
 };
@@ -751,11 +767,13 @@ class SveBinImmIdxUnpredOp : public ArmStaticInst {
 class SveUnarySca2VecUnpredOp : public ArmStaticInst {
   protected:
     IntRegIndex dest, op1;
+    bool simdFp;
 
     SveUnarySca2VecUnpredOp(const char* mnem, ExtMachInst _machInst,
-            OpClass __opClass, IntRegIndex _dest, IntRegIndex _op1) :
+            OpClass __opClass, IntRegIndex _dest, IntRegIndex _op1,
+            bool _simdFp) :
         ArmStaticInst(mnem, _machInst, __opClass),
-        dest(_dest), op1(_op1)
+        dest(_dest), op1(_op1), simdFp(_simdFp)
     {}
 
     std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;

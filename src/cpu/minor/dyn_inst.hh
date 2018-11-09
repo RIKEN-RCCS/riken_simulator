@@ -205,6 +205,9 @@ class MinorDynInst : public RefCounted
      *  to allow other instructions to fill the fetch delay */
     bool canEarlyIssue;
 
+    bool predicate;
+    bool memAccPredicate;
+
     /** execSeqNum of the latest inst on which this inst depends.
      *  This can be used as a sanity check for dependency ordering
      *  where slightly out of order execution is required (notably
@@ -231,6 +234,7 @@ class MinorDynInst : public RefCounted
         triedToPredict(false), predictedTaken(false),
         fuIndex(0), inLSQ(false), translationFault(NoFault),
         inStoreBuffer(false), canEarlyIssue(false),
+        predicate(true), memAccPredicate(true),
         instToWaitFor(0), extraCommitDelay(Cycles(0)),
         extraCommitDelayExpr(NULL), minimumCommitCycle(Cycles(0))
     { }
@@ -268,6 +272,14 @@ class MinorDynInst : public RefCounted
 
     /** ReportIF interface */
     void reportData(std::ostream &os) const;
+
+    bool readPredicate() const { return predicate; }
+
+    void setPredicate(bool val) { predicate = val; }
+
+    bool readMemAccPredicate() const { return memAccPredicate; }
+
+    void setMemAccPredicate(bool val) { memAccPredicate = val; }
 
     ~MinorDynInst();
 };

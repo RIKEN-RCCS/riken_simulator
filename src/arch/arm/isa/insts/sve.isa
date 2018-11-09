@@ -1624,11 +1624,16 @@ let {{
                 numActiveElems ++;
             }
         }
+        TheISA::VecRegContainer tmpVecC;
+        auto auxOp1 = tmpVecC.as<Element>();
+        for (unsigned i = 0; i < eCount; ++i) {
+            auxOp1[i] = AA64FpOp1_x[i];
+        }
         Element destElem = %(identity)s;
         for (unsigned i = 0; i < eCount; i++) {
             AA64FpDest_x[i] = 0;  // zero upper part
             if (GpOp_x[i]) {
-                const Element& srcElem1 = AA64FpOp1_x[i];
+                const Element& srcElem1 = auxOp1[i];
                 %(op)s
             }
         }
@@ -1879,6 +1884,11 @@ let {{
         else:
             code += ''''''
         code += '''
+        TheISA::VecRegContainer tmpVecC;
+        auto auxOp2 = tmpVecC.as<Element>();
+        for (unsigned i = 0; i < eCount; i++) {
+            auxOp2[i] = AA64FpOp2_ud[i];
+        }
         for (unsigned i = 0; i < eCount; i++) {'''
         if predType != PredType.NONE:
             code += '''
@@ -1887,7 +1897,7 @@ let {{
             code += '''
             const Element& srcElem1 = AA64FpOp1_x[i];'''
         code += '''
-            const auto& srcElem2 = AA64FpOp2_ud[
+            const auto& srcElem2 = auxOp2[
                     (i * sizeof(Element) * 8) / 64];
             Element destElem = 0;'''
         if predType != PredType.NONE:
@@ -1913,6 +1923,47 @@ let {{
             header_output += SveBinDestrPredOpDeclare.subst(iop)
         else:
             header_output += SveBinUnpredOpDeclare.subst(iop)
+        exec_output += SveOpExecute.subst(iop)
+        for type in types:
+            substDict = {'targs' : type,
+                         'class_name' : 'Sve' + Name}
+            exec_output += SveOpExecDeclare.subst(substDict)
+
+    # Generates definitions for binary indexed SVE instructions
+    # (always unpredicated)
+    def sveBinIdxInst(name, Name, opClass, types, op, decoder='Generic'):
+        global header_output, exec_output, decoders
+        code = sveEnabledCheckCode + '''
+        unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
+                xc->tcBase());
+
+        // Number of elements in a 128 bit segment
+        constexpr unsigned ePerSegment = 128 / sizeof(Element);
+
+        '''
+
+        code += '''
+        for (unsigned i = 0; i < eCount; i++) {
+                const auto segmentBase = i - i % ePerSegment;
+                const auto segmentIdx = segmentBase + index;
+
+                const Element& srcElem1 = AA64FpOp1_x[i];
+                const Element& srcElem2 = AA64FpOp2_x[segmentIdx];
+                Element destElem = 0;
+
+        '''
+
+        code += '''
+        %(op)s
+        AA64FpDest_x[i] = destElem;
+        }
+        ''' % {'op': op}
+
+        baseClass = 'SveBinIdxUnpredOp'
+
+        iop = InstObjParams(name, 'Sve' + Name, baseClass,
+                            {'code': code, 'op_class': opClass}, [])
+        header_output += SveBinIdxUnpredOpDeclare.subst(iop)
         exec_output += SveOpExecute.subst(iop)
         for type in types:
             substDict = {'targs' : type,
@@ -2009,11 +2060,16 @@ let {{
                 numActiveElems ++;
             }
         }
+        TheISA::PredRegContainer tmpPredC;
+        auto auxGpOp = tmpPredC.as<Element>();
+        for (unsigned i = 0; i < eCount; i++) {
+            auxGpOp[i] = GpOp_x[i];
+        }
         for (unsigned i = 0; i < eCount; i++) {
             bool srcElem1 = POp1_x[i];
             bool srcElem2 = POp2_x[i];
             bool destElem = false;
-            if (GpOp_x[i]) {
+            if (auxGpOp[i]) {
                 %(op)s
             } else {
                 destElem = %(dest_elem)s;
@@ -2025,9 +2081,9 @@ let {{
         extraPrologCode = ''
         if isFlagSetting:
             code += '''
-        CondCodesNZ = (destPred.firstActive(GpOp, eCount) << 1) |
-                      destPred.noneActive(GpOp, eCount);
-        CondCodesC = !destPred.lastActive(GpOp, eCount);
+        CondCodesNZ = (destPred.firstActive(auxGpOp, eCount) << 1) |
+                      destPred.noneActive(auxGpOp, eCount);
+        CondCodesC = !destPred.lastActive(auxGpOp, eCount);
         CondCodesV = 0;'''
             extraPrologCode += '''
         auto& destPred = PDest;'''
@@ -2134,6 +2190,39 @@ let {{
         iop = InstObjParams(name, 'Sve' + Name, 'SveTerPredOp',
                             {'code': code, 'op_class': opClass}, [])
         header_output += SveTerPredOpDeclare.subst(iop)
+        exec_output += SveOpExecute.subst(iop)
+        for type in types:
+            substDict = {'targs' : type,
+                         'class_name' : 'Sve' + Name}
+            exec_output += SveOpExecDeclare.subst(substDict)
+
+    # Generates definitions for ternary SVE instructions with indexed operand
+    def sveTerIdxInst(name, Name, opClass, types, op, decoder='Generic'):
+        global header_output, exec_output, decoders
+        code = sveEnabledCheckCode + '''
+        unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
+                xc->tcBase());
+
+        // Number of elements in a 128 bit segment
+        constexpr unsigned ePerSegment = 128 / sizeof(Element);
+
+        for (unsigned i = 0; i < eCount; i++) {
+            const auto segmentBase = i - i % ePerSegment;
+            const auto segmentIdx = segmentBase + index;
+
+            const Element& srcElem1 = AA64FpOp1_x[i];
+            const Element& srcElem2 = AA64FpOp2_x[segmentIdx];
+            Element destElem = AA64FpDestMerge_x[i];
+        '''
+
+        code += '''
+            %(op)s
+            AA64FpDest_x[i] = destElem;
+        }''' % {'op': op}
+
+        iop = InstObjParams(name, 'Sve' + Name, 'SveBinIdxUnpredOp',
+                            {'code': code, 'op_class': opClass}, [])
+        header_output += SveBinIdxUnpredOpDeclare.subst(iop)
         exec_output += SveOpExecute.subst(iop)
         for type in types:
             substDict = {'targs' : type,
@@ -2367,9 +2456,14 @@ let {{
             }
         }
         bool dobreak = false;
+        TheISA::PredRegContainer tmpPredC;
+        auto auxGpOp = tmpPredC.as<uint8_t>();
+        for (unsigned i = 0; i < eCount; ++i) {
+            auxGpOp[i] = GpOp_ub[i];
+        }
         for (unsigned i = 0; i < eCount; ++i) {
             bool element = POp1_ub[i] == 1;
-            if (GpOp_ub[i]) {'''
+            if (auxGpOp[i]) {'''
         breakCode = '''
                 dobreak = dobreak || element;'''
         if whenBrk == Break.Before:
@@ -2384,14 +2478,18 @@ let {{
             code += ''' else {
                 PDest_ub[i] = 0;
             }'''
+        elif predType == PredType.MERGE:
+            code += ''' else {
+                PDest_ub[i] = PDestMerge_ub[i];
+            }'''
         code += '''
         }'''
         extraPrologCode = ''
         if isFlagSetting:
             code += '''
-        CondCodesNZ = (destPred.firstActive(GpOp, eCount) << 1) |
-                      destPred.noneActive(GpOp, eCount);
-        CondCodesC = !destPred.lastActive(GpOp, eCount);
+        CondCodesNZ = (destPred.firstActive(auxGpOp, eCount) << 1) |
+                      destPred.noneActive(auxGpOp, eCount);
+        CondCodesC = !destPred.lastActive(auxGpOp, eCount);
         CondCodesV = 0;'''
             extraPrologCode += '''
         auto& destPred = PDest;'''
@@ -2418,8 +2516,13 @@ let {{
             }
         }
         bool last = POp1_ub.lastActive(GpOp_ub, eCount);
+        TheISA::PredRegContainer tmpPredC;
+        auto auxGpOp = tmpPredC.as<uint8_t>();
         for (unsigned i = 0; i < eCount; ++i) {
-            if (GpOp_ub[i]) {'''
+            auxGpOp[i] = GpOp_ub[i];
+        }
+        for (unsigned i = 0; i < eCount; ++i) {
+            if (auxGpOp[i]) {'''
         breakCode = '''
                 last = last && (POp2_ub[i] == 0);'''
         if whenBrk == Break.Before:
@@ -2436,9 +2539,9 @@ let {{
         extraPrologCode = ''
         if isFlagSetting:
             code += '''
-        CondCodesNZ = (destPred.firstActive(GpOp, eCount) << 1) |
-                      destPred.noneActive(GpOp, eCount);
-        CondCodesC = !destPred.lastActive(GpOp, eCount);
+        CondCodesNZ = (destPred.firstActive(auxGpOp, eCount) << 1) |
+                      destPred.noneActive(auxGpOp, eCount);
+        CondCodesC = !destPred.lastActive(auxGpOp, eCount);
         CondCodesV = 0;'''
             extraPrologCode += '''
         auto& destPred = PDest;'''
@@ -2563,6 +2666,11 @@ let {{
                 xc->tcBase());
         numVecElems = eCount;
         elemBits = sizeof(Element) * 8;
+        TheISA::PredRegContainer tmpPredC;
+        auto auxGpOp = tmpPredC.as<Element>();
+        for (unsigned i = 0; i < eCount; ++i) {
+            auxGpOp[i] = GpOp_x[i];
+        }
         int last;
         for (last = eCount - 1; last >= 0; --last) {
             if (POp1_x[last]) {
@@ -2577,9 +2685,9 @@ let {{
         if (next < eCount) {
             PDest_x[next] = 1;
         }
-        CondCodesNZ = (destPred.firstActive(GpOp, eCount) << 1) |
-                       destPred.noneActive(GpOp, eCount);
-        CondCodesC = !destPred.lastActive(GpOp, eCount);
+        CondCodesNZ = (destPred.firstActive(auxGpOp, eCount) << 1) |
+                       destPred.noneActive(auxGpOp, eCount);
+        CondCodesC = !destPred.lastActive(auxGpOp, eCount);
         CondCodesV = 0;'''
         extraPrologCode = '''
         auto& destPred = PDest;'''
@@ -2602,18 +2710,25 @@ let {{
                 xc->tcBase());
         numVecElems = eCount;
         elemBits = sizeof(Element) * 8;
+        TheISA::PredRegContainer tmpPredC;
+        auto auxGpOp = tmpPredC.as<Element>();
+        for (unsigned i = 0; i < eCount; ++i)
+            auxGpOp[i] = GpOp_x[i];
         int first = -1;
         for (int i = 0; i < eCount; ++i) {
-            if (GpOp_x[i] && first == -1) {
+            if (auxGpOp[i] && first == -1) {
                 first = i;
             }
+        }
+        for (int i = 0; i < eCount; ++i) {
+            PDest_x[i] = PDestMerge_x[i];
         }
         if (first >= 0) {
             PDest_x[first] = 1;
         }
-        CondCodesNZ = (destPred.firstActive(GpOp, eCount) << 1) |
-                       destPred.noneActive(GpOp, eCount);
-        CondCodesC = !destPred.lastActive(GpOp, eCount);
+        CondCodesNZ = (destPred.firstActive(auxGpOp, eCount) << 1) |
+                       destPred.noneActive(auxGpOp, eCount);
+        CondCodesC = !destPred.lastActive(auxGpOp, eCount);
         CondCodesV = 0;'''
         extraPrologCode = '''
         auto& destPred = PDest;'''
@@ -2663,7 +2778,23 @@ let {{
         unsigned eCount = ArmStaticInst::getCurSveVecLen<DElement>(
                 xc->tcBase());
         numVecElems = eCount;
-        elemBits = sizeof(DElement) * 8;
+        elemBits = sizeof(DElement) * 8;'''
+        if unpackHalf == Unpack.Low:
+            if regType == SrcRegType.Predicate:
+                code += '''
+        TheISA::PredRegContainer tmpPredC;
+        auto auxPOp1 = tmpPredC.as<SElement>();
+        for (int i = 0; i < eCount; ++i) {
+            auxPOp1[i] = POp1_xs[i];
+        }'''
+            else:
+                code += '''
+        TheISA::VecRegContainer tmpVecC;
+        auto auxOp1 = tmpVecC.as<SElement>();
+        for (int i = 0; i < eCount; ++i) {
+            auxOp1[i] = AA64FpOp1_xs[i];
+        }'''
+        code += '''
         for (int i = 0; i < eCount; ++i) {'''
         if regType == SrcRegType.Predicate:
             if unpackHalf == Unpack.High:
@@ -2671,7 +2802,7 @@ let {{
             const SElement& srcElem1 = POp1_xs[i + eCount];'''
             else:
                 code +='''
-            const SElement& srcElem1 = POp1_xs[i];'''
+            const SElement& srcElem1 = auxPOp1[i];'''
             code += '''
             destPred.set_raw(i, 0);
             PDest_xd[i] = srcElem1;'''
@@ -2681,7 +2812,7 @@ let {{
             const SElement& srcElem1 = AA64FpOp1_xs[i + eCount];'''
             else:
                 code +='''
-            const SElement& srcElem1 = AA64FpOp1_xs[i];'''
+            const SElement& srcElem1 = auxOp1[i];'''
             code += '''
             AA64FpDest_xd[i] = static_cast<DElement>(srcElem1);'''
         code += '''
@@ -2729,11 +2860,16 @@ let {{
                 numActiveElems ++;
             }
         }
+        TheISA::VecRegContainer tmpVecC;
+        auto auxOp1 = tmpVecC.as<Element>();
+        for (unsigned i = 0; i < eCount; ++i) {
+            auxOp1[i] = AA64FpOp1_x[i];
+        }
         unsigned x = 0;
         for (unsigned i = 0; i < eCount; ++i) {
             AA64FpDest_x[i] = 0;
             if (GpOp_x[i]) {
-                AA64FpDest_x[x] = AA64FpOp1_x[i];
+                AA64FpDest_x[x] = auxOp1[i];
                 x++;
             }
         }'''
@@ -2797,6 +2933,11 @@ let {{
                 xc->tcBase());
         numVecElems = eCount;
         elemBits = sizeof(Element) * 8;
+        TheISA::VecRegContainer tmpVecC;
+        auto auxOp1 = tmpVecC.as<Element>();
+        for (unsigned i = 0; i < eCount; ++i) {
+            auxOp1[i] = AA64FpOp1_x[i];
+        }
         uint64_t pos = imm;
         if (pos >= eCount)
             pos = 0;
@@ -2805,7 +2946,7 @@ let {{
             if (pos < eCount)
                 AA64FpDest_x[i] = AA64FpDestMerge_x[pos];
             else
-                AA64FpDest_x[i] = AA64FpOp1_x[pos-eCount];
+                AA64FpDest_x[i] = auxOp1[pos-eCount];
         }
         '''
         iop = InstObjParams(name, 'Sve' + Name, 'SveBinImmUnpredDestrOp',
@@ -2829,6 +2970,8 @@ let {{
                 numActiveElems ++;
             }
         }
+        TheISA::VecRegContainer tmpVecC;
+        auto auxDest = tmpVecC.as<Element>();
         int firstelem = -1, lastelem = -2;
         for (int i = 0; i < eCount; ++i) {
             if (GpOp_x[i]) {
@@ -2839,11 +2982,14 @@ let {{
         }
         int x = 0;
         for (int i = firstelem; i <= lastelem; ++i, ++x) {
-            AA64FpDest_x[x] = AA64FpDestMerge_x[i];
+            auxDest[x] = AA64FpDestMerge_x[i];
         }
         int remaining = eCount - x;
         for (int i = 0; i < remaining; ++i, ++x) {
-            AA64FpDest_x[x] = AA64FpOp2_x[i];
+            auxDest[x] = AA64FpOp2_x[i];
+        }
+        for (int i = 0; i < eCount; ++i) {
+            AA64FpDest_x[i] = auxDest[i];
         }
         '''
         iop = InstObjParams(name, 'Sve' + Name, 'SveBinDestrPredOp',
@@ -2889,15 +3035,28 @@ let {{
                 xc->tcBase());numVecElems = eCount;elemBits = sizeof(Element) * 8;'''
         if srcType == SrcRegType.Predicate:
             code += '''
+        TheISA::PredRegContainer tmpPredC;
+        auto auxPOp1 = tmpPredC.as<Element>();
+        for (unsigned i = 0; i < eCount; ++i) {
+            uint8_t v = POp1_x.get_raw(i);
+            auxPOp1.set_raw(i, v);
+        }
         PDest_x[0] = 0;'''
+        else:
+            code += '''
+        TheISA::VecRegContainer tmpRegC;
+        auto auxOp1 = tmpRegC.as<Element>();
+        for (unsigned i = 0; i < eCount; ++i) {
+            auxOp1[i] = AA64FpOp1_x[i];
+        }'''
         code += '''
         for (int i = 0; i < eCount; ++i) {'''
         if srcType == SrcRegType.Vector:
             code += '''
-            AA64FpDest_x[i] = AA64FpOp1_x[eCount - i - 1];'''
+            AA64FpDest_x[i] = auxOp1[eCount - i - 1];'''
         else:
             code += '''
-            destPred.set_raw(i, POp1_x.get_raw(eCount - i - 1));'''
+            destPred.set_raw(i, auxPOp1.get_raw(eCount - i - 1));'''
         code += '''
         }'''
         iop = InstObjParams(name, 'Sve' + Name, 'SveUnaryUnpredOp',
@@ -2913,7 +3072,7 @@ let {{
     # Generate definition for shift & insert instructions
     def sveShiftAndInsertInst(name, Name, opClass, types,
             srcType = SrcRegType.Scalar, decoder = 'Generic'):
-        assert srcType in (SrcRegType.Vector, SrcRegType.Scalar)
+        assert srcType in (SrcRegType.SimdFpScalar, SrcRegType.Scalar)
         global header_output, exec_output, decoders
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
@@ -2921,17 +3080,19 @@ let {{
         if srcType == SrcRegType.Scalar:
             code += '''
             auto& srcElem1 = XOp1;'''
-        else:
+        elif srcType == SrcRegType.SimdFpScalar:
             code += '''
-            auto& srcElem1 = AA64FpOp1;'''
+            auto& srcElem1 = AA64FpOp1_x[0];'''
         code += '''
         for (int i = eCount - 1; i > 0; --i) {
             AA64FpDest_x[i] = AA64FpDestMerge_x[i-1];
         }
         AA64FpDest_x[0] = srcElem1;'''
         iop = InstObjParams(name, 'Sve' + Name, 'SveUnarySca2VecUnpredOp',
-                {'code': code, 'op_class': opClass}, [])
-        header_output += SveUnaryUnpredOpDeclare.subst(iop)
+                {'code': code, 'op_class': opClass,
+                 'isSimdFp': 'true' if srcType == SrcRegType.SimdFpScalar
+                                  else 'false'}, [])
+        header_output += SveShiftAndInsertOpDeclare.subst(iop)
         exec_output += SveOpExecute.subst(iop)
         for type in types:
             substDict = {'targs': type, 'class_name': 'Sve' + Name}
@@ -3628,16 +3789,20 @@ let {{
     fminvCode = fpReduceOp % 'Min'
     sveNonAssocReducInst('fminv', 'Fminv', 'SimdFloatReduceCmpOp', floatTypes,
                          fminvCode, 'fplibInfinity<Element>(0)')
-    # TODO: FMLA (indexed)
-    # FMLA (vectors)
     fmlaCode = fpOp % ('fplibMulAdd<Element>('
                        'destElem, srcElem1, srcElem2, fpscr)')
+    # FMLA (indexed)
+    sveTerIdxInst('fmla', 'FmlaIdx', 'SimdFloatMultAccOp', floatTypes,
+                  fmlaCode, PredType.MERGE)
+    # FMLA (vectors)
     sveTerInst('fmla', 'Fmla', 'SimdFloatMultAccOp', floatTypes, fmlaCode,
                PredType.MERGE)
-    # TODO: FMLS (indexed)
-    # FMLS (vectors)
     fmlsCode = fpOp % ('fplibMulAdd<Element>(destElem, '
                        'fplibNeg<Element>(srcElem1), srcElem2, fpscr)')
+    # FMLS (indexed)
+    sveTerIdxInst('fmls', 'FmlsIdx', 'SimdFloatMultAccOp', floatTypes,
+                  fmlsCode, PredType.MERGE)
+    # FMLS (vectors)
     sveTerInst('fmls', 'Fmls', 'SimdFloatMultAccOp', floatTypes, fmlsCode,
                PredType.MERGE)
     # FMSB
@@ -3656,6 +3821,9 @@ let {{
                PredType.MERGE, True)
     # FMUL (vectors, unpredicated)
     sveBinInst('fmul', 'FmulUnpred', 'SimdFloatMultOp', floatTypes, fmulCode)
+    # FMUL (indexed)
+    sveBinIdxInst('fmul', 'FmulIdx', 'SimdFloatMultOp', floatTypes, fmulCode)
+
     # FMULX
     fmulxCode = fpBinOp % 'MulX'
     sveBinInst('fmulx', 'Fmulx', 'SimdFloatMultOp', floatTypes, fmulxCode,
@@ -3804,7 +3972,9 @@ let {{
     # INSR (scalar)
     sveShiftAndInsertInst('insr', 'Insr', 'SimdMiscAOp', unsignedTypes,
             srcType = SrcRegType.Scalar)
-    # TODO: INSR (SIMD&FP scalar)
+    # INSR (SIMD&FP scalar)
+    sveShiftAndInsertInst('insr', 'Insrf', 'SimdAluOp', unsignedTypes,
+            srcType = SrcRegType.SimdFpScalar)
     # LASTA (scalar)
     lastaCode = '''
         last++;
@@ -4412,12 +4582,17 @@ let {{
         constexpr unsigned sz = sizeof(Element);
         int s;
         int part = %d;
+        TheISA::PredRegContainer tmpPredC;
+        auto auxPDest = tmpPredC.as<uint8_t>();
         for (unsigned i = 0; i < eCount / 2; i++) {
             s = 2 * i + part;
             for (unsigned j = 0; j < sz; j++) {
-                PDest_pb[(2 * i) * sz + j] = POp1_pb[s * sz + j];
-                PDest_pb[(2 * i + 1) * sz + j] = POp2_pb[s * sz + j];
+                auxPDest[(2 * i) * sz + j] = POp1_pb[s * sz + j];
+                auxPDest[(2 * i + 1) * sz + j] = POp2_pb[s * sz + j];
             }
+        }
+        for (unsigned i = 0; i < eCount * sz; i++) {
+            PDest_pb[i] = auxPDest[i];
         }
     '''
     svePredBinPermInst('trn1', 'Trn1Pred', 'SimdPredAluOp', unsignedTypes,
@@ -4428,10 +4603,15 @@ let {{
     trnIterCode = '''
         int s;
         int part = %d;
+        TheISA::VecRegContainer tmpVecC;
+        auto auxDest = tmpVecC.as<Element>();
         for (unsigned i = 0; i < eCount / 2; i++) {
             s = 2 * i + part;
-            AA64FpDest_x[2 * i] = AA64FpOp1_x[s];
-            AA64FpDest_x[2 * i + 1] = AA64FpOp2_x[s];
+            auxDest[2 * i] = AA64FpOp1_x[s];
+            auxDest[2 * i + 1] = AA64FpOp2_x[s];
+        }
+        for (unsigned i = 0; i < eCount; i++) {
+            AA64FpDest_x[i] = auxDest[i];
         }
     '''
     sveBinInst('trn1', 'Trn1', 'SimdMiscAOp', unsignedTypes, '',
@@ -4619,15 +4799,20 @@ let {{
         constexpr unsigned sz = sizeof(Element);
         int s;
         int part = %d;
+        TheISA::PredRegContainer tmpPredC;
+        auto auxPDest = tmpPredC.as<uint8_t>();
         for (unsigned i = 0; i < eCount; i++) {
             s = 2 * i + part;
             for (unsigned j = 0; j < sz; j++) {
                 if (s < eCount) {
-                    PDest_pb[i * sz + j] = POp1_pb[s * sz + j];
+                    auxPDest[i * sz + j] = POp1_pb[s * sz + j];
                 } else {
-                    PDest_pb[i * sz + j] = POp2_pb[(s - eCount) * sz + j];
+                    auxPDest[i * sz + j] = POp2_pb[(s - eCount) * sz + j];
                 }
             }
+        }
+        for (unsigned i = 0; i < eCount * sz; i++) {
+            PDest_pb[i] = auxPDest[i];
         }
     '''
     svePredBinPermInst('uzp1', 'Uzp1Pred', 'SimdPredAluOp', unsignedTypes,
@@ -4638,13 +4823,18 @@ let {{
     uzpIterCode = '''
         int s;
         int part = %d;
+        TheISA::VecRegContainer tmpVecC;
+        auto auxDest = tmpVecC.as<Element>();
         for (unsigned i = 0; i < eCount; i++) {
             s = 2 * i + part;
             if (s < eCount) {
-                AA64FpDest_x[i] = AA64FpOp1_x[s];
+                auxDest[i] = AA64FpOp1_x[s];
             } else {
-                AA64FpDest_x[i] = AA64FpOp2_x[s - eCount];
+                auxDest[i] = AA64FpOp2_x[s - eCount];
             }
+        }
+        for (unsigned i = 0; i < eCount; i++) {
+            AA64FpDest_x[i] = auxDest[i];
         }
     '''
     sveBinInst('uzp1', 'Uzp1', 'SimdMiscAOp', unsignedTypes, '',
@@ -4696,12 +4886,17 @@ let {{
         constexpr unsigned sz = sizeof(Element);
         int s;
         int part = %d;
+        TheISA::PredRegContainer tmpPredC;
+        auto auxPDest = tmpPredC.as<uint8_t>();
         for (unsigned i = 0; i < eCount / 2; i++) {
             s = i + (part * (eCount / 2));
             for (unsigned j = 0; j < sz; j++) {
-                PDest_pb[(2 * i) * sz + j] = POp1_pb[s * sz + j];
-                PDest_pb[(2 * i + 1) * sz + j] = POp2_pb[s * sz + j];
+                auxPDest[(2 * i) * sz + j] = POp1_pb[s * sz + j];
+                auxPDest[(2 * i + 1) * sz + j] = POp2_pb[s * sz + j];
             }
+        }
+        for (unsigned i = 0; i < eCount * sz; i++) {
+            PDest_pb[i] = auxPDest[i];
         }
     '''
     svePredBinPermInst('zip1', 'Zip1Pred', 'SimdPredAluOp', unsignedTypes,
@@ -4712,10 +4907,15 @@ let {{
     zipIterCode = '''
         int s;
         int part = %d;
+        TheISA::VecRegContainer tmpVecC;
+        auto auxDest = tmpVecC.as<Element>();
         for (unsigned i = 0; i < eCount / 2; i++) {
             s = i + (part * (eCount / 2));
-            AA64FpDest_x[2 * i] = AA64FpOp1_x[s];
-            AA64FpDest_x[2 * i + 1] = AA64FpOp2_x[s];
+            auxDest[2 * i] = AA64FpOp1_x[s];
+            auxDest[2 * i + 1] = AA64FpOp2_x[s];
+        }
+        for (unsigned i = 0; i < eCount; i++) {
+            AA64FpDest_x[i] = auxDest[i];
         }
     '''
     sveBinInst('zip1', 'Zip1', 'SimdMiscAOp', unsignedTypes, '',
