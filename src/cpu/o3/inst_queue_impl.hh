@@ -1046,8 +1046,8 @@ InstructionQueue<Impl>::wakeDependents(const DynInstPtr &completed_inst)
         }
 
         // Avoid waking up dependents if the register is pinned
+        dest_reg->decrNumPinnedWritesToComplete();
         if (dest_reg->getNumPinnedWritesToComplete() != 0) {
-            dest_reg->decrNumPinnedWritesToComplete();
             DPRINTF(IQ, "Reg %d [%s] is pinned, skipping\n",
                     dest_reg->index(), dest_reg->className());
             continue;
