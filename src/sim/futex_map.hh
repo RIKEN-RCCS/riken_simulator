@@ -102,7 +102,7 @@ class FutexMap : public std::unordered_map<FutexKey, ThreadContextList>
         }
 
         /** Suspend the thread context */
-        tc->suspend();
+        tc->suspendfutex();
     }
 
     /** Wakes up at most count waiting threads on a futex */
@@ -119,7 +119,7 @@ class FutexMap : public std::unordered_map<FutexKey, ThreadContextList>
         auto &tcList = it->second;
 
         while (!tcList.empty() && woken_up < count) {
-            tcList.front()->activate();
+	    tcList.front()->activatefutex();
             tcList.pop_front();
             woken_up++;
         }

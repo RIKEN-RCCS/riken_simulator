@@ -344,8 +344,6 @@ futexFunc(SyscallDesc *desc, int callnum, Process *process,
         int mem_val = *(int*)buf.bufferPtr();
         //int mem_val = val;
 
-        tc->suspendfutex();
-
         /*
          * The value in memory at uaddr is not equal with the expected val
          * (a different thread must have changed it before the system call was
@@ -358,7 +356,6 @@ futexFunc(SyscallDesc *desc, int callnum, Process *process,
 
         return 0;
     } else if (OS::TGT_FUTEX_WAKE == op) {
-        tc->activatefutex();
         return futex_map.wakeup(uaddr, process->tgid(), val);
     }
 
