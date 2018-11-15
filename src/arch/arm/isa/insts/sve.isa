@@ -3355,10 +3355,10 @@ let {{
             last = 0;
         destElem = AA64FpOp1_x[last];'''
     sveSelectInst('clasta', 'Clasta', 'SimdGprOp', unsignedTypes, clastaCode,
-            isCond = True, destType = DestType.Scalar)
+            isCond = True, destType = DstRegType.Scalar)
     # CLASTA (vector)
     sveSelectInst('clasta', 'Clastav', 'SimdMiscAOp', unsignedTypes,
-            clastaCode, isCond = True, destType = DestType.Vector)
+            clastaCode, isCond = True, destType = DstRegType.Vector)
     # CLASTA (SIMD&FP scalar) XXX OpClass
     sveSelectInst('clasta', 'Clastaf', 'SimdAluOp', unsignedTypes, clastaCode,
             isCond = True, destType = DstRegType.SimdFpScalar)
@@ -3366,13 +3366,13 @@ let {{
     clastbCode = '''
         destElem = AA64FpOp1_x[last];'''
     sveSelectInst('clastb', 'Clastb', 'SimdGprOp', unsignedTypes, clastbCode,
-            isCond = True, destType = DestType.Scalar)
+            isCond = True, destType = DstRegType.Scalar)
     # CLASTB (SIMD&FP scalar) XXX OpClass
     sveSelectInst('clastb', 'Clastbf', 'SimdAluOp', unsignedTypes, clastbCode,
             isCond = True, destType = DstRegType.SimdFpScalar)
     # CLASTB (vector)
     sveSelectInst('clastb', 'Clastbv', 'SimdMiscAOp', unsignedTypes,
-                  clastbCode, isCond = True, destType = DestType.Vector)
+                  clastbCode, isCond = True, destType = DstRegType.Vector)
     # CLS
     clsCode = '''
         destElem = 0;
