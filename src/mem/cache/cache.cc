@@ -501,7 +501,7 @@ Cache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
         // below
         return !pkt->writeThrough();
     } else if (blk && ((pkt->needsWritable() ? blk->isWritable() :
-                        blk->isReadable())||pkt->pfdepth)) {
+                        blk->isReadable()))) {
         // OK to satisfy access
         incHitCount(pkt);
         satisfyRequest(pkt, blk);
@@ -840,7 +840,7 @@ Cache::recvTimingReq(PacketPtr pkt)
 
         // ignore any existing MSHR if we are dealing with an
         // uncacheable request
-        MSHR *mshr = (pkt->req->isUncacheable()|| pkt->pfdepth) ? nullptr :
+        MSHR *mshr = (pkt->req->isUncacheable()) ? nullptr :
             mshrQueue.findMatch(blk_addr, pkt->isSecure());
 
         // Software prefetch handling:
@@ -961,7 +961,7 @@ Cache::recvTimingReq(PacketPtr pkt)
                 // uncached memory write, forwarded to WriteBuffer.
                 allocateWriteBuffer(pkt, forward_time);
             } else {
-                if (blk && blk->isValid()) {
+                if (blk && blk->isValid()&&(!pkt->pfdepth)) {
                     // should have flushed and have no valid block
                     assert(!pkt->req->isUncacheable());
 
@@ -1639,6 +1639,7 @@ Cache::recvTimingResp(PacketPtr pkt)
             invalidateBlock(blk);
         } else if (mshr->hasPostDowngrade()) {
             blk->status &= ~BlkWritable;
+            DPRINTF(CacheVerbose, "NOT WRITABLE POSTDOWNGRADE\n");
         }
     }
 
@@ -1726,6 +1727,7 @@ Cache::writebackBlk(CacheBlk *blk)
         // not asserting shared means we pass the block in modified
         // state, mark our own block non-writeable
         blk->status &= ~BlkWritable;
+        DPRINTF(CacheVerbose, "NOT WRITEBACKBLK\n");
     } else {
         // we are in the Owned state, tell the receiver
         pkt->setHasSharers();
@@ -1764,6 +1766,7 @@ Cache::writecleanBlk(CacheBlk *blk, Request::Flags dest, PacketId id)
         // not asserting shared means we pass the block in modified
         // state, mark our own block non-writeable
         blk->status &= ~BlkWritable;
+        DPRINTF(CacheVerbose, "NOT WRITECLEANBLK\n");
     } else {
         // we are in the Owned state, tell the receiver
         pkt->setHasSharers();
@@ -2235,9 +2238,12 @@ Cache::handleSnoop(PacketPtr pkt, CacheBlk *blk, bool is_timing,
         // which means we go from Modified to Owned (and will respond
         // below), remain in Owned (and will respond below), from
         // Exclusive to Shared, or remain in Shared
-        if (!pkt->req->isUncacheable()&&!pkt->pfdepth)
+        if (!pkt->req->isUncacheable()&&!pkt->pfdepth){
             blk->status &= ~BlkWritable;
+            DPRINTF(CacheVerbose, "READ NOT INVALDATE\n");
+        }
         DPRINTF(Cache, "new state is %s\n", blk->print());
+
     }
 
     if (respond) {
