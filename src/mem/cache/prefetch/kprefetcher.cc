@@ -43,18 +43,34 @@
 #include "debug/HWPrefetch.hh"
 
 KPrefetcher::KPrefetcher(const KPrefetcherParams *p)
-    : QueuedPrefetcher(p),
-      prftablesize(p->prftablesize),
-      maxprfofs(p->maxprfofs),
-      degree(p->degree),
-      slowstart(p->slowstart)
+    : QueuedPrefetcher(p)
 {
+    l1param.prftablesize = p->l1prftablesize;
+    l1param.maxprfofs = p->l1maxprfofs;
+    l1param.degree = p->l1degree;
+    l1param.slowstart = 1;
+    l1param.flags = Request::PF_L1;
+
+    l2param.prftablesize = p->l2prftablesize;
+    l2param.maxprfofs = p->l2maxprfofs;
+    l2param.degree = p->l2degree;
+    l2param.slowstart = 0;
+    l2param.flags= Request::PF_L2;
     // Don't consult stride prefetcher on instruction accesses
     DPRINTF(HWPrefetch, "KPrefetcher installed\n");
 }
 void
 KPrefetcher::calculatePrefetch(const PacketPtr &pkt,
                                     std::vector<AddrPriority> &addresses)
+{
+    calculateTable(entriesl1, pkt, addresses, l1param);
+    calculateTable(entriesl2, pkt, addresses, l2param);
+}
+void
+KPrefetcher::calculateTable(Kpftable &entries, const PacketPtr &pkt,
+                            std::vector<AddrPriority> &addresses,
+                            const TableParameters &prm)
+
 {
     Addr pkt_addr = pkt->getAddr()&(~static_cast<Addr>(blkSize -1));
 
@@ -71,12 +87,12 @@ KPrefetcher::calculatePrefetch(const PacketPtr &pkt,
         stride = (el->incr) ? stride: -stride;
 
         int effdegree = (std::abs((int64_t)(prf_addr - pkt_addr))
-                         >= maxprfofs)? 1 : degree;
+                         >= prm.maxprfofs)? 1 : prm.degree;
         if (prf_addr){
             for (int i = 0; i < effdegree; i++){
                 Addr addr = prf_addr + stride*i;
                 if (samePage(pkt_addr, addr)){
-                    addresses.push_back(AddrPriority(addr, 0));
+                    addresses.push_back(AddrPriority(addr, 0, prm.flags));
                 }else{
                     DPRINTF(HWPrefetch, "Ignoring page crossing prefetch.\n");
                     break;
@@ -103,7 +119,7 @@ KPrefetcher::calculatePrefetch(const PacketPtr &pkt,
       {
         KEntry en0;
         en0.pktAddr = pkt_addr + blkSize;
-        if (!slowstart)
+        if (!prm.slowstart)
             en0.prfAddr = pkt_addr + blkSize*2;
 
         if (samePage(pkt_addr, en0.pktAddr)){
@@ -114,7 +130,7 @@ KPrefetcher::calculatePrefetch(const PacketPtr &pkt,
 
         KEntry en1;
         en1.pktAddr = pkt_addr - blkSize;
-        if (!slowstart)
+        if (!prm.slowstart)
             en1.prfAddr = pkt_addr - blkSize*2;
         en1.incr = false;
         if (samePage(pkt_addr, en1.pktAddr)){
@@ -123,8 +139,8 @@ KPrefetcher::calculatePrefetch(const PacketPtr &pkt,
             entries.push_front(en1);
         }
 
-        if (entries.size() > prftablesize){
-            entries.resize(prftablesize);
+        if (entries.size() > prm.prftablesize){
+            entries.resize(prm.prftablesize);
         }
     }
 

@@ -67,7 +67,17 @@ class QueuedPrefetcher : public BasePrefetcher
             return !(*this > that);
         }
     };
-    using AddrPriority = std::pair<Addr, int32_t>;
+    struct AddrPriority{
+        Addr first;
+        int32_t second;
+        Request::Flags flags;
+        AddrPriority(Addr f, int32_t s, Request::Flags fl = 0){
+            first = f;
+            second = s;
+            flags = fl;
+        }
+    };
+    //using AddrPriority = std::pair<Addr, int32_t>;
 
     std::list<DeferredPacket> pfq;
 

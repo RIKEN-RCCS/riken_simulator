@@ -56,10 +56,13 @@
 class KPrefetcher : public QueuedPrefetcher
 {
   protected:
-    int prftablesize;
-    int maxprfofs;
-    int degree;
-    int slowstart;
+    struct TableParameters{
+        Request::Flags flags;
+        int prftablesize;
+        int maxprfofs;
+        int degree;
+        int slowstart;
+    };
     struct KEntry
     {
         KEntry() : pktAddr(0), prfAddr(0), incr(true)
@@ -69,8 +72,14 @@ class KPrefetcher : public QueuedPrefetcher
         Addr prfAddr;
         bool incr;
     };
-    std::deque<KEntry> entries;
-
+    using Kpftable = std::deque<KEntry>;
+    Kpftable entriesl1;
+    Kpftable entriesl2;
+    TableParameters l1param, l2param;
+    void
+    calculateTable(Kpftable &entries, const PacketPtr &pkt,
+                                std::vector<AddrPriority> &addresses,
+                                const TableParameters &prm);
   public:
 
     KPrefetcher(const KPrefetcherParams *p);

@@ -219,15 +219,18 @@ QueuedPrefetcher::insert(AddrPriority &pf_info, bool is_secure)
 
     /* Create a prefetch memory request */
     Request *pf_req =
-        new Request(pf_info.first, blkSize, 0, masterId);
+        new Request(pf_info.first, blkSize, pf_info.flags, masterId);
 
     if (is_secure) {
         pf_req->setFlags(Request::SECURE);
     }
     pf_req->taskId(ContextSwitchTaskId::Prefetcher);
-    PacketPtr pf_pkt = new Packet(pf_req, MemCmd::HardPFReq);
+    PacketPtr pf_pkt = new Packet(pf_req,
+                                  (pf_req->pfdepth()) ?
+                                  MemCmd::SoftPFReq : MemCmd::HardPFReq);
     pf_pkt->allocate();
-
+    DPRINTF(HWPrefetch, "Packet pfdepth %d %d\n", pf_req->pfdepth(),
+            pf_pkt->pfdepth);
     /* Verify prefetch buffer space for request */
     if (pfq.size() == queueSize) {
         pfRemovedFull++;

@@ -96,7 +96,9 @@ class KPrefetcher(QueuedPrefetcher):
     cxx_class = 'KPrefetcher'
     cxx_header = "mem/cache/prefetch/kprefetcher.hh"
 
-    degree = Param.Int(2, "Number of prefetchs to generate")
-    prftablesize = Param.Int(20, "PRF Table size")
-    maxprfofs = Param.Int(2048, "Max prefetchOffset")
-    slowstart = Param.Bool(False, "Dont start prefetch in first miss")
+    l1degree = Param.Int(2, "Number of L1 prefetchs to generate")
+    l1prftablesize = Param.Int(20, "L1 PRF Table size")
+    l1maxprfofs = Param.Int(2048, "L1 Max prefetchOffset")
+    l2degree = Param.Int(2, "Number  of L2 prefetchs to generate")
+    l2prftablesize = Param.Int(20, "PRF L2 Table size")
+    l2maxprfofs = Param.Int(2048, "Max L2 prefetchOffset")

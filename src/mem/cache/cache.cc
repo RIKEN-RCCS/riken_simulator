@@ -1029,7 +1029,7 @@ Cache::createMissPacket(PacketPtr cpu_pkt, CacheBlk *blk,
 
     if (cpu_pkt->pfdepth){
         //  and go through
-        DPRINTF(Cache, "SWPrefetch depth %d flags %lx\n", cpu_pkt->pfdepth,
+        DPRINTF(Cache, "Prefetch depth %d flags %lx\n", cpu_pkt->pfdepth,
             cpu_pkt->req->getFlags());
         return nullptr;
     }
