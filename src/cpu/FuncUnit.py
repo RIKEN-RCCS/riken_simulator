@@ -55,7 +55,7 @@ class OpClass(Enum):
             'SimdFloatReduceAdd', 'SimdFloatReduceCmp',
             'SimdPredAlu',
             'MemRead', 'MemWrite', 'FloatMemRead', 'FloatMemWrite',
-            'IprAccess', 'InstPrefetch',
+            'IprAccess', 'InstPrefetch', 'IntDiv4', 'IntDiv8',
             'IntAlu2', 'SimdPredCmp', 'SimdMvp', 'SimdGpr',
             'SimdAluA', 'SimdAluB', 'SimdMiscA', 'SimdMiscB',
             'SimdFloatAddA', 'SimdFloatMultA', 'SimdFloatA',

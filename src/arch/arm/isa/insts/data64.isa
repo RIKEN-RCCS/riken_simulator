@@ -274,9 +274,9 @@ let {{
             op2 = sext<32>(op2);
         }
         Dest64 = op2 == -1 ? -op1 : op2 ? op1 / op2 : 0;
-    ''', overrideOpClass="IntDivOp")
+    ''', overrideOpClass="((bits(machInst,31))? IntDiv8Op :IntDiv4Op)")
     buildDataXRegInst("udiv", 2, "Dest64 = Op264 ? Op164 / Op264 : 0",
-        overrideOpClass="IntDivOp")
+        overrideOpClass="((bits(machInst,31))? IntDiv8Op :IntDiv4Op)")
 
     buildDataXRegInst("cls", 1, '''
         uint64_t op1 = Op164;

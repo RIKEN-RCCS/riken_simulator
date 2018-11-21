@@ -58,8 +58,8 @@ class O3_ARM_PostK_Int_B(FUDesc):
                OpDesc(opClass='IntMFlow', opLat=1, pipelined=True),
                #OpDesc(opClass='VectorExtVExu', opLat=1),
                #OpDesc(opClass='VectorExtVExu2', opLat=2),
-               #OpDesc(opClass='IntDiv4', opLat=26, pipelined=False),
-               #OpDesc(opClass='IntDiv8', opLat=42, pipelined=False),
+               OpDesc(opClass='IntDiv4', opLat=26, pipelined=False),
+               OpDesc(opClass='IntDiv8', opLat=42, pipelined=False),
                OpDesc(opClass='IntDiv', opLat=12, pipelined=False),
                OpDesc(opClass='IprAccess', opLat=3, pipelined=True)]
     count = 1
