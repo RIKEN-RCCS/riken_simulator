@@ -1981,13 +1981,17 @@ let {{
         code = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
                 xc->tcBase());
+        TheISA::PredRegContainer tmpPredC;
+        auto tmpPred = tmpPredC.as<Element>();
+        for (unsigned i = 0; i < eCount; ++i)
+            tmpPred[i] = GpOp_x[i];
         destPred.reset();
         for (unsigned i = 0; i < eCount; i++) {
             const Element& srcElem1 = AA64FpOp1_x[i];
             %(src_elem_2_ty)s srcElem2 __attribute__((unused)) =
                                                             %(src_elem_2)s;
             bool destElem = false;
-            if (GpOp_x[i]) {
+            if (tmpPred[i]) {
                 %(op)s
             } else {
                 destElem = false;
