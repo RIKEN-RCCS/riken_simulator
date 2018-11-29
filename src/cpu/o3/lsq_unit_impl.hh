@@ -321,7 +321,7 @@ LSQUnit<Impl>::insertStore(const DynInstPtr& store_inst)
     storeQueue.advance_tail();
 
     store_inst->sqIdx = storeQueue.tail();
-    store_inst->lqIdx = loadQueue.add(loadQueue.tail(), 1);
+    store_inst->lqIdx = loadQueue.moduloAdd(loadQueue.tail(), 1);
     store_inst->lqIt = loadQueue.end();
 
     storeQueue.back().set(store_inst);
