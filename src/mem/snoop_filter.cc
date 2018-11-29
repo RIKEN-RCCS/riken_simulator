@@ -68,7 +68,7 @@ SnoopFilter::lookupRequest(const Packet* cpkt, const SlavePort& slave_port)
 
     // check if the packet came from a cache
     bool allocate = !cpkt->req->isUncacheable() && slave_port.isSnooping() &&
-        cpkt->fromCache() && cpkt->pfdepth;
+        cpkt->fromCache() ;
     Addr line_addr = cpkt->getBlockAddr(linesize);
     if (cpkt->isSecure()) {
         line_addr |= LineSecure;
@@ -80,7 +80,7 @@ SnoopFilter::lookupRequest(const Packet* cpkt, const SlavePort& slave_port)
     // If the snoop filter has no entry, and we should not allocate,
     // do not create a new snoop filter entry, simply return a NULL
     // portlist.
-    if (!is_hit && !allocate)
+    if ((!is_hit && !allocate) || cpkt->cmd.isPrefetch())
         return snoopDown(lookupLatency);
 
     // If no hit in snoop filter create a new element and update iterator
@@ -195,7 +195,7 @@ SnoopFilter::lookupSnoop(const Packet* cpkt)
     // If the snoop filter has no entry, simply return a NULL
     // portlist, there is no point creating an entry only to remove it
     // later
-    if (!is_hit)
+    if (!is_hit || cpkt->cmd.isPrefetch())
         return snoopDown(lookupLatency);
 
     SnoopItem& sf_item = sf_it->second;
@@ -251,7 +251,7 @@ SnoopFilter::updateSnoopResponse(const Packet* cpkt,
     // being turned into a normal response, there is nothing more to
     // do
     if (cpkt->req->isUncacheable() || !req_port.isSnooping()
-        || cpkt->pfdepth) {
+        || cpkt->cmd.isPrefetch()) {
         return;
     }
 
@@ -311,7 +311,7 @@ SnoopFilter::updateSnoopForward(const Packet* cpkt,
     bool is_hit = sf_it != cachedLocations.end();
 
     // Nothing to do if it is not a hit
-    if (!is_hit)
+    if (!is_hit || cpkt->cmd.isPrefetch())
         return;
 
     SnoopItem& sf_item = sf_it->second;
@@ -342,7 +342,7 @@ SnoopFilter::updateResponse(const Packet* cpkt, const SlavePort& slave_port)
     // we only allocate if the packet actually came from a cache, but
     // start by checking if the port is snooping
     if (cpkt->req->isUncacheable() || !slave_port.isSnooping()
-        || cpkt->pfdepth)
+        || cpkt->cmd.isPrefetch())
         return;
 
     // next check if we actually allocated an entry

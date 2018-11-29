@@ -500,8 +500,8 @@ Cache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
         // if this a write-through packet it will be sent to cache
         // below
         return !pkt->writeThrough();
-    } else if (blk && ((pkt->needsWritable() ? blk->isWritable() :
-                        blk->isReadable()))) {
+    } else if (blk && (pkt->needsWritable() ? blk->isWritable() :
+                       blk->isReadable())) {
         // OK to satisfy access
         incHitCount(pkt);
         satisfyRequest(pkt, blk);
@@ -670,7 +670,6 @@ bool
 Cache::recvTimingReq(PacketPtr pkt)
 {
     DPRINTF(CacheTags, "%s tags:\n%s\n", __func__, tags->print());
-
     assert(pkt->isRequest());
 
     // Just forward the packet if caches are disabled.
@@ -1931,7 +1930,6 @@ Cache::handleFill(PacketPtr pkt, CacheBlk *blk, PacketList &writebacks,
 #if TRACING_ON
     CacheBlk::State old_state = blk ? blk->status : 0;
 #endif
-
     // When handling a fill, we should have no writes to this line.
     assert(addr == pkt->getBlockAddr(blkSize));
     assert(!writeBuffer.findMatch(addr, is_secure));
