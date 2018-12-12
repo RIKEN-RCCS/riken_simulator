@@ -44,34 +44,35 @@
 #include <cassert>
 #include <vector>
 
-#include "base/circularQueue.hh"
+#include "base/circular_queue.hh"
 #include "base/logging.hh"
 #include "sim/serialize.hh"
 
 /**
- * Circular buffer backed by a vector though a circularQueue.
+ * Circular buffer backed by a vector though a CircularQueue.
  *
  * The data in the cricular buffer is stored in a standard
  * vector.
  *
  */
 template<typename T>
-class CircleBuf : public circularQueue<T>
+class CircleBuf : public CircularQueue<T>
 {
   protected:
-    using circularQueue<T>::_head;
-    using circularQueue<T>::_tail;
-    using circularQueue<T>::_size;
-    using circularQueue<T>::_empty;
+    using CircularQueue<T>::_head;
+    using CircularQueue<T>::_tail;
+    using CircularQueue<T>::_size;
+    using CircularQueue<T>::_empty;
+    using CircularQueue<T>::_round;
   public:
     explicit CircleBuf(size_t size)
-        : circularQueue<T>(size) {}
-    using circularQueue<T>::empty;
-    using circularQueue<T>::num_elements;
-    using circularQueue<T>::begin;
-    using circularQueue<T>::end;
-    using circularQueue<T>::pop_front;
-    using circularQueue<T>::advance_tail;
+        : CircularQueue<T>(size) {}
+    using CircularQueue<T>::empty;
+    using CircularQueue<T>::num_elements;
+    using CircularQueue<T>::begin;
+    using CircularQueue<T>::end;
+    using CircularQueue<T>::pop_front;
+    using CircularQueue<T>::advance_tail;
     /**
      * Return the maximum number of elements that can be stored in
      * the buffer at any one time.
@@ -88,7 +89,8 @@ class CircleBuf : public circularQueue<T>
      * store.
      */
     void flush() {
-        _head = _size - 1;
+        _head = 1;
+        _round = 0;
         _tail = 0;
         _empty = true;
     }
@@ -145,8 +147,9 @@ class CircleBuf : public circularQueue<T>
             in += len - _size;
             len = _size;
         }
+
+        std::copy(in, in + len, end());
         advance_tail(len);
-        std::copy(in, in + len, begin());
     }
 };
 

@@ -215,8 +215,6 @@ class LSQ {
             NotIssued,
             Translation,
             Request,
-            Complete,
-            Squashed,
             Fault,
             PartialFault,
         };

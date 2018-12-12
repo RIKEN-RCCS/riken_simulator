@@ -64,7 +64,7 @@
 #include "mem/port.hh"
 
 struct DerivO3CPUParams;
-#include "base/circularQueue.hh"
+#include "base/circular_queue.hh"
 
 /**
  * Class that implements the actual LQ and SQ for each specific
@@ -215,8 +215,8 @@ class LSQUnit {
     };
 
   public:
-    using LoadQueue = circularQueue<LQEntry>;
-    using StoreQueue = circularQueue<SQEntry>;
+    using LoadQueue = CircularQueue<LQEntry>;
+    using StoreQueue = CircularQueue<SQEntry>;
 
   public:
     /** Constructs an LSQ unit. init() must be called prior to use. */
@@ -469,7 +469,7 @@ class LSQUnit {
     ThreadID lsqID;
   public:
     /** The store queue. */
-    circularQueue<SQEntry> storeQueue;
+    CircularQueue<SQEntry> storeQueue;
 
     /** The load queue. */
     LoadQueue loadQueue;
@@ -600,10 +600,10 @@ class LSQUnit {
     /** Returns whether or not the LSQ unit is stalled. */
     bool isStalled()  { return stalled; }
   public:
-    typedef typename circularQueue<LQEntry>::iterator LQIterator;
-    typedef typename circularQueue<SQEntry>::iterator SQIterator;
-    typedef circularQueue<LQEntry> LQueue;
-    typedef circularQueue<SQEntry> SQueue;
+    typedef typename CircularQueue<LQEntry>::iterator LQIterator;
+    typedef typename CircularQueue<SQEntry>::iterator SQIterator;
+    typedef CircularQueue<LQEntry> LQueue;
+    typedef CircularQueue<SQEntry> SQueue;
 };
 
 template <class Impl>

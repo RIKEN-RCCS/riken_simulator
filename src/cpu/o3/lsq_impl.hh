@@ -1020,7 +1020,6 @@ LSQ<Impl>::SingleDataRequest::recvTimingResp(PacketPtr pkt)
 {
     assert(_numOutstandingPackets == 1);
     auto state = dynamic_cast<LSQSenderState*>(pkt->senderState);
-    setState(State::Complete);
     flags[(int)Flag::Complete] = true;
     state->outstanding--;
     assert(pkt == _packets.front());
@@ -1040,7 +1039,6 @@ LSQ<Impl>::SplitDataRequest::recvTimingResp(PacketPtr pkt)
     numReceivedPackets++;
     state->outstanding--;
     if (numReceivedPackets == _packets.size()) {
-        setState(State::Complete);
         flags[(int)Flag::Complete] = true;
         /* Assemble packets. */
         PacketPtr resp = isLoad()

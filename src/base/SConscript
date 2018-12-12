@@ -80,6 +80,8 @@ Source('loader/symtab.cc')
 Source('stats/text.cc')
 
 GTest('bituniontest', 'bituniontest.cc')
+GTest('CircleBufTest', 'circlebuftest.cc')
+GTest('CircularQueueTest', 'circular_queue_test.cc')
 
 DebugFlag('Annotate', "State machine annotation debugging")
 DebugFlag('AnnotateQ', "State machine annotation queue debugging")

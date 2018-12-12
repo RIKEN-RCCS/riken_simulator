@@ -37,28 +37,27 @@
  * Authors: Rekai Gonzalez-Alberquilla
  */
 
-#ifndef __BASE_CIRCULARQUEUE_HH__
-#define __BASE_CIRCULARQUEUE_HH__
+#ifndef __BASE_CIRCULAR_QUEUE_HH__
+#define __BASE_CIRCULAR_QUEUE_HH__
 
 #include <vector>
 
 /** Circular queue.
  * Circular queue implemented on top of a standard vector. Instead of using
  * a sentinel entry, we use a boolean to distinguish the case in which the
- * queue is full or empty, because we are computer people, and we like
- * using powers of 2 for sizes, and that way modules are much faster.
- * Thus, a circular queue is represented by the 4-tuple
+ * queue is full or empty.
+ * Thus, a circular queue is represented by the 5-tuple
  *  (Capacity, IsEmpty?, Head, Tail, Round)
  * Where:
  *   - Capacity is the size of the underlying vector.
- *   - IsEmpty? can be T or F :).
+ *   - IsEmpty? can be T or F.
  *   - Head is the index in the vector of the first element of the queue.
  *   - Tail is the index in the vector of the last element of the queue.
  *   - Round is the counter of how many times the Tail has wrapped around.
  * A queue is empty when
- *     Head == Tail + 1 mod Capacity && IsEmpty?.
+ *     Head == (Tail + 1 mod Capacity) && IsEmpty?.
  * Conversely, a queue if full when
- *     Head == Tail + 1 mod Capacity && !IsEmpty?.
+ *     Head == (Tail + 1 mod Capacity) && !IsEmpty?.
  * Comments may show depictions of the underlying vector in the following
  * format: '|' delimit the 'cells' of the underlying vector. '-' represents
  * an element of the vector that is out-of-bounds of the circular queue,
@@ -77,13 +76,13 @@
  * therefore it will be omitted or shown as '_'
  */
 template <typename T>
-class circularQueue : public std::vector<T>
+class CircularQueue : private std::vector<T>
 {
   protected:
     using Base = std::vector<T>;
     using typename Base::reference;
     using typename Base::const_reference;
-    uint32_t _size;
+    const uint32_t _size;
     uint32_t _head;
     uint32_t _tail;
     uint32_t _empty;
@@ -94,7 +93,32 @@ class circularQueue : public std::vector<T>
      * ambiguity, we need the round number to guarantee that it did not become
      * a before-the-beginning iterator.
      */
-    int32_t _round;
+    uint32_t _round;
+
+    /** General modular addition. */
+    static uint32_t
+    moduloAdd(uint32_t op1, uint32_t op2, uint32_t size)
+    {
+        return (op1 + op2) % size;
+    }
+
+    /** General modular subtraction. */
+    static uint32_t
+    moduloSub(uint32_t op1, uint32_t op2, uint32_t size)
+    {
+        int ret = (uint32_t)(op1 - op2) % size;
+        return ret >= 0 ? ret : ret + size;
+    }
+
+    void increase(uint32_t& v, size_t delta = 1)
+    {
+        v = moduloAdd(v, delta, _size);
+    }
+
+    void decrease(uint32_t& v)
+    {
+        v = (v ? v : _size) - 1;
+    }
 
     /** Iterator to the circular queue.
      * iterator implementation to provide the circular-ness that the
@@ -113,31 +137,34 @@ class circularQueue : public std::vector<T>
      */
   public:
     struct iterator {
-        circularQueue* _cq;
-        size_t _idx;
-        int32_t _round;
+        CircularQueue* _cq;
+        uint32_t _idx;
+        uint32_t _round;
+
       public:
-        iterator(circularQueue* cq, const uint32_t& idx, const int32_t& round)
+        iterator(CircularQueue* cq, uint32_t idx, uint32_t round)
             : _cq(cq), _idx(idx), _round(round) {}
-        /** Iterator. */
-        /** @{ */
-        /** Traits */
-        /** @{ */
+
+        /** Iterator Traits */
         using value_type = T;
         using difference_type = std::ptrdiff_t;
-        using reference = T&;
-        using const_reference = const T&;
-        using pointer = T*;
-        using const_pointer = const T*;
+        using reference = value_type&;
+        using const_reference = const value_type&;
+        using pointer = value_type*;
+        using const_pointer = const value_type*;
         using iterator_category = std::random_access_iterator_tag;
-        /** @} */
-        /** CopyConstructible */
-        /** @{ */
+
+        /** Trait reference type
+         * iterator satisfies OutputIterator, therefore reference
+         * must be T& */
+        static_assert(std::is_same<reference, T&>::value,
+                "reference type is not assignable as required");
+
+        iterator() : _cq(nullptr), _idx(0), _round(0) { }
+
         iterator(const iterator& it)
             : _cq(it._cq), _idx(it._idx), _round(it._round) {}
-        /** @} */
-        /** Copy Assignable. */
-        /** @{ */
+
         iterator&
         operator=(const iterator& it)
         {
@@ -146,16 +173,9 @@ class circularQueue : public std::vector<T>
             _round = it._round;
             return *this;
         }
-        /** @} */
-        /** Destructible.
-         * Clean-up after ourselves.
-         */
-        /** @{ */
-        ~iterator() { _cq = nullptr; _idx = 0; _round = 0; }
-        /** @} */
 
-      private:
-      public:
+        ~iterator() { _cq = nullptr; _idx = 0; _round = 0; }
+
         /** Test dereferenceability.
          * An iterator is dereferenceable if it is pointing to a non-null
          * circular queue, it is not the past-the-end iterator  and the
@@ -164,7 +184,7 @@ class circularQueue : public std::vector<T>
          * - An iterator to the first element of a full queue
          *    (4,F,1,0): |o]|[*|o|o|
          * - The end() iterator of a full queue
-         *    (4,F,1,0): |o]|*[o|o|o|
+         *    (4,F,1,0): |o]|x[o|o|o|
          * Sometimes, though, users will get the PTE iterator and expect it
          * to work after growing the buffer on the tail, so we have to
          * check if the iterator is still PTE.
@@ -174,74 +194,60 @@ class circularQueue : public std::vector<T>
         {
             return _cq != nullptr && _cq->isValidIdx(_idx, _round);
         }
-        /** @} */
 
-      public:
         /** InputIterator. */
-        /** @{ */
 
-        /** EqualityComparable. */
-        /** @{ */
         /** Equality operator.
          * Two iterators must point to the same, possibly null, circular
          * queue and the same element on it, including PTE, to be equal.
          * In case the clients the the PTE iterator and then grow on the back
          * and expect it to work, we have to check if the PTE is still PTE
          */
-        bool operator==(const iterator& that) const {
+        bool operator==(const iterator& that) const
+        {
             return _cq == that._cq && _idx == that._idx &&
                 _round == that._round;
         }
-        /** @} */
 
         /** Inequality operator.
-         * Conversely, Two iterators are different if they both point to
+         * Conversely, two iterators are different if they both point to
          * different circular queues or they point to different elements.
          */
-        bool operator!=(const iterator& that) {
+        bool operator!=(const iterator& that)
+        {
             return !(*this == that);
         }
 
-      public:
         /** Dereference operator. */
-        /** @{ */
         reference operator*()
         {
             /* this has to be dereferenceable. */
-            assert (dereferenceable());
             return (*_cq)[_idx];
         }
 
         const_reference operator*() const
         {
             /* this has to be dereferenceable. */
-            assert (dereferenceable());
             return (*_cq)[_idx];
         }
-        /** @} */
 
         /** Dereference operator.
          * Rely on operator* to check for dereferenceability.
          */
-        /** @{ */
         pointer operator->()
         {
-            assert (dereferenceable());
             return &((*_cq)[_idx]);
         }
 
         const_pointer operator->() const
         {
-            assert (dereferenceable());
             return &((*_cq)[_idx]);
         }
-        /** @} */
 
         /** Pre-increment operator. */
         iterator& operator++()
         {
             /* this has to be dereferenceable. */
-            assert (dereferenceable());
             _cq->increase(_idx);
             if (_idx == 0)
                 ++_round;
@@ -256,25 +262,12 @@ class circularQueue : public std::vector<T>
             ++*this;
             return t;
         }
-        /** @} */
 
         /** ForwardIterator
          * The multipass guarantee is provided by the reliance on _idx.
          */
-        /** @{ */
-        /** DefaultConstructible. */
-        /** @{ */
-        iterator() : _cq(nullptr), _idx(0) { }
-        /** @} */
-        /** Trait reference type
-         * iterator satisfies OutputIterator, therefore reference
-         * must be T& */
-        static_assert(std::is_same<reference, T&>::value,
-                "reference type is not assignable as required");
-        /** @} */
 
         /** BidirectionalIterator requirements. */
-        /** @{ */
       private:
         /** Test decrementability.
          * An iterator to a non-null circular queue is not-decrementable
@@ -291,6 +284,7 @@ class circularQueue : public std::vector<T>
                              (_idx == 0 && _round != _cq->_round + 1) ||
                              (_idx !=0 && _round != _cq->_round)));
         }
+
       public:
         /** Pre-decrement operator. */
         iterator& operator--()
@@ -302,17 +296,16 @@ class circularQueue : public std::vector<T>
             _cq->decrease(_idx);
             return *this;
         }
+
         /** Post-decrement operator. */
         iterator operator--(int ) { iterator t = *this; --*this; return t; }
-        /** @} */
 
         /** RandomAccessIterator requirements.*/
-        /** @{ */
         iterator& operator+=(const difference_type& t)
         {
             assert(_cq);
             _round += (t + _idx) / _cq->size();
-            _idx = _cq->add(_idx, t);
+            _idx = _cq->moduloAdd(_idx, t);
             return *this;
         }
 
@@ -326,12 +319,11 @@ class circularQueue : public std::vector<T>
             else
                 _round += (-t + _idx - _cq->size() + 1) / _cq->size();
 
-            _idx = _cq->sub(_idx, t);
+            _idx = _cq->moduloSub(_idx, t);
             return *this;
         }
 
         /** Addition operator. */
-        /** @{ */
         iterator operator+(const difference_type& t)
         {
             iterator ret(*this);
@@ -343,10 +335,8 @@ class circularQueue : public std::vector<T>
             iterator ret = it;
             return ret += t;
         }
-        /** @} */
 
         /** Substraction operator. */
-        /** @{ */
         iterator operator-(const difference_type& t)
         {
             iterator ret(*this);
@@ -358,14 +348,19 @@ class circularQueue : public std::vector<T>
             iterator ret = it;
             return ret -= t;
         }
-        /** @} */
 
         /** Difference operator.
          * that + ret == this
          */
-        difference_type operator-(const iterator& that) {
+        difference_type operator-(const iterator& that)
+        {
             /* If a is already at the end, we can safely return 0. */
-            return _cq->sub(this->_idx, that._idx);
+            auto ret = _cq->moduloSub(this->_idx, that._idx);
+
+            if (ret == 0 && this->_round != that._round) {
+                ret += this->_round * _cq->size();
+            }
+            return ret;
         }
 
         /** Index operator.
@@ -376,105 +371,50 @@ class circularQueue : public std::vector<T>
         operator[](const Idx& index) { return *(*this + index); }
 
         /** Comparisons. */
-        /** @{ */
         bool
         operator<(const iterator& that) const
         {
             assert(_cq && that._cq == _cq);
             return (this->_round < that._round) ||
-                (_round == that._round && _idx < that._idx);
+                (this->_round == that._round && _idx < that._idx);
         }
-        bool operator>=(const iterator& that) const { return !(*this < that); }
-        bool operator<=(const iterator& that) const { return !(that < *this); }
-        /** @} */
-        /** @} */
+
+        bool
+        operator>(const iterator& that) const
+        { return !(*this <= that); }
+
+        bool operator>=(const iterator& that) const
+        { return !(*this < that); }
+
+        bool operator<=(const iterator& that) const
+        { return !(that < *this); }
+
         /** OutputIterator has no extra requirements.*/
-        const size_t& idx() const { return _idx; }
+        size_t idx() const { return _idx; }
     };
 
-    /** Circular operations. */
-    /** @{ */
-    /** Modular addition for size a power of 2. */
-    static uint32_t
-    add(const uint32_t& op1, const uint32_t& op2, const uint32_t& size)
-    {
-        return (op1 + op2) & (size - 1);
-    }
-
-    /** General modular addition. */
-    static uint32_t
-    addM(const uint32_t& op1, const uint32_t& op2, const uint32_t& size)
-    {
-        return (op1 + op2) % size;
-    }
-
-    /** Modular substraction for size a power of 2. */
-    static uint32_t
-    sub(const uint32_t& op1, const uint32_t& op2, const uint32_t& size)
-    {
-        return (op1 - op2) & (size - 1);
-    }
-
-    /** General modular substraction. */
-    static uint32_t
-    subM(const uint32_t& op1, const uint32_t& op2, const uint32_t& size)
-    {
-        int ret = (int32_t)(op1 - op2) % size;
-        return ret >= 0 ? ret : ret + size;
-    }
-
-    template <typename NumT>
-    static int
-    increase(NumT& v, const uint32_t& size)
-    {
-        static_assert(std::is_integral<NumT>::value,
-                "Instantiating increase for non-integral type");
-        if (++v == size) {
-            v = 0;
-            return 1;
-        }
-        return 0;
-    }
-
-    template <typename NumT>
-    static int
-    increase(NumT& v, size_t delta, const uint32_t& size)
-    {
-        static_assert(std::is_integral<NumT>::value,
-                "Instantiating increase for non-integral type");
-        int w = (v + delta) / size;
-        v = addM(v, delta, size);
-        return w;
-    }
-
-    template <typename NumT>
-    static void
-    decrease(NumT& v, const uint32_t& size)
-    {
-        static_assert(std::is_integral<NumT>::value,
-                "Instantiating decrease for non-integral type");
-        v = (v ? v : size) - 1;
-    }
-    /** @} */
-
   public:
-    explicit circularQueue(uint32_t size)
+    using typename Base::operator[];
+
+    explicit CircularQueue(uint32_t size = 0)
         : _size(size), _head(1), _tail(0), _empty(true), _round(0)
     {
         Base::resize(size);
     }
+
     /** Test if the index is in the range of valid elements. */
-    bool isValidIdx(const size_t& idx) const {
+    bool isValidIdx(size_t idx) const
+    {
         /* An index is invalid if:
          *   - The queue is empty.
-         *   (6,T,3,2): |-|-|-]|[-|-|*|
+         *   (6,T,3,2): |-|-|-]|[-|-|x|
          *   - head is small than tail and:
          *       - It is greater than both head and tail.
-         *       (6,F,1,3): |-|[o|o|o]|-|*|
+         *       (6,F,1,3): |-|[o|o|o]|-|x|
          *       - It is less than both head and tail.
-         *       (6,F,1,3): |*|[o|o|o]|-|-|
+         *       (6,F,1,3): |x|[o|o|o]|-|-|
          *   - It is greater than the tail and not than the head.
-         *   (6,F,4,1): |o|o]|-|*|[o|o|
+         *   (6,F,4,1): |o|o]|-|x|[o|o|
          */
         return !(_empty || (
             (_head < _tail) && (
@@ -486,9 +426,9 @@ class circularQueue : public std::vector<T>
     /** Test if the index is in the range of valid elements.
      * The round counter is used to disambiguate aliasing.
      */
-    bool isValidIdx(const size_t& idx, const int32_t& round) const {
+    bool isValidIdx(size_t idx, uint32_t round) const
+    {
         /* An index is valid if:
-         *   (6,T,3,2,R): |-|-|-]|[-|-|*|
          *   - The queue is not empty.
          *      - round == R and
          *          - index <= tail (if index > tail, that would be PTE)
@@ -498,16 +438,16 @@ class circularQueue : public std::vector<T>
          *             - head > tail
          *               (6,F,5,3,R): |o|o|(*,r)|o]|-|[o|
          *            The remaining case means the the iterator is BTB:
-         *               (6,F,3,4,R): |-|-|(*,r)|[o|o]|-|
+         *               (6,F,3,4,R): |-|-|(x,r)|[o|o]|-|
          *      - round + 1 == R and:
          *          - index > tail. If index <= tail, that would be BTB:
-         *               (6,F,2,3,r):   | -|- |[(*,r)|o]|-|-|  => ... =>
-         *               (6,F,0,1,r+1): |[o|o]| (x,r)|- |-|-|  => ... =>
-         *               (6,F,0,3,r+1): |[o|o | (x,r)|o]|-|-|
+         *               (6,F,2,3,r):   | -|- |[(*,r)|o]|-|-|
+         *               (6,F,0,1,r+1): |[o|o]| (x,r)|- |-|-|
+         *               (6,F,0,3,r+1): |[o|o | (*,r)|o]|-|-|
          *          - index >= head. If index < head, that would be BTB:
-         *               (6,F,5,2,R): |o|o]|-|-|(*,r)|[o|
+         *               (6,F,5,2,R): |o|o]|-|-|(x,r)|[o|
          *          - head > tail. If head <= tail, that would be BTB:
-         *               (6,F,3,4,R): |[o|o]|(*,r)|-|-|-|
+         *               (6,F,3,4,R): |[o|o]|(x,r)|-|-|-|
          *      Other values of the round meand that the index is PTE or BTB
          */
         return (!_empty && (
@@ -520,58 +460,48 @@ class circularQueue : public std::vector<T>
                     ));
     }
 
-    void clear();
     reference front() { return (*this)[_head]; }
     reference back() { return (*this)[_tail]; }
-    const uint32_t& size() const { return _size; }
-    const uint32_t& head() const { return _head; }
-    const uint32_t& tail() const { return _tail; }
+    uint32_t size() const { return _size; }
+    uint32_t head() const { return _head; }
+    uint32_t tail() const { return _tail; }
 
-    uint32_t num_elements() const {
+    uint32_t num_elements() const
+    {
         if (_empty)
             return 0;
         else if (_head <= _tail)
             return _tail - _head + 1;
-        else return _size - _head + _tail + 1;
+        else
+            return _size - _head + _tail + 1;
     }
 
-    template <typename NumT>
-    void increase (NumT& v) const { increase(v, _size); }
-    template <typename NumT>
-    void decrease (NumT& v) const { decrease(v, _size); }
-
-    uint32_t add(const uint32_t& s1, const uint32_t s2) const {
-        return _size & (_size - 1)
-                    ? addM(s1, s2, _size)
-                    : add(s1, s2, _size);
+    uint32_t moduloAdd(uint32_t s1, uint32_t s2) const
+    {
+        return moduloAdd(s1, s2, _size);
     }
 
-    uint32_t sub(const uint32_t& s1, const uint32_t s2) const {
-        return _size & (_size - 1)
-                    ? subM(s1, s2, _size)
-                    : sub(s1, s2, _size);
+    uint32_t moduloSub(uint32_t s1, uint32_t s2) const
+    {
+        return moduloSub(s1, s2, _size);
     }
 
     /** Circularly increase the head pointer.
+     * By increasing the head pointer we are removing elements from
+     * the begin of the circular queue.
      * Check that the queue is not empty. And set it to empty if it
      * had only one value prior to insertion.
+     *
+     * @params num_elem number of elements to remove
      */
-    void pop_front(size_t n = 1)
+    void pop_front(size_t num_elem = 1)
     {
-#if 0
-        int new_head = _head;
-        int wraps = increase(new_head, n, _size)
-        assert (!_empty);
-        _empty = _head == _tail;
-        increase(_head, _size);
-#else
-        if (n == 0) return;
+        if (num_elem == 0) return;
         auto hIt = begin();
-        hIt += n;
+        hIt += num_elem;
         assert(hIt <= end());
         _empty = hIt == end();
         _head = hIt._idx;
-#endif
     }
 
     /** Circularly decrease the tail pointer. */
@@ -581,28 +511,39 @@ class circularQueue : public std::vector<T>
         _empty = _head == _tail;
         if (_tail == 0)
             --_round;
-        decrease(_tail, _size);
+        decrease(_tail);
     }
 
-    /** Increase the size on the tail.
-     * Check for wrap-arounds to update the round counter.
-     * */
-    void
-    advance_tail(int n = 1)
+    /** Pushes an element at the end of the queue. */
+    void push_back(typename Base::value_type val)
     {
-#if 0
-        int new_tail = _tail;
-        int wraps = increase(new_tail, n, _size);
-        assert(wraps == 0 &&
-                (_tail >= _head && new_tail < head
+        advance_tail();
+        (*this)[_tail] = val;
+    }
 
-        _empty = !n && _empty;
-#else
-        increase(_tail, _size);
+    /** Increases the tail by one.
+     * Check for wrap-arounds to update the round counter.
+     */
+    void advance_tail()
+    {
+        increase(_tail);
         if (_tail == 0)
             ++_round;
+
+        if (_tail == _head && !_empty)
+            increase(_head);
+
         _empty = false;
-#endif
+    }
+
+    /** Increases the tail by a specified number of steps
+     *
+     * @param len Number of steps
+     */
+    void advance_tail(uint32_t len)
+    {
+        for (auto idx = 0; idx < len; idx++)
+            advance_tail();
     }
 
     /** Is the queue empty? */
@@ -613,18 +554,13 @@ class circularQueue : public std::vector<T>
      * the (size-1)^{th} element, or if the head is the n^{th} element and
      * the tail the (n-1)^{th} element.
      */
-    bool full() const {
+    bool full() const
+    {
         return !_empty &&
             (_tail + 1 == _head || (_tail + 1 == _size && _head == 0));
     }
+
     /** Iterators. */
-    /** @{ */
-    /*
-     * (4,F,2,0,r): | o]| -|[o|o | -> (1, r-1)
-     * (4,F,0,3,r): |[o | o|o |o]| -> (0, r)
-     * (4,T,0,3,r): |[- | -|- |-]| -> (0, r+1)
-     * (4,T,1,0,r): | -]|[-|- |- | -> (1, r)
-     */
     iterator begin()
     {
         if (_empty)
@@ -634,48 +570,53 @@ class circularQueue : public std::vector<T>
         else
             return iterator(this, _head, _round);
     }
+
     /* TODO: This should return a const_iterator. */
     iterator begin() const
     {
         if (_empty)
             return end();
         else if (_head > _tail)
-            return iterator(const_cast<circularQueue*>(this), _head,
+            return iterator(const_cast<CircularQueue*>(this), _head,
                     _round - 1);
         else
-            return iterator(const_cast<circularQueue*>(this), _head,
-                    _round - 1);
+            return iterator(const_cast<CircularQueue*>(this), _head,
+                    _round);
     }
 
-    iterator end() {
-        auto poi = add(_tail, 1);
+    iterator end()
+    {
+        auto poi = moduloAdd(_tail, 1);
         auto round = _round;
         if (poi == 0)
             ++round;
         return iterator(this, poi, round);
     }
-    iterator end() const {
-        auto poi = add(_tail, 1);
+
+    iterator end() const
+    {
+        auto poi = moduloAdd(_tail, 1);
         auto round = _round;
         if (poi == 0)
             ++round;
-        return iterator(const_cast<circularQueue*>(this), poi, round);
+        return iterator(const_cast<CircularQueue*>(this), poi, round);
     }
-    /** @} */
 
     /** Return an iterator to an index in the vector.
      * This poses the problem of round determination. By convention, the round
      * is picked so that isValidIndex(idx, round) is true. If that is not
      * possible, then the round value is _round, unless _tail is at the end of
-     * the storage, in which case is _round + 1
+     * the storage, in which case the PTE wraps up and becomes _round + 1
      */
-    iterator getIterator(size_t idx) {
-        assert(isValidIdx(idx) || add(_tail, 1) == idx);
-        if (_empty && _head == idx)
+    iterator getIterator(size_t idx)
+    {
+        assert(isValidIdx(idx) || moduloAdd(_tail, 1) == idx);
+        if (_empty)
             return end();
+
         uint32_t round = _round;
         if (idx > _tail) {
-            if (idx >= _head && _head > _tail && !_empty) {
+            if (idx >= _head && _head > _tail) {
                 round -= 1;
             }
         } else if (idx < _head && _tail + 1 == _size) {
@@ -686,5 +627,3 @@ class circularQueue : public std::vector<T>
 };
 
 #endif /* __BASE_CIRCULARQUEUE_HH__ */
-
-
