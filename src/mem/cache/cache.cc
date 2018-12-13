@@ -2237,6 +2237,8 @@ Cache::handleSnoop(PacketPtr pkt, CacheBlk *blk, bool is_timing,
         // below), remain in Owned (and will respond below), from
         // Exclusive to Shared, or remain in Shared
         if (!pkt->req->isUncacheable()&&!pkt->pfdepth){
+            if (blk->isWritable())
+                respond = true;
             blk->status &= ~BlkWritable;
             DPRINTF(CacheVerbose, "READ NOT INVALDATE\n");
         }
