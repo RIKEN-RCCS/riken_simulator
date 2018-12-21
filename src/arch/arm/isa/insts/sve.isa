@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 ARM Limited
+// Copyright (c) 2017-2019 ARM Limited
 // All rights reserved
 //
 // The license below extends only to copyright in the software and shall
@@ -2930,6 +2930,83 @@ let {{
                     'class_name' : 'Sve' + Name}
             exec_output += SveOpExecDeclare.subst(substDict)
 
+    # Generate definitions for complex multiply and accumulate instructions
+    def sveComplexMulAddInst(name, Name, opClass, types,
+            predType=PredType.NONE, decoder='Generic'):
+        assert predType in (PredType.NONE, PredType.MERGE)
+        global header_output, exec_output, decoders
+        code = sveEnabledCheckCode + '''
+        unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
+                xc->tcBase());'''
+        code += '''
+        uint32_t sel_a = rot & 0x1;
+        uint32_t sel_b = sel_a ? 0 : 1;
+        bool neg_i = (rot & 0x2) == 1;
+        bool neg_r = (rot & 0x1) != (rot & 0x2);'''
+        if predType == PredType.NONE:
+            code += '''
+        uint32_t eltspersegment = 16 / (2 * sizeof(Element));'''
+        code += '''
+        for (int i = 0; i < eCount / 2; ++i) {'''
+        if predType == PredType.NONE:
+            code += '''
+            uint32_t segmentbase = i - (i % eltspersegment);
+            uint32_t s = segmentbase + imm;'''
+        else:
+            code += '''
+            uint32_t s = i;'''
+        code += '''
+            Element addend_r = AA64FpDestMerge_x[2 * i];
+            Element addend_i = AA64FpDestMerge_x[2 * i + 1];
+            Element elt1_a = AA64FpOp1_x[2 * i + sel_a];
+            Element elt2_a = AA64FpOp2_x[2 * s + sel_a];
+            Element elt2_b = AA64FpOp2_x[2 * s + sel_b];
+            FPSCR fpscr;
+            '''
+        if predType != PredType.NONE:
+            code += '''
+            if (GpOp_x[2 * i]) {'''
+        code += '''
+            if (neg_r) {
+                elt2_a = fplibNeg<Element>(elt2_a);
+            }
+            fpscr =  (FPSCR) FpscrExc;
+            addend_r = fplibMulAdd<Element>(addend_r, elt1_a, elt2_a, fpscr);
+            FpscrExc = fpscr;'''
+        if predType != PredType.NONE:
+            code += '''
+            }'''
+        if predType != PredType.NONE:
+            code += '''
+            if (GpOp_x[2 * i + 1]) {'''
+        code += '''
+            if (neg_i) {
+                elt2_b = fplibNeg<Element>(elt2_b);
+            }
+            fpscr =  (FPSCR) FpscrExc;
+            addend_i = fplibMulAdd<Element>(addend_i, elt1_a, elt2_b, fpscr);
+            FpscrExc = fpscr;'''
+        if predType != PredType.NONE:
+            code += '''
+            }'''
+        code += '''
+            AA64FpDest_x[2 * i] = addend_r;
+            AA64FpDest_x[2 * i + 1] = addend_i;
+        }'''
+        iop = InstObjParams(name, 'Sve' + Name,
+                'SveComplexIdxOp' if predType == PredType.NONE
+                                  else 'SveComplexOp',
+                {'code': code, 'op_class': opClass}, [])
+        if predType == PredType.NONE:
+            header_output += SveComplexIndexOpDeclare.subst(iop)
+        else:
+            header_output += SveComplexOpDeclare.subst(iop)
+        exec_output += SveOpExecute.subst(iop)
+        for type in types:
+            substDict = {'targs' : type,
+                    'class_name' : 'Sve' + Name}
+            exec_output += SveOpExecDeclare.subst(substDict)
+
     fpTypes = ('uint16_t', 'uint32_t', 'uint64_t')
     signedTypes = ('int8_t', 'int16_t', 'int32_t', 'int64_t')
     unsignedTypes = ('uint8_t', 'uint16_t', 'uint32_t', 'uint64_t')
@@ -3432,8 +3509,12 @@ let {{
     # FCMUO (vectors)
     fcmuoCode = fpCmpOp % 'UN'
     sveCmpInst('fcmuo', 'Fcmuo', 'SimdFloatCmpOp', fpTypes, fcmuoCode)
-    # TODO: FCMLA (indexed)
-    # TODO: FCMLA (vectors)
+    # FCMLA (indexed)
+    sveComplexMulAddInst('fcmla', 'Fcmlai', 'SimdFloatMultAccOp',
+            fpTypes[1:], predType = PredType.NONE)
+    # FCMLA (vectors)
+    sveComplexMulAddInst('fcmla', 'Fcmlav', 'SimdFloatMultAccOp',
+            fpTypes, predType = PredType.MERGE)
     # FCPY
     sveWideImmInst('fcpy', 'Fcpy', 'SimdAluOp', unsignedTypes, dupCode,
                    predType=PredType.MERGE, isUnary=True)

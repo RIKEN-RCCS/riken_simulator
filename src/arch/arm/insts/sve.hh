@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 ARM Limited
+ * Copyright (c) 2017-2019 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -813,6 +813,41 @@ class SveDotProdOp : public ArmStaticInst {
 
     std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;
 };
+
+/// SVE Complex Instructions (vectors)
+class SveComplexOp : public ArmStaticInst {
+  protected:
+    IntRegIndex dest, op1, op2, gp;
+    uint8_t rot;
+
+  public:
+    SveComplexOp(const char* mnem, ExtMachInst _machInst,
+            OpClass __opClass, IntRegIndex _dest, IntRegIndex _op1,
+            IntRegIndex _op2, IntRegIndex _gp, uint8_t _rot) :
+        ArmStaticInst(mnem, _machInst, __opClass),
+        dest(_dest), op1(_op1), op2(_op2), gp(_gp), rot(_rot)
+    {}
+
+    std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;
+};
+
+/// SVE Complex Instructions (indexed)
+class SveComplexIdxOp : public ArmStaticInst {
+  protected:
+    IntRegIndex dest, op1, op2;
+    uint8_t rot, imm;
+
+  public:
+    SveComplexIdxOp(const char* mnem, ExtMachInst _machInst,
+            OpClass __opClass, IntRegIndex _dest, IntRegIndex _op1,
+            IntRegIndex _op2, uint8_t _rot, uint8_t _imm) :
+        ArmStaticInst(mnem, _machInst, __opClass),
+        dest(_dest), op1(_op1), op2(_op2), rot(_rot), imm(_imm)
+    {}
+
+    std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;
+};
+
 
 /// Returns the symbolic name associated with pattern `imm` for PTRUE(S)
 /// instructions.
