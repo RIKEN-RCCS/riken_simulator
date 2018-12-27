@@ -705,6 +705,14 @@ MiscReg ISA::readTimerReg(int misc_reg, ThreadContext *tc)
     if (FullSystem){
         return getGenericTimer(tc).readMiscReg(misc_reg);
     }else{
+        switch(misc_reg){
+        case MISCREG_CNTFRQ:
+        case MISCREG_CNTFRQ_EL0:
+            return SimClock::Frequency;
+        case MISCREG_CNTVCT:
+        case MISCREG_CNTVCT_EL0:
+            return curTick();
+        }
         panic("Not implemented yet");
     }
     return 0;
