@@ -662,7 +662,7 @@ ISA::readMiscReg(int misc_reg, ThreadContext *tc)
       case MISCREG_CNTPCT ... MISCREG_CNTHP_CVAL:
       case MISCREG_CNTKCTL_EL1 ... MISCREG_CNTV_CVAL_EL0:
       case MISCREG_CNTVOFF_EL2 ... MISCREG_CNTPS_CVAL_EL1:
-        return getGenericTimer(tc).readMiscReg(misc_reg);
+        return readTimerReg(misc_reg, tc);
 
       default:
         break;
@@ -691,6 +691,23 @@ ISA::setMiscRegNoEffect(int misc_reg, const MiscReg &val)
         DPRINTF(MiscRegs, "Writing to misc reg %d (%d) : %#x\n",
                 misc_reg, lower, v);
     }
+}
+void ISA::setTimerReg(int misc_reg, const MiscReg &newVal, ThreadContext *tc)
+{
+    if (FullSystem){
+        getGenericTimer(tc).setMiscReg(misc_reg, newVal);
+    }else{
+        panic("Not implemented yet");
+    }
+}
+MiscReg ISA::readTimerReg(int misc_reg, ThreadContext *tc)
+{
+    if (FullSystem){
+        return getGenericTimer(tc).readMiscReg(misc_reg);
+    }else{
+        panic("Not implemented yet");
+    }
+    return 0;
 }
 
 namespace {
@@ -1796,7 +1813,7 @@ ISA::setMiscReg(int misc_reg, const MiscReg &val, ThreadContext *tc)
           case MISCREG_CNTPCT ... MISCREG_CNTHP_CVAL:
           case MISCREG_CNTKCTL_EL1 ... MISCREG_CNTV_CVAL_EL0:
           case MISCREG_CNTVOFF_EL2 ... MISCREG_CNTPS_CVAL_EL1:
-            getGenericTimer(tc).setMiscReg(misc_reg, newVal);
+            setTimerReg(misc_reg, newVal, tc);
             break;
           case MISCREG_ZCR_EL3:
           case MISCREG_ZCR_EL2:

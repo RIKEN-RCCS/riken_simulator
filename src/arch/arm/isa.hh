@@ -402,7 +402,9 @@ namespace ArmISA
 
         void tlbiMVA(ThreadContext *tc, MiscReg newVal, bool secure_lookup,
                      bool hyp, uint8_t target_el);
-
+        void setTimerReg(int misc_reg, const MiscReg &newVal,
+                         ThreadContext *tc);
+        MiscReg readTimerReg(int misc_reg,ThreadContext *tc);
       public:
         void clear();
         void clear64(const ArmISAParams *p);
