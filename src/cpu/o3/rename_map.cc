@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2018 ARM Limited
+ * Copyright (c) 2016-2019 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -85,6 +85,8 @@ SimpleRenameMap::rename(const RegId& arch_reg)
         // Do not rename if the register is pinned
         assert(arch_reg.getNumPinnedWrites() == 0);  // Prevent pinning the
                                                      // same register twice
+        DPRINTF(Rename, "Renaming pinned reg, numPinnedWrites %d\n",
+                prev_reg->getNumPinnedWrites());
         renamed_reg = prev_reg;
         renamed_reg->decrNumPinnedWrites();
     } else {

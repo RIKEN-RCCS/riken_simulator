@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2012, 2014-2016, 2018 ARM Limited
+ * Copyright (c) 2010-2012, 2014-2016, 2018-2019 ARM Limited
  * Copyright (c) 2013 Advanced Micro Devices, Inc.
  * All rights reserved.
  *
@@ -943,7 +943,9 @@ DefaultRename<Impl>::doSquash(const InstSeqNum &squashed_seq_num, ThreadID tid)
         assert(hb_it != historyBuffer[tid].end());
 
         DPRINTF(Rename, "[tid:%u]: Removing history entry with sequence "
-                "number %i.\n", tid, hb_it->instSeqNum);
+                "number %i archReg %d newPhysReg %d oldPhysReg %d.\n",
+                tid, hb_it->instSeqNum, hb_it->archReg.index(),
+                hb_it->newPhysReg->index(), hb_it->prevPhysReg->index());
 
         // Undo the rename mapping only if it was really a change.
         // Special regs that are not really renamed (like misc regs
@@ -1104,11 +1106,7 @@ DefaultRename<Impl>::renameDestRegs(const DynInstPtr &inst, ThreadID tid)
 
         inst->flattenDestReg(dest_idx, flat_dest_regid);
 
-        if (rename_result.first->getNumPinnedWrites() == 0) {
-            // Mark scoreboard entry as not ready (only once for pinned
-            // registers)
-            scoreboard->unsetReg(rename_result.first);
-        }
+        scoreboard->unsetReg(rename_result.first);
 
         DPRINTF(Rename, "[tid:%u]: Renaming arch reg %i (%s) to physical "
                 "reg %i (%i).\n", tid, dest_reg.index(),
