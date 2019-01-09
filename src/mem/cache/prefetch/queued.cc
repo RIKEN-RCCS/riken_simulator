@@ -225,9 +225,22 @@ QueuedPrefetcher::insert(AddrPriority &pf_info, bool is_secure)
         pf_req->setFlags(Request::SECURE);
     }
     pf_req->taskId(ContextSwitchTaskId::Prefetcher);
-    PacketPtr pf_pkt = new Packet(pf_req,
-                                  (pf_req->pfdepth()) ?
-                                  MemCmd::SoftPFReq : MemCmd::HardPFReq);
+    Packet::Command cmd;
+    if (pf_req->pfdepth()){
+        if (pf_req->isPrefetchEx()){
+            cmd = MemCmd::SoftPFExReq;
+        }else{
+            cmd = MemCmd::SoftPFReq;
+        }
+    }else{
+        if (pf_req->isPrefetchEx()){
+            cmd = MemCmd::HardPFExReq;
+        }else{
+            cmd = MemCmd::HardPFReq;
+        }
+    }
+    PacketPtr pf_pkt = new Packet(pf_req,cmd);
+
     pf_pkt->allocate();
     DPRINTF(HWPrefetch, "Packet pfdepth %d %d\n", pf_req->pfdepth(),
             pf_pkt->pfdepth);
