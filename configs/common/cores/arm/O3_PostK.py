@@ -82,6 +82,7 @@ class O3_ARM_PostK_FLA(FUDesc):
                OpDesc(opClass='SimdCvt', opLat=9),
                OpDesc(opClass='SimdMult',opLat=9),
                OpDesc(opClass='SimdMultAcc',opLat=9),
+               OpDesc(opClass='SimdMvp', opLat=1),
 
                OpDesc(opClass='SimdReduceAdd', opLat=42),
                OpDesc(opClass='SimdReduceCmp', opLat=34),
@@ -177,6 +178,7 @@ class O3_ARM_PostK_FLB(FUDesc):
                OpDesc(opClass='SimdFloatMultAcc',opLat=9),
                OpDesc(opClass='SimdAluB', opLat=4),
                OpDesc(opClass='SimdMiscB', opLat=6),
+               OpDesc(opClass='SimdMvp', opLat=1),
 
                OpDesc(opClass='FloatAdd', opLat=9),
                OpDesc(opClass='FloatCmp', opLat=4),
