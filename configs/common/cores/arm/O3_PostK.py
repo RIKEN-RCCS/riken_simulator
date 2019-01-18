@@ -118,11 +118,11 @@ class O3_ARM_PostK_FLA(FUDesc):
                OpDesc(opClass='FloatMultAcc', opLat=9),
                OpDesc(opClass='FloatDiv', opLat=29, pipelined=False),
                #OpDesc(opClass='FloatDivs', opLat=29, pipelined=False),
-               #OpDesc(opClass='FloatDivd', opLat=43, pipelined=False),
+               OpDesc(opClass='FloatDivd', opLat=43, pipelined=False),
                #OpDesc(opClass='FloatMisc', opLat=4),
                OpDesc(opClass='FloatSqrt', opLat=29, pipelined=False),
                #OpDesc(opClass='FloatSqrts', opLat=29, pipelined=False),
-               #OpDesc(opClass='FloatSqrtd', opLat=43, pipelined=False),
+               OpDesc(opClass='FloatSqrtd', opLat=43, pipelined=False),
 
                #OpDesc(opClass='VectorExtVAlu', opLat=4),
                #OpDesc(opClass='VectorExtVAluA', opLat=4),

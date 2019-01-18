@@ -145,7 +145,7 @@ class MinorDefaultIntDivFU(MinorFU):
 class MinorDefaultFloatSimdFU(MinorFU):
     opClasses = minorMakeOpClassSet([
         'FloatAdd', 'FloatCmp', 'FloatCvt', 'FloatMisc', 'FloatMult',
-        'FloatMultAcc', 'FloatDiv', 'FloatSqrt',
+        'FloatMultAcc', 'FloatDiv', 'FloatDivd', 'FloatSqrt', 'FloatSqrtd',
         'SimdAdd', 'SimdAddAcc', 'SimdAlu', 'SimdCmp', 'SimdCvt',
         'SimdMisc', 'SimdMult', 'SimdMultAcc', 'SimdShift', 'SimdShiftAcc',
         'SimdDiv', 'SimdSqrt', 'SimdFloatAdd', 'SimdFloatAlu', 'SimdFloatCmp',

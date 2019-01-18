@@ -345,13 +345,18 @@ let {{
         "fplibMulAdd<uint32_t>(fplibNeg<uint32_t>(cOp3), cOp1, cOp2, fpscr)",
         "fplibMulAdd<uint64_t>(fplibNeg<uint64_t>(cOp3), cOp1, cOp2, fpscr)" )
 
-    def buildBinFpOp(name, Name, base, opClass, halfOp, singleOp, doubleOp):
+    def buildBinFpOp(name, Name, base, opClass, halfOp, singleOp, doubleOp,
+                     halfClass=None, doubleClass=None):
         global header_output, decoder_output, exec_output
+        if halfClass is None:
+                halfClass = opClass
+        if doubleClass is None:
+                doubleClass = opClass
 
         code = halfIntConvCode2 % { "op": halfOp }
         hIop = InstObjParams(name, Name + "H", base,
                 { "code": code,
-                  "op_class": opClass }, [])
+                  "op_class": halfClass }, [])
 
         code = singleIntConvCode2 % { "op": singleOp }
         sIop = InstObjParams(name, Name + "S", base,
@@ -361,7 +366,7 @@ let {{
         code = doubleIntConvCode2 % { "op": doubleOp }
         dIop = InstObjParams(name, Name + "D", base,
                 { "code": code,
-                  "op_class": opClass }, [])
+                  "op_class": doubleClass }, [])
 
         declareTempl     = eval(         base + "Declare");
         constructorTempl = eval("AA64" + base + "Constructor");
@@ -382,7 +387,8 @@ let {{
     buildBinFpOp("fdiv", "FDiv", "FpRegRegRegOp", "FloatDivOp",
                  "fplibDiv<uint16_t>(cOp1, cOp2, fpscr)",
                  "fplibDiv<uint32_t>(cOp1, cOp2, fpscr)",
-                 "fplibDiv<uint64_t>(cOp1, cOp2, fpscr)")
+                 "fplibDiv<uint64_t>(cOp1, cOp2, fpscr)",
+                 None, "FloatDivdOp")
     buildBinFpOp("fmul", "FMul", "FpRegRegRegOp", "FloatMultOp",
                  "fplibMul<uint16_t>(cOp1, cOp2, fpscr)",
                  "fplibMul<uint32_t>(cOp1, cOp2, fpscr)",
@@ -409,15 +415,21 @@ let {{
                  "fplibMaxNum<uint64_t>(cOp1, cOp2, fpscr)")
 
     def buildUnaryFpOp(name, Name, base, opClass,
-                       halfOp, singleOp, doubleOp = None):
+                       halfOp, singleOp, doubleOp = None,
+                       halfClass = None, doubleClass = None):
         if doubleOp is None:
             doubleOp = singleOp
+        if halfClass is None:
+            halfClass = opClass
+        if doubleClass is None:
+            doubleClass = opClass
+
         global header_output, decoder_output, exec_output
 
         code = halfIntConvCode % { "op": halfOp }
         hIop = InstObjParams(name, Name + "H", base,
                 { "code": code,
-                  "op_class": opClass }, [])
+                  "op_class": halfClass }, [])
         code = singleIntConvCode % { "op": singleOp }
         sIop = InstObjParams(name, Name + "S", base,
                 { "code": code,
@@ -425,7 +437,7 @@ let {{
         code = doubleIntConvCode % { "op": doubleOp }
         dIop = InstObjParams(name, Name + "D", base,
                 { "code": code,
-                  "op_class": opClass }, [])
+                  "op_class": doubleClass }, [])
 
         declareTempl     = eval(         base + "Declare");
         constructorTempl = eval("AA64" + base + "Constructor");
@@ -438,7 +450,7 @@ let {{
     buildUnaryFpOp("fsqrt", "FSqrt", "FpRegRegOp", "FloatSqrtOp",
                    "fplibSqrt<uint16_t>(cOp1, fpscr)",
                    "fplibSqrt<uint32_t>(cOp1, fpscr)",
-                   "fplibSqrt<uint64_t>(cOp1, fpscr)")
+                   "fplibSqrt<uint64_t>(cOp1, fpscr)", None, "FloatSqrtdOp")
 
     def buildSimpleUnaryFpOp(name, Name, base, opClass, halfOp, singleOp,
                              doubleOp = None, isIntConv = True):

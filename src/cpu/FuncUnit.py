@@ -45,7 +45,7 @@ class OpClass(Enum):
     vals = ['No_OpClass', 'IntAlu', 'IntMult', 'IntDiv','IntShift',
             'IntShiftLong', 'IntMFlow', 'FloatAdd',
             'FloatCmp', 'FloatCvt', 'FloatMult', 'FloatMultAcc', 'FloatDiv',
-            'FloatMisc', 'FloatSqrt',
+            'FloatMisc', 'FloatSqrt', 'FloatSqrtd', 'FloatDivd',
             'SimdAdd', 'SimdAddAcc', 'SimdAlu', 'SimdCmp', 'SimdCvt',
             'SimdMisc', 'SimdMult', 'SimdMultAcc', 'SimdShift', 'SimdShiftAcc',
             'SimdDivS', 'SimdDiv', 'SimdSqrt', 'SimdFloatAdd', 'SimdFloatAlu',

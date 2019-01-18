@@ -71,7 +71,10 @@ class FP_MultDiv(FUDesc):
                OpDesc(opClass='FloatMultAcc', opLat=5),
                OpDesc(opClass='FloatMisc', opLat=3),
                OpDesc(opClass='FloatDiv', opLat=12, pipelined=False),
-               OpDesc(opClass='FloatSqrt', opLat=24, pipelined=False) ]
+               OpDesc(opClass='FloatDivd', opLat=12, pipelined=False),
+               OpDesc(opClass='FloatSqrt', opLat=24, pipelined=False),
+               OpDesc(opClass='FloatSqrtd', opLat=24, pipelined=False)
+    ]
     count = 2
 
 class SIMD_Unit(FUDesc):
