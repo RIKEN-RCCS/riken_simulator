@@ -1,4 +1,4 @@
-# Copyright (c) 2017 ARM Limited
+# Copyright (c) 2017,2019 ARM Limited
 # All rights reserved.
 #
 # The license below extends only to copyright in the software and shall
@@ -50,25 +50,62 @@ from m5.objects import MathExprPowerModel, PowerModel
 import fs_bigLITTLE as bL
 
 
+# Define a simple power model
 class CpuPowerOn(MathExprPowerModel):
-    # 2A per IPC, 3pA per cache miss
-    # and then convert to Watt
-    dyn = "voltage * (2 * ipc + " \
-            "3 * 0.000000001 * dcache.overall_misses / sim_seconds)"
-    st = "4 * temp"
+    def __init__(self, sve_vl):
+        MathExprPowerModel.__init__(self)
+        # 2A per IPC, 3pA per cache miss, 40pA * SVE vector length for each
+        # simple vector instructioa, 80pA * width for multiplier vector
+        # instruction and then convert to Watt
+        # NOTE: These examples are for illustration only and have nothing to do
+        #       with real silicon!
+        self.dyn = "voltage * (2 * ipc + " \
+                "3 * 0.000000001 * dcache.overall_misses / sim_seconds + "\
+                "    0.000000001 * %i * "\
+                "(40 * (iq.FU_type_0::SimdAdd +"\
+                "iq.FU_type_0::SimdAddAcc +"\
+                "iq.FU_type_0::SimdAlu +"\
+                "iq.FU_type_0::SimdCmp +"\
+                "iq.FU_type_0::SimdCvt +"\
+                "iq.FU_type_0::SimdMisc +"\
+                "iq.FU_type_0::SimdShift +"\
+                "iq.FU_type_0::SimdShiftAcc +"\
+                "iq.FU_type_0::SimdReduceAdd +"\
+                "iq.FU_type_0::SimdReduceAlu +"\
+                "iq.FU_type_0::SimdReduceCmp +"\
+                "iq.FU_type_0::SimdPredAlu) +"\
+                ""\
+                "80 * (iq.FU_type_0::SimdMult +"\
+                "iq.FU_type_0::SimdMultAcc +"\
+                "iq.FU_type_0::SimdDiv +"\
+                "iq.FU_type_0::SimdSqrt +"\
+                "iq.FU_type_0::SimdFloatAdd +"\
+                "iq.FU_type_0::SimdFloatAlu +"\
+                "iq.FU_type_0::SimdFloatCmp +"\
+                "iq.FU_type_0::SimdFloatCvt +"\
+                "iq.FU_type_0::SimdFloatDiv +"\
+                "iq.FU_type_0::SimdFloatMisc +"\
+                "iq.FU_type_0::SimdFloatMult +"\
+                "iq.FU_type_0::SimdFloatMultAcc +"\
+                "iq.FU_type_0::SimdFloatSqrt +"\
+                "iq.FU_type_0::SimdFloatReduceAdd +"\
+                "iq.FU_type_0::SimdFloatReduceCmp))"\
+                "/ sim_seconds)" % sve_vl
+        self.st = "4 * temp"
 
 class CpuPowerOff(MathExprPowerModel):
     dyn = "0"
     st = "0"
 
 class CpuPowerModel(PowerModel):
-    pm = [
-        CpuPowerOn(), # ON
-        CpuPowerOff(), # CLK_GATED
-        CpuPowerOff(), # SRAM_RETENTION
-        CpuPowerOff(), # OFF
-    ]
-
+    def __init__(self, sve_vl):
+        PowerModel.__init__(self)
+        self.pm = [
+            CpuPowerOn(sve_vl), # ON
+            CpuPowerOff(), # CLK_GATED
+            CpuPowerOff(), # SRAM_RETENTION
+            CpuPowerOff(), # OFF
+        ]
 
 def main():
     parser = argparse.ArgumentParser(
@@ -88,7 +125,7 @@ def main():
             continue
 
         cpu.default_p_state = "ON"
-        cpu.power_model = CpuPowerModel()
+        cpu.power_model = CpuPowerModel(options.arm_sve_vl)
 
     bL.instantiate(options)
 
