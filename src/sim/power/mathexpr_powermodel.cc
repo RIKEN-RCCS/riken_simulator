@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 ARM Limited
+ * Copyright (c) 2016-2017,2019 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -39,6 +39,8 @@
 
 #include "sim/power/mathexpr_powermodel.hh"
 
+#include <algorithm>
+#include <regex>
 #include <string>
 
 #include "base/statistics.hh"
@@ -116,7 +118,74 @@ MathExprPowerModel::tryEval(const MathExpr &expr) const
     return value;
 }
 
+#define ALL(x) x.cbegin(), x.cend()
+static int
+getVecStatIdx(const std::vector<std::string>& names, const std::string &tag)
+{
+    auto is_empty =[](const std::string &s) {return s.empty();};
+    bool empty = names.empty() ||
+                 std::all_of(ALL(names), is_empty);
 
+    // Indices can either be tags or numerical; the stats system uses the tags
+    // if they exist
+    if (empty)
+        return std::stoi(tag);
+
+    auto pos = find(ALL(names), tag);
+    if (pos == names.cend()) {
+        warn("Could not find %s in vector stats", tag);
+        return -1;
+    }
+    return pos - names.cbegin();
+}
+#undef ALL
+
+struct V2D_Cache {
+    Stats::Vector2dInfo *info;
+    int idx;
+};
+
+bool MathExprPowerModel::parseVec2dStat(std::string name, Stats::Vector2dInfo
+        **out_v2di, int *out_idx) const {
+    using namespace Stats;
+
+    // Prune the name for vector stats, they look like this:
+    // iq.FU_type_0::Alu, really meaning iq.FU_type[0][Alu]
+    std::regex  split("([._[:alnum:]]*)_(\\w*)::(\\w*)");
+    std::smatch results;
+
+    bool matched = regex_match(name, results, split);
+    panic_if(!matched, "Could not match stat name %s", name.c_str());
+
+    auto bname = results[1];
+    auto xtag  = results[2];
+    auto ytag  = results[3];
+
+    auto it = stats_map.find(bname);
+    if (it == stats_map.cend()) {
+        warn("Failed to find stat '%s'\n", name);
+        failed = true;
+        return false;
+    }
+    Info *info = it->second;
+    auto v2di = dynamic_cast<Vector2dInfo *>(info);
+    if (!v2di)
+        return false;
+
+    int xidx = getVecStatIdx(v2di->subnames, xtag);
+    int yidx = getVecStatIdx(v2di->y_subnames, ytag);
+
+    if (xidx == -1 || yidx == -1)
+        return false;
+
+    assert (0 <= xidx && xidx < v2di->x);
+    assert (0 <= yidx && yidx < v2di->y);
+    int idx = xidx * v2di->y + yidx;
+
+    *out_idx  = idx;
+    *out_v2di = v2di;
+    return true;
+}
 double
 MathExprPowerModel::getStatValue(const std::string &name) const
 {
@@ -127,6 +196,27 @@ MathExprPowerModel::getStatValue(const std::string &name) const
         return _temp;
     } else if (name == "voltage") {
         return clocked_object->voltage();
+    }
+
+    // Check for a Vector 2D stat; first in cache
+    static std::unordered_map<std::string, V2D_Cache> v2d_cache;
+    auto v2d = v2d_cache.find(name);
+    if (v2d != v2d_cache.end()) {
+        // Found, pull out the data
+        auto v2di = v2d->second.info;
+        // cvec data is only initialised in prepare()
+        v2di->prepare();
+        return v2di->cvec[v2d->second.idx];
+    } else if (name.find("::") != name.npos) {
+        // Not found, but looks like a Vector 2D stat -> parse and add
+        Vector2dInfo *v2di;
+        int idx;
+        if (parseVec2dStat(name, &v2di, &idx)) {
+            // Add to cache
+            v2d_cache.emplace(name, V2D_Cache {v2di, idx});
+            v2di->prepare();
+            return v2di->cvec[idx];
+        }
     }
 
     // Try to cast the stat, only these are supported right now

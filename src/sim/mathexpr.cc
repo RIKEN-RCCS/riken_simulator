@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 ARM Limited
+ * Copyright (c) 2016,2019 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -71,7 +71,7 @@ MathExpr::MathExpr(std::string expr)
  * It will look for operators in priority order to recursively build the
  * tree, respecting parenthesization.
  * Constants can be expressed in any format accepted by std::stod, whereas
- * variables are essentially [A-Za-z0-9\.$\\]+
+ * variables are essentially [A-Za-z0-9\.$:\\]+
  */
 MathExpr::Node *
 MathExpr::parse(std::string expr) {
@@ -135,7 +135,7 @@ MathExpr::parse(std::string expr) {
                 !( (c >= 'a' && c <= 'z') ||
                    (c >= 'A' && c <= 'Z') ||
                    (c >= '0' && c <= '9') ||
-                   c == '$' || c == '\\' || c == '.' || c == '_');
+                   c == '$' || c == '\\' || c == '.' || c == '_' || c == ':');
 
         if (!contains_non_alpha) {
             Node * n = new Node();
@@ -144,6 +144,8 @@ MathExpr::parse(std::string expr) {
             return n;
         }
     }
+
+    warn("Expression parser could not parse %s", expr.c_str());
 
     return NULL;
 }
