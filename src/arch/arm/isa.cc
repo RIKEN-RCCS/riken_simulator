@@ -603,7 +603,18 @@ ISA::readMiscReg(int misc_reg, ThreadContext *tc)
             readMiscRegNoEffect(MISCREG_CPSR),
             readMiscRegNoEffect(MISCREG_SCR_EL3));
       case MISCREG_DCZID_EL0:
-        return 0x04;  // DC ZVA clear 64-byte chunks
+        {
+            //all caches have the same line size in gem5
+            //4 byte words in ARM
+            unsigned lineSizeWords =
+                tc->getSystemPtr()->cacheLineSize() / 4;
+            unsigned log2LineSizeWords = 0;
+
+            while (lineSizeWords >>= 1) {
+                ++log2LineSizeWords;
+            }
+            return log2LineSizeWords;
+        }
       case MISCREG_HCPTR:
         {
             MiscReg val = readMiscRegNoEffect(misc_reg);
