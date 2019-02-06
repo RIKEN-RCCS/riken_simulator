@@ -101,4 +101,6 @@ class KPrefetcher(QueuedPrefetcher):
     l1maxprfofs = Param.Int(2048, "L1 Max prefetchOffset")
     l2degree = Param.Int(2, "Number  of L2 prefetchs to generate")
     l2prftablesize = Param.Int(20, "PRF L2 Table size")
-    l2maxprfofs = Param.Int(2048, "Max L2 prefetchOffset")
+    l2maxprfofs = Param.Int(2048, "Max L2 prefetchOffset."
+                            "Set to Zero to disable prefetch")
+    writeprefetch = Param.Bool(True, "Exclusive request on write")

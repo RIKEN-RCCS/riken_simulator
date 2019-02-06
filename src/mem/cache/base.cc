@@ -207,7 +207,8 @@ BaseCache::regStats()
 
 // should writebacks be included here?  prior code was inconsistent...
 #define SUM_NON_DEMAND(s) \
-    (s[MemCmd::SoftPFReq] + s[MemCmd::HardPFReq] + s[MemCmd::SoftPFExReq])
+    (s[MemCmd::SoftPFReq] + s[MemCmd::HardPFReq] + \
+     s[MemCmd::SoftPFExReq] +s[MemCmd::HardPFExReq])
 
     demandHits
         .name(name() + ".demand_hits")

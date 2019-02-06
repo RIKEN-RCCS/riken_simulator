@@ -65,17 +65,19 @@ class KPrefetcher : public QueuedPrefetcher
     };
     struct KEntry
     {
-        KEntry() : pktAddr(0), prfAddr(0), incr(true)
+        KEntry() : pktAddr(0), prfAddr(0), incr(true), isStore(false)
         { }
 
         Addr pktAddr;
         Addr prfAddr;
         bool incr;
+        bool isStore;
     };
     using Kpftable = std::deque<KEntry>;
     Kpftable entriesl1;
     Kpftable entriesl2;
     TableParameters l1param, l2param;
+    bool writeprefetch;
     void
     calculateTable(Kpftable &entries, const PacketPtr &pkt,
                                 std::vector<AddrPriority> &addresses,

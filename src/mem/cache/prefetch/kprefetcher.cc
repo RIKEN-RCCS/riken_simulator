@@ -56,6 +56,7 @@ KPrefetcher::KPrefetcher(const KPrefetcherParams *p)
     l2param.degree = p->l2degree;
     l2param.slowstart = 0;
     l2param.flags= Request::PF_L2;
+    writeprefetch = p->writeprefetch;
     // Don't consult stride prefetcher on instruction accesses
     DPRINTF(HWPrefetch, "KPrefetcher installed\n");
 }
@@ -64,7 +65,9 @@ KPrefetcher::calculatePrefetch(const PacketPtr &pkt,
                                     std::vector<AddrPriority> &addresses)
 {
     calculateTable(entriesl1, pkt, addresses, l1param);
-    calculateTable(entriesl2, pkt, addresses, l2param);
+    if (l2param.prftablesize != 0){
+        calculateTable(entriesl2, pkt, addresses, l2param);
+    }
 }
 void
 KPrefetcher::calculateTable(Kpftable &entries, const PacketPtr &pkt,
@@ -82,6 +85,10 @@ KPrefetcher::calculateTable(Kpftable &entries, const PacketPtr &pkt,
     if (el != entries.end()){
         Addr prf_addr = el->prfAddr;
         int64_t stride = blkSize;
+        bool isStore = el->isStore;
+        if (pkt->isWrite()){
+            isStore = true;
+        }
 
         //Need to cast blkSize if this line is done above.
         stride = (el->incr) ? stride: -stride;
@@ -92,7 +99,14 @@ KPrefetcher::calculateTable(Kpftable &entries, const PacketPtr &pkt,
             for (int i = 0; i < effdegree; i++){
                 Addr addr = prf_addr + stride*i;
                 if (samePage(pkt_addr, addr)){
-                    addresses.push_back(AddrPriority(addr, 0, prm.flags));
+                    Request::Flags flg;
+                    flg = prm.flags
+                        |((isStore && writeprefetch) ?
+                          Request::PF_EXCLUSIVE :
+                          Request::PREFETCH)
+                        ;
+                    addresses.push_back(
+                        AddrPriority(addr, 0, flg));
                 }else{
                     DPRINTF(HWPrefetch, "Ignoring page crossing prefetch.\n");
                     break;
@@ -108,9 +122,11 @@ KPrefetcher::calculateTable(Kpftable &entries, const PacketPtr &pkt,
         en.pktAddr = pkt_addr + stride;
         en.prfAddr = prf_addr + stride*effdegree;
         en.incr = el->incr;
+        en.isStore = isStore;
 
-        DPRINTF(HWPrefetch, "Replace Prefetch %x-%x (%d)\n",
-                en.pktAddr, en.prfAddr, effdegree);
+        DPRINTF(HWPrefetch, "Replace Prefetch %x-%x %s(%d)\n",
+                en.pktAddr, en.prfAddr, effdegree,
+                en.isStore ? "Store": "Load" );
         entries.erase(el);
         if (samePage(pkt_addr, en.pktAddr)){
             entries.push_front(en);
@@ -121,10 +137,13 @@ KPrefetcher::calculateTable(Kpftable &entries, const PacketPtr &pkt,
         en0.pktAddr = pkt_addr + blkSize;
         if (!prm.slowstart)
             en0.prfAddr = pkt_addr + blkSize*2;
-
+        if (pkt->isWrite()){
+            en0.isStore = true;
+        }
         if (samePage(pkt_addr, en0.pktAddr)){
-            DPRINTF(HWPrefetch, "Add Prefetch forward %x-%x\n",
-                    en0.pktAddr, en0.prfAddr);
+            DPRINTF(HWPrefetch, "Add Prefetch forward %x-%x %s\n",
+                    en0.pktAddr, en0.prfAddr,
+                    (en0.isStore)? "Store": "Load");
             entries.push_front(en0);
         }
 
@@ -133,9 +152,13 @@ KPrefetcher::calculateTable(Kpftable &entries, const PacketPtr &pkt,
         if (!prm.slowstart)
             en1.prfAddr = pkt_addr - blkSize*2;
         en1.incr = false;
+        if (pkt->isWrite()){
+            en1.isStore = true;
+        }
         if (samePage(pkt_addr, en1.pktAddr)){
-            DPRINTF(HWPrefetch, "Add Prefetch back %x-%x\n",
-                    en1.pktAddr, en1.prfAddr);
+            DPRINTF(HWPrefetch, "Add Prefetch back %x-%x %s\n",
+                    en1.pktAddr, en1.prfAddr,
+                    en1.isStore?"Store":"Load");
             entries.push_front(en1);
         }
 

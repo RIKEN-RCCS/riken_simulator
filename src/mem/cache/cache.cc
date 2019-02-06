@@ -1596,7 +1596,7 @@ Cache::recvTimingResp(PacketPtr pkt)
             break;
 
           case MSHR::Target::FromPrefetcher:
-            assert(tgt_pkt->cmd == MemCmd::HardPFReq);
+            assert(tgt_pkt->isHardPF());
             if (blk)
                 blk->status |= BlkHWPrefetched;
             delete tgt_pkt->req;
@@ -2602,7 +2602,7 @@ Cache::sendMSHRQueuePacket(MSHR* mshr)
 
     CacheBlk *blk = tags->findBlock(mshr->blkAddr, mshr->isSecure);
 
-    if (tgt_pkt->cmd == MemCmd::HardPFReq && forwardSnoops) {
+    if (tgt_pkt->isHardPF() && forwardSnoops) {
         // we should never have hardware prefetches to allocated
         // blocks
         assert(blk == nullptr);

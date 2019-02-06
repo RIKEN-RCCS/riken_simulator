@@ -1201,6 +1201,10 @@ class Packet : public Printable
                                other->getPtr<uint8_t>() : NULL);
     }
 
+    bool isHardPF() const
+    {
+        return ((cmd == MemCmd::HardPFExReq)||(cmd == MemCmd::HardPFReq));
+    }
     /**
      * Does the request need to check for cached copies of the same block
      * in the memory hierarchy above.
@@ -1208,7 +1212,8 @@ class Packet : public Printable
     bool
     mustCheckAbove() const
     {
-        return cmd == MemCmd::HardPFReq || isEviction();
+        return (cmd == MemCmd::HardPFExReq) || (cmd == MemCmd::HardPFReq)
+            || isEviction();
     }
 
     /**
