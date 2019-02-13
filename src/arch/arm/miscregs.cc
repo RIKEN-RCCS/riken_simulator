@@ -3360,12 +3360,21 @@ ISA::initializeMiscRegMetadata()
     InitReg(MISCREG_TEEHBR32_EL1);
 
     // AArch64 registers (Op0=1,3);
-    InitReg(MISCREG_MIDR_EL1)
-      .allPrivileges().exceptUserMode().writes(0);
-    InitReg(MISCREG_MPIDR_EL1)
-      .allPrivileges().exceptUserMode().writes(0);
-    InitReg(MISCREG_REVIDR_EL1)
-      .allPrivileges().exceptUserMode().writes(0);
+    if (FullSystem){
+        InitReg(MISCREG_MIDR_EL1)
+            .allPrivileges().exceptUserMode().writes(0);
+        InitReg(MISCREG_MPIDR_EL1)
+            .allPrivileges().exceptUserMode().writes(0);
+        InitReg(MISCREG_REVIDR_EL1)
+            .allPrivileges().exceptUserMode().writes(0);
+    }else{
+        InitReg(MISCREG_MIDR_EL1)
+            .allPrivileges().writes(0);
+        InitReg(MISCREG_MPIDR_EL1)
+            .allPrivileges().writes(0);
+        InitReg(MISCREG_REVIDR_EL1)
+            .allPrivileges().writes(0);
+    }
     InitReg(MISCREG_ID_PFR0_EL1)
       .allPrivileges().exceptUserMode().writes(0);
     InitReg(MISCREG_ID_PFR1_EL1)

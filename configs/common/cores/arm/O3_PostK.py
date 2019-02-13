@@ -28,6 +28,8 @@
 
 
 from m5.objects import *
+class FujitsuArmISA(ArmISA):
+    midr = 0x460F0010
 
 # ALU Instructions have a latency of 1
 class O3_ARM_PostK_Int_A(FUDesc):
@@ -275,6 +277,12 @@ class O3_ARM_PostK_3(DerivO3CPU):
     switched_out = False
     requestLineWidth=2048
     branchPred = O3_ARM_PostK_BP()
+    def createThreads(self):
+        # If no ISAs have been created, assume that the user wants the
+        # default ISA.
+        self.isa = [ FujitsuArmISA() for i in xrange(self.numThreads)]
+        if self.checker != NULL:
+            self.checker.createThreads()
 
 # Instruction Cache
 class O3_ARM_PostK_ICache(Cache):
