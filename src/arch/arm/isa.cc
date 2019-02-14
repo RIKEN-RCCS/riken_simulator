@@ -126,6 +126,11 @@ ISA::clear()
         return;
     }
 
+    if (!FullSystem){
+        TTBCR tcr = 0;
+        tcr.tbi0 = 1;
+        miscRegs[MISCREG_TTBCR_NS] = tcr;
+    }
     // Initialize AArch32 state...
 
     CPSR cpsr = 0;
