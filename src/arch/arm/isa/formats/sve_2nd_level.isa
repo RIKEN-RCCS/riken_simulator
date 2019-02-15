@@ -2717,6 +2717,28 @@ namespace Aarch64
     }  // decodeSveFpFusedMulAdd
 
     StaticInstPtr
+    decodeSveFpCplxAdd(ExtMachInst machInst)
+    {
+        uint8_t size = bits(machInst, 23, 22);
+        uint8_t rot = bits(machInst, 16) << 1 | 0x01;
+        IntRegIndex zdn = (IntRegIndex) (uint8_t) bits(machInst, 4, 0);
+        IntRegIndex zm = (IntRegIndex) (uint8_t) bits(machInst, 9, 5);
+        IntRegIndex pg = (IntRegIndex) (uint8_t) bits(machInst, 12, 10);
+        switch (size) {
+            case 1:
+                return new SveFcadd<uint16_t>(machInst,
+                        zdn, zdn, zm, pg, rot);
+            case 2:
+                return new SveFcadd<uint32_t>(machInst,
+                        zdn, zdn, zm, pg, rot);
+            case 3:
+                return new SveFcadd<uint64_t>(machInst,
+                        zdn, zdn, zm, pg, rot);
+        }
+        return new Unknown64(machInst);
+    }
+
+    StaticInstPtr
     decodeSveFpCplxMulAddVec(ExtMachInst machInst)
     {
         uint8_t size = bits(machInst, 23, 22);

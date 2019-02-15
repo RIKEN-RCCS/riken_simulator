@@ -2930,6 +2930,53 @@ let {{
                     'class_name' : 'Sve' + Name}
             exec_output += SveOpExecDeclare.subst(substDict)
 
+    # Generate definitions for complex addition instructions
+    def sveComplexAddInst(name, Name, opClass, types,
+            decoder = 'Generic'):
+        global header_output, exec_output, decoders
+        code = sveEnabledCheckCode + '''
+        unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
+                xc->tcBase());'''
+        code += '''
+        bool sub_i = (rot == 1);
+        bool sub_r = (rot == 3);
+        for (int i = 0; i < eCount / 2; ++i) {
+            Element acc_r = AA64FpOp1_x[2 * i];
+            Element acc_i = AA64FpOp1_x[2 * i + 1];
+            Element elt2_r = AA64FpOp2_x[2 * i];
+            Element elt2_i = AA64FpOp2_x[2 * i + 1];
+
+            FPSCR fpscr;
+            if (GpOp_x[2 * i]) {
+                if (sub_i) {
+                    elt2_i = fplibNeg<Element>(elt2_i);
+                }
+                fpscr =  (FPSCR) FpscrExc;
+                acc_r = fplibAdd<Element>(acc_r, elt2_i, fpscr);
+                FpscrExc = fpscr;
+            }
+            if (GpOp_x[2 * i + 1]) {
+                if (sub_r) {
+                    elt2_r = fplibNeg<Element>(elt2_r);
+                }
+                fpscr =  (FPSCR) FpscrExc;
+                acc_i = fplibAdd<Element>(acc_i, elt2_r, fpscr);
+                FpscrExc = fpscr;
+            }
+
+            AA64FpDest_x[2 * i] = acc_r;
+            AA64FpDest_x[2 * i + 1] = acc_i;
+        }
+        '''
+        iop = InstObjParams(name, 'Sve' + Name, 'SveComplexOp',
+                {'code': code, 'op_class': opClass}, [])
+        header_output += SveComplexOpDeclare.subst(iop)
+        exec_output += SveOpExecute.subst(iop)
+        for type in types:
+            substDict = {'targs' : type,
+                    'class_name' : 'Sve' + Name}
+            exec_output += SveOpExecDeclare.subst(substDict)
+
     # Generate definitions for complex multiply and accumulate instructions
     def sveComplexMulAddInst(name, Name, opClass, types,
             predType=PredType.NONE, decoder='Generic'):
@@ -3467,6 +3514,8 @@ let {{
     faddvCode = fpReduceOp % 'Add'
     sveNonAssocReducInst('faddv', 'Faddv', 'SimdFloatReduceAddOp', floatTypes,
                          faddvCode, '0')
+    # FCADD
+    sveComplexAddInst('fcadd','Fcadd', 'SimdFloatAddOp', fpTypes)
     # FCMEQ (vectors)
     fpCmpOp = fpOp % ('fplibCompare%s<Element>(srcElem1, srcElem2, fpscr)')
     fcmeqCode = fpCmpOp % 'EQ'
