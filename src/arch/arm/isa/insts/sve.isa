@@ -3867,7 +3867,9 @@ let {{
         destElem = AA64FpOp1_x[last];'''
     sveSelectInst('lasta', 'Lasta', 'SimdAluOp', unsignedTypes, lastaCode,
             isCond = False)
-    # TODO: LASTA (SIMD&FP scalar)
+    # LASTA (SIMD&FP scalar)
+    sveSelectInst('lasta', 'Lastaf', 'SimdAluOp', unsignedTypes, lastaCode,
+            isCond = False, destType = DstRegType.SimdFpScalar)
     # LASTB (scalar)
     lastbCode = '''
         if (last < 0) {
@@ -3876,7 +3878,9 @@ let {{
         destElem = AA64FpOp1_x[last];'''
     sveSelectInst('lastb', 'Lastb', 'SimdAluOp', unsignedTypes, lastbCode,
             isCond = False)
-    # TODO: LASTB (SIMD&FP scalar)
+    # LASTB (SIMD&FP scalar)
+    sveSelectInst('lastb', 'Lastbf', 'SimdAluOp', unsignedTypes, lastbCode,
+            isCond = False, destType = DstRegType.SimdFpScalar)
     # LSL (immediate, predicated)
     lslCode = '''
             if (srcElem2 == 0) {

@@ -1218,7 +1218,18 @@ namespace Aarch64
             break;
           case 0x1:
             if (!b13) {
-                // sve_int_perm_last_v
+                uint8_t AB = bits(machInst, 16);
+                uint8_t size = bits(machInst, 23, 22);
+                IntRegIndex pg = (IntRegIndex)(uint8_t) bits(machInst, 12, 10);
+                IntRegIndex zn = (IntRegIndex)(uint8_t) bits(machInst, 9, 5);
+                IntRegIndex vd = (IntRegIndex)(uint8_t) bits(machInst, 4, 0);
+                if (!AB) {
+                    return decodeSveUnaryPredU<SveLastaf>(size,
+                            machInst, vd, zn, pg);
+                } else {
+                    return decodeSveUnaryPredU<SveLastbf>(size,
+                            machInst, vd, zn, pg);
+                }
             }
             break;
           case 0x4:
