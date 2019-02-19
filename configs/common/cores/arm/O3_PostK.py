@@ -313,8 +313,8 @@ class O3_ARM_PostK_DCache(Cache):
     one_port = True
     #prefetcher = StridePrefetcher(degree=8, latency = 1)
     prefetcher = KPrefetcher(l1degree=2, latency=1,
-                             l1maxprfofs=2048, on_inst=False,
-                             writeprefetch=False)
+                             l1maxprfofs=10240, on_inst=False,
+                             writeprefetch=True)
 
 # TLB Cache
 # Use a cache as a L2 TLB
