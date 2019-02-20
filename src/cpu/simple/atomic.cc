@@ -444,10 +444,10 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size, Addr addr,
 {
     SimpleExecContext& t_info = *threadInfo[curThread];
     SimpleThread* thread = t_info.thread;
-    static uint8_t zero_array[64] = {};
+    static uint8_t zero_array[256] = {};
 
     if (data == NULL) {
-        assert(size <= 64);
+        assert(size <= 256);
         assert(flags & Request::STORE_NO_DATA);
         // This must be a cache block cleaning request
         data = zero_array;
