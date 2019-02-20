@@ -31,6 +31,14 @@ from m5.objects import *
 class FujitsuArmISA(ArmISA):
     midr = 0x460F0010
 
+class Atomic_PostKCPU(AtomicSimpleCPU):
+    def createThreads(self):
+        # If no ISAs have been created, assume that the user wants the
+        # default ISA.
+        self.isa = [ FujitsuArmISA() for i in xrange(self.numThreads)]
+        if self.checker != NULL:
+            self.checker.createThreads()
+
 # ALU Instructions have a latency of 1
 class O3_ARM_PostK_Int_A(FUDesc):
     opList = [ OpDesc(opClass='IntAlu', opLat=1),
