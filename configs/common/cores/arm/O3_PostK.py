@@ -92,7 +92,7 @@ class O3_ARM_PostK_FLA(FUDesc):
                OpDesc(opClass='SimdCvt', opLat=9),
                OpDesc(opClass='SimdMult',opLat=9),
                OpDesc(opClass='SimdMultAcc',opLat=9),
-               OpDesc(opClass='SimdMvp', opLat=1),
+#               OpDesc(opClass='SimdMvp', opLat=1),
 
                OpDesc(opClass='SimdReduceAdd', opLat=42),
                OpDesc(opClass='SimdReduceAlu', opLat=34),
@@ -189,7 +189,7 @@ class O3_ARM_PostK_FLB(FUDesc):
                OpDesc(opClass='SimdFloatMultAcc',opLat=9),
                OpDesc(opClass='SimdAluB', opLat=4),
                OpDesc(opClass='SimdMiscB', opLat=6),
-               OpDesc(opClass='SimdMvp', opLat=1),
+#               OpDesc(opClass='SimdMvp', opLat=1),
 
                OpDesc(opClass='FloatAdd', opLat=9),
                OpDesc(opClass='FloatCmp', opLat=4),
@@ -309,11 +309,11 @@ class O3_ARM_PostK_DCache(Cache):
     tag_latency = 2
     data_latency = 3
     response_latency = 3
-    mshrs = 21
+    mshrs = 42
     tgts_per_mshr = 32
     size = '64kB'
     assoc = 4
-    write_buffers = 21
+    write_buffers = 42
     writeback_clean = False
     prefetch_on_access = True
     downgrade_on_shared_req = False
@@ -322,9 +322,9 @@ class O3_ARM_PostK_DCache(Cache):
     evict_latency = 3
     writeback_latency = 4
     #prefetcher = StridePrefetcher(degree=8, latency = 1)
-    prefetcher = KPrefetcher(l1degree=2, latency=1,
+    prefetcher = KPrefetcher(l1degree=2, latency=1, queue_size=80,
                              l1maxprfofs=1536, on_inst=False,
-                             l2maxprfofs=10240, writeprefetch=False)
+                             l2maxprfofs=10240, writeprefetch=True)
 
 # TLB Cache
 # Use a cache as a L2 TLB
