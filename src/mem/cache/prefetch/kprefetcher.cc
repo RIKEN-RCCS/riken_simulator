@@ -64,8 +64,22 @@ void
 KPrefetcher::calculatePrefetch(const PacketPtr &pkt,
                                     std::vector<AddrPriority> &addresses)
 {
-    calculateTable(entriesl1, pkt, addresses, l1param);
-    if (l2param.prftablesize != 0){
+    bool noL1 = false;
+    bool noL2 = false;
+
+    if (pkt->req->hasVaddr()){
+        //HPC Tag (This prefetcher is dedicated to PostK)
+        Addr va = pkt->req->getVaddr();
+        if (bits(va, 63, 56))
+            DPRINTF(HWPrefetch, "vaflags %x\n", va);
+        noL1 = bits(va,62);
+        noL2 = bits(va,61);
+    }
+    if (!noL1){
+        calculateTable(entriesl1, pkt, addresses, l1param);
+    }
+    if (!noL2 &&
+        (l2param.prftablesize != 0)){
         calculateTable(entriesl2, pkt, addresses, l2param);
     }
 }
