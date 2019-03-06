@@ -228,9 +228,9 @@ QueuedPrefetcher::insert(AddrPriority &pf_info, bool is_secure)
     Packet::Command cmd;
     if (pf_req->pfdepth()){
         if (pf_req->isPrefetchEx()){
-            cmd = MemCmd::SoftPFExReq;
+            cmd = MemCmd::IndirectPFExReq;
         }else{
-            cmd = MemCmd::SoftPFReq;
+            cmd = MemCmd::IndirectPFReq;
         }
     }else{
         if (pf_req->isPrefetchEx()){

@@ -96,6 +96,8 @@ class MemCmd
         SoftPFExReq,
         HardPFReq,
         HardPFExReq,
+        IndirectPFReq,
+        IndirectPFExReq,
         SoftPFResp,
         HardPFResp,
         WriteLineReq,
