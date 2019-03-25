@@ -43,7 +43,8 @@
 #include "debug/HWPrefetch.hh"
 
 KPrefetcher::KPrefetcher(const KPrefetcherParams *p)
-    : QueuedPrefetcher(p)
+    : QueuedPrefetcher(p),writeprefetch(p->writeprefetch),
+      hpctag(p->hpctag)
 {
     l1param.prftablesize = p->l1prftablesize;
     l1param.maxprfofs = p->l1maxprfofs;
@@ -56,7 +57,7 @@ KPrefetcher::KPrefetcher(const KPrefetcherParams *p)
     l2param.degree = p->l2degree;
     l2param.slowstart = 0;
     l2param.flags= Request::PF_L2;
-    writeprefetch = p->writeprefetch;
+
     // Don't consult stride prefetcher on instruction accesses
     DPRINTF(HWPrefetch, "KPrefetcher installed\n");
 }
@@ -67,7 +68,7 @@ KPrefetcher::calculatePrefetch(const PacketPtr &pkt,
     bool noL1 = false;
     bool noL2 = false;
 
-    if (pkt->req->hasVaddr()){
+    if (pkt->req->hasVaddr() && hpctag){
         //HPC Tag (This prefetcher is dedicated to PostK)
         Addr va = pkt->req->getVaddr();
         if (bits(va, 63, 56))

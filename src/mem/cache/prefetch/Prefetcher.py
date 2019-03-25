@@ -104,3 +104,4 @@ class KPrefetcher(QueuedPrefetcher):
     l2maxprfofs = Param.Int(2048, "Max L2 prefetchOffset."
                             "Set to Zero to disable prefetch")
     writeprefetch = Param.Bool(True, "Exclusive request on write")
+    hpctag = Param.Bool(True, "HPC tag support for prefetch")

@@ -78,6 +78,7 @@ class KPrefetcher : public QueuedPrefetcher
     Kpftable entriesl2;
     TableParameters l1param, l2param;
     bool writeprefetch;
+    bool hpctag;
     void
     calculateTable(Kpftable &entries, const PacketPtr &pkt,
                                 std::vector<AddrPriority> &addresses,
