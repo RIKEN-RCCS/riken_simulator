@@ -164,6 +164,8 @@ AddLocalOption('--with-ubsan', dest='with_ubsan', action='store_true',
                help='Build with Undefined Behavior Sanitizer if available')
 AddLocalOption('--with-asan', dest='with_asan', action='store_true',
                help='Build with Address Sanitizer if available')
+AddLocalOption('--disable-warn', dest='disable_warn', action='store_true',
+               help='Do not display warning')
 
 if GetOption('no_lto') and GetOption('force_lto'):
     print('--no-lto and --force-lto are mutually exclusive')
@@ -1139,6 +1141,11 @@ for variant_path in variant_paths:
     # Make a copy of the build-root environment to use for this config.
     env = main.Clone()
     env['BUILDDIR'] = variant_path
+
+    if GetOption('disable_warn'):
+        env.Append(CPPDEFINES=['NWARN'])
+        env.Append(CCFLAGS=['-Wno-error=unused-but-set-variable',
+                            '-Wno-error=unused-variable'])
 
     # variant_dir is the tail component of build path, and is used to
     # determine the build parameters (e.g., 'ALPHA_SE')

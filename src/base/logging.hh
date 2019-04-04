@@ -208,12 +208,30 @@ class Logger
         }                                                       \
     } while (0)
 
+#ifdef NWARN
+#define base_message_dummy(logger, ...) do {} while (0)
+#define base_message_once_dummy(...) do {	\
+    static bool once = false;			\
+    if (!once) {				\
+      base_message_dummy(__VA_ARGS__);		\
+      once = true;				\
+    }						\
+  } while (0)
+#endif
 
+#ifdef NWARN
+#define warn(...) base_message_dummy(::Logger::getWarn(), __VA_ARGS__)
+#else
 #define warn(...) base_message(::Logger::getWarn(), __VA_ARGS__)
+#endif
 #define inform(...) base_message(::Logger::getInfo(), __VA_ARGS__)
 #define hack(...) base_message(::Logger::getHack(), __VA_ARGS__)
 
+#ifdef NWARN
+#define warn_once(...) base_message_once_dummy(::Logger::getWarn(), __VA_ARGS__)
+#else
 #define warn_once(...) base_message_once(::Logger::getWarn(), __VA_ARGS__)
+#endif
 #define inform_once(...) base_message_once(::Logger::getInfo(), __VA_ARGS__)
 #define hack_once(...) base_message_once(::Logger::getHack(), __VA_ARGS__)
 
