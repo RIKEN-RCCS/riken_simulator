@@ -93,7 +93,7 @@ ArmProcess64::ArmProcess64(ProcessParams *params, ObjectFile *objFile,
     Addr brk_point = roundUp(objFile->dataBase() + objFile->dataSize() +
                              objFile->bssSize(), PageBytes);
     Addr stack_base = 0x7fffff0000L;
-    Addr max_stack_size = 8 * 1024 * 1024;
+    Addr max_stack_size = 1024 * 1024 * 1024;
     Addr next_thread_stack_base = stack_base - max_stack_size;
     Addr mmap_end = 0x4000000000L;
 
