@@ -250,6 +250,7 @@ MSHR::allocate(Addr blk_addr, unsigned blk_size, PacketPtr target,
     _isUncacheable = target->req->isUncacheable()|| target->pfdepth;
     inService = false;
     downstreamPending = false;
+    masterId = target->req->masterId();
     assert(targets.isReset());
     // Don't know of a case where we would allocate a new MSHR for a
     // snoop (mem-side request), so set source according to request here

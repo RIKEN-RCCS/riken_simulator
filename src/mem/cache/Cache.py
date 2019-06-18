@@ -89,6 +89,7 @@ class BaseCache(MemObject):
                                     "forward downgrade on shared req")
     forward_clean_evict = Param.Bool(True,
                                   "forward clean evict on writeback")
+    use_master_id = Param.Bool(False, "Master round robin")
 
 # Enum for cache clusivity, currently mostly inclusive or mostly
 # exclusive.

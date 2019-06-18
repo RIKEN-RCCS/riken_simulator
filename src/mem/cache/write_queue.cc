@@ -51,8 +51,8 @@
 using namespace std;
 
 WriteQueue::WriteQueue(const std::string &_label,
-                       int num_entries, int reserve)
-    : Queue<WriteQueueEntry>(_label, num_entries, reserve)
+                       int num_entries, int reserve,bool use_master_id)
+    : Queue<WriteQueueEntry>(_label, num_entries, reserve, use_master_id)
 {}
 
 WriteQueueEntry *

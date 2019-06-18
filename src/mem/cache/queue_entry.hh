@@ -74,6 +74,7 @@ class QueueEntry : public Packet::SenderState
     /** True if the entry is uncacheable */
     bool _isUncacheable;
 
+    MasterID masterId;
   public:
 
     /** True if the entry has been sent downstream. */

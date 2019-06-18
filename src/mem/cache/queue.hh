@@ -52,6 +52,7 @@
 #include <cassert>
 
 #include "base/trace.hh"
+#include "debug/Cache.hh"
 #include "debug/Drain.hh"
 #include "mem/cache/queue_entry.hh"
 #include "sim/drain.hh"
@@ -94,11 +95,18 @@ class Queue : public Drainable
 
     typename Entry::Iterator addToReadyList(Entry* entry)
     {
+        std::vector<MasterID>::iterator exist;
+        exist = std::find(masterIDs.begin(), masterIDs.end(), entry->masterId);
+        if (exist == masterIDs.end()){
+            DPRINTF(Cache, "New Master %d\n", entry->masterId);
+            masterIDs.push_back(entry->masterId);
+            curMaster = masterIDs.begin();
+        }
+
         if (readyList.empty() ||
             readyList.back()->readyTime <= entry->readyTime) {
             return readyList.insert(readyList.end(), entry);
         }
-
         for (auto i = readyList.begin(); i != readyList.end(); ++i) {
             if ((*i)->readyTime > entry->readyTime) {
                 return readyList.insert(i, entry);
@@ -113,7 +121,9 @@ class Queue : public Drainable
 
     /** The number of currently allocated entries. */
     int allocated;
-
+    bool useMasterIDs;
+    std::vector<MasterID> masterIDs;
+    std::vector<MasterID>::iterator curMaster;
   public:
 
     /**
@@ -122,14 +132,16 @@ class Queue : public Drainable
      * @param num_entries The number of entries in this queue.
      * @param reserve The extra overflow entries needed.
      */
-    Queue(const std::string &_label, int num_entries, int reserve) :
+    Queue(const std::string &_label, int num_entries, int reserve,
+          bool use_master_id) :
         label(_label), numEntries(num_entries + reserve),
         numReserve(reserve), entries(numEntries), _numInService(0),
-        allocated(0)
+        allocated(0),useMasterIDs(use_master_id)
     {
         for (int i = 0; i < numEntries; ++i) {
             freeList.push_back(&entries[i]);
         }
+        curMaster = masterIDs.end();
     }
 
     bool isEmpty() const
@@ -203,12 +215,51 @@ class Queue : public Drainable
      * Returns the WriteQueueEntry at the head of the readyList.
      * @return The next request to service.
      */
-    Entry* getNext() const
+    Entry* getNext()
     {
         if (readyList.empty() || readyList.front()->readyTime > curTick()) {
             return nullptr;
         }
-        return readyList.front();
+
+#if 0
+        int counts = 0;
+        const auto& entry = readyList.front();
+        for (const auto& entry : readyList){
+            end = entry;
+            if (entry->readyTime >curTick())
+                break;
+            counts++;
+        }
+
+        if (counts > 1){
+            DPRINTF(Cache, "READYQUEUE %d\n", counts);
+        }
+#endif
+        if (!useMasterIDs)
+            return readyList.front();
+
+        assert(curMaster != masterIDs.end());
+
+        auto origMaster = curMaster;
+        Entry * res = nullptr;
+        do{
+            auto it = std::find_if(readyList.begin(), readyList.end(),
+                                 [&](Entry *e){
+                                     return ((e->readyTime <= curTick())&&
+                                             (e->masterId == *curMaster));
+                                 });
+            ++curMaster;
+            if (curMaster == masterIDs.end()){
+                curMaster = masterIDs.begin();
+            }
+
+            if (it != readyList.end()){
+                res = *it;
+                break;
+            }
+        }while (curMaster != origMaster);
+
+        return res;
     }
 
     Tick nextReadyTime() const

@@ -104,6 +104,7 @@ WriteQueueEntry::allocate(Addr blk_addr, unsigned blk_size, PacketPtr target,
     assert(target);
     _isUncacheable = target->req->isUncacheable();
     inService = false;
+    masterId = target->req->masterId();
 
     // we should never have more than a single target for cacheable
     // writes (writebacks and clean evictions)

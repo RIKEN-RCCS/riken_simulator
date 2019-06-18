@@ -50,8 +50,9 @@
 using namespace std;
 
 MSHRQueue::MSHRQueue(const std::string &_label,
-                     int num_entries, int reserve, int demand_reserve)
-    : Queue<MSHR>(_label, num_entries, reserve),
+                     int num_entries, int reserve, int demand_reserve,
+                     bool use_master_id)
+    : Queue<MSHR>(_label, num_entries, reserve, use_master_id),
       demandReserve(demand_reserve)
 {}
 
