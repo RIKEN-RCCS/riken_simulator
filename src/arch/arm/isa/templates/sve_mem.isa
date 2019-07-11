@@ -1214,7 +1214,7 @@ def template SveIntrlvMicroopDeclare {{
         %(class_name)s(const char* mnem, ExtMachInst machInst,
             IntRegIndex _dest, IntRegIndex _op1,
             uint8_t _numRegs, int _regIndex, StaticInst *_macroOp)
-            : MicroOp(mnem, machInst, SimdAluOp),
+            : MicroOp(mnem, machInst, SimdMvpOp),
             dest(_dest), op1(_op1), numRegs(_numRegs), regIndex(_regIndex),
             macroOp(_macroOp)
         {
@@ -1251,7 +1251,7 @@ def template SveDeIntrlvMicroopDeclare {{
         %(class_name)s(const char* mnem, ExtMachInst machInst,
             IntRegIndex _dest, uint8_t _numRegs, int _regIndex,
             StaticInst *_macroOp)
-            : MicroOp(mnem, machInst, SimdAluOp),
+            : MicroOp(mnem, machInst, SimdMvpOp),
             dest(_dest), numRegs(_numRegs), regIndex(_regIndex),
             macroOp(_macroOp)
         {
