@@ -1455,6 +1455,12 @@ Cache::recvTimingResp(PacketPtr pkt)
                 pkt->getAddr());
 
         blk = handleFill(pkt, blk, writebacks, mshr->allocOnFill());
+        // If write prefetch and in-service go dirty
+        if (initial_tgt->pkt->cmd.isPrefetch()&&
+           initial_tgt->pkt->needsWritable()&&
+           mshr->getNumTargets() > 1){
+            blk->status |= BlkDirty;
+        }
         assert(blk != nullptr);
     }
 
@@ -2210,7 +2216,8 @@ Cache::handleSnoop(PacketPtr pkt, CacheBlk *blk, bool is_timing,
         // cache maintenance operations as this is done by the destination
         // xbar.
         respond = blk->isDirty() && pkt->needsResponse();
-
+        DPRINTF(Cache, "IsDirty %d, NeedResponse %d\n", blk->isDirty(),
+                pkt->needsResponse());
         chatty_assert(!(isReadOnly && blk->isDirty()), "Should never have "
                       "a dirty block in a read-only cache %s\n", name());
     }
@@ -2351,6 +2358,7 @@ Cache::recvTimingSnoopReq(PacketPtr pkt)
     if (mshr && pkt->req->isCacheMaintenance() && pkt->satisfied()) {
         return;
     }
+    //XXX
 
     // Let the MSHR itself track the snoop and decide whether we want
     // to go ahead and do the regular cache snoop
@@ -2358,7 +2366,7 @@ Cache::recvTimingSnoopReq(PacketPtr pkt)
         DPRINTF(Cache, "Deferring snoop on in-service MSHR to blk %#llx (%s)."
                 "mshrs: %s\n", blk_addr, is_secure ? "s" : "ns",
                 mshr->print());
-
+        //YYY
         if (mshr->getNumTargets() > numTarget)
             warn("allocating bonus target for snoop"); //handle later
         return;
