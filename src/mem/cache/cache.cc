@@ -81,7 +81,9 @@ Cache::Cache(const CacheParams *p)
       downgradeOnSharedReq(p->downgrade_on_shared_req),
       forwardCleanEvict(p->forward_clean_evict),
       nextReqTime(0),
-      onePort(p->one_port)
+      onePort(p->one_port),
+      evictLatency(p->evict_latency),
+      writebackLatency(p->writeback_latency)
 {
     tempBlock = new CacheBlk();
     tempBlock->data = new uint8_t[blkSize];
@@ -1389,7 +1391,11 @@ Cache::recvTimingResp(PacketPtr pkt)
     }
     if (onePort){
         setBlocked(Blocked_Receiving);
-        schedule(onePortReleaseEvent, nextReqTime);
+        if (!onePortReleaseEvent.scheduled()){
+            schedule(onePortReleaseEvent, nextReqTime);
+        }else if (nextReqTime > onePortReleaseEvent.when()){
+            reschedule(onePortReleaseEvent, nextReqTime);
+        }
     }
 
     DPRINTF(Cache, "%s: Handling response %s\n", __func__,
@@ -1727,6 +1733,19 @@ Cache::writebackBlk(CacheBlk *blk)
 
     DPRINTF(Cache, "Create Writeback %s writable: %d, dirty: %d\n",
             pkt->print(), blk->isWritable(), blk->isDirty());
+    if (onePort){
+        setBlocked(Blocked_Receiving);
+        Tick when = clockEdge(writebackLatency);
+        if (!onePortReleaseEvent.scheduled()){
+            DPRINTF(Cache, "Schedule Writeback delay %d\n",
+                    when - curTick());
+            schedule(onePortReleaseEvent, when);
+        }else if (when > onePortReleaseEvent.when()){
+            DPRINTF(Cache, "Reschedule Writeback delay %d\n",
+                    when - curTick());
+            reschedule(onePortReleaseEvent, when);
+        }
+    }
 
     if (blk->isWritable()) {
         // not asserting shared means we pass the block in modified
@@ -1804,7 +1823,19 @@ Cache::cleanEvictBlk(CacheBlk *blk)
     PacketPtr pkt = new Packet(req, MemCmd::CleanEvict);
     pkt->allocate();
     DPRINTF(Cache, "Create CleanEvict %s\n", pkt->print());
-
+    if (onePort){
+            setBlocked(Blocked_Receiving);
+            Tick when = clockEdge(evictLatency);
+            if (!onePortReleaseEvent.scheduled()){
+                schedule(onePortReleaseEvent, when);
+                DPRINTF(Cache, "Schedule Evict delay %d\n",
+                    when - curTick());
+            }else if (when > onePortReleaseEvent.when()){
+                reschedule(onePortReleaseEvent, when);
+                DPRINTF(Cache, "Reschedule Evict delay %d\n",
+                        when - curTick());
+            }
+    }
     return pkt;
 }
 

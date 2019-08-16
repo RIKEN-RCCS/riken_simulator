@@ -120,3 +120,6 @@ class Cache(BaseCache):
     writeback_clean = Param.Bool(False, "Writeback clean lines")
     one_port = Param.Bool(False,
                           "Don't receive request while receiving response")
+    evict_latency = Param.Cycles(0, "Evict latency. only valid on one port")
+    writeback_latency = Param.Cycles(0, "Writeback latency."
+                                     "only valid on one port")

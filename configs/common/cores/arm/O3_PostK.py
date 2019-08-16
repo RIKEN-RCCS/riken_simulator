@@ -319,6 +319,8 @@ class O3_ARM_PostK_DCache(Cache):
     downgrade_on_shared_req = False
     forward_clean_evict = False
     one_port = True
+    evict_latency = 3
+    writeback_latency = 4
     #prefetcher = StridePrefetcher(degree=8, latency = 1)
     prefetcher = KPrefetcher(l1degree=2, latency=1,
                              l1maxprfofs=1536, on_inst=False,

@@ -542,6 +542,8 @@ class Cache : public BaseCache
     Tick nextReqTime;
     bool onePort;
     Stats::Scalar recvOverlap;
+    const Cycles evictLatency;
+    const Cycles writebackLatency;
 
     /**
      * Find next request ready time from among possible sources.
