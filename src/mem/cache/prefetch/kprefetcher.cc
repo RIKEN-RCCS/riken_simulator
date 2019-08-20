@@ -51,12 +51,14 @@ KPrefetcher::KPrefetcher(const KPrefetcherParams *p)
     l1param.degree = p->l1degree;
     l1param.slowstart = 1;
     l1param.flags = Request::PF_L1;
+    l1param.prio = 1;
 
     l2param.prftablesize = p->l2prftablesize;
     l2param.maxprfofs = p->l2maxprfofs;
     l2param.degree = p->l2degree;
     l2param.slowstart = 0;
     l2param.flags= Request::PF_L2;
+    l2param.prio = 0;
 
     // Don't consult stride prefetcher on instruction accesses
     DPRINTF(HWPrefetch, "KPrefetcher installed\n");
@@ -121,7 +123,7 @@ KPrefetcher::calculateTable(Kpftable &entries, const PacketPtr &pkt,
                           Request::PREFETCH)
                         ;
                     addresses.push_back(
-                        AddrPriority(addr, 0, flg));
+                        AddrPriority(addr, prm.prio , flg));
                 }else{
                     DPRINTF(HWPrefetch, "Ignoring page crossing prefetch.\n");
                     break;

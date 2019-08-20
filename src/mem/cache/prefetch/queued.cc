@@ -179,6 +179,38 @@ QueuedPrefetcher::regStats()
 }
 
 PacketPtr
+QueuedPrefetcher::createPfPacket(AddrPriority &pf_info, bool is_secure)
+{
+    /* Create a prefetch memory request */
+    Request *pf_req =
+        new Request(pf_info.first, blkSize, pf_info.flags, masterId);
+
+    if (is_secure) {
+        pf_req->setFlags(Request::SECURE);
+    }
+    pf_req->taskId(ContextSwitchTaskId::Prefetcher);
+    Packet::Command cmd;
+    if (pf_req->pfdepth()){
+        if (pf_req->isPrefetchEx()){
+            cmd = MemCmd::IndirectPFExReq;
+        }else{
+            cmd = MemCmd::IndirectPFReq;
+        }
+    }else{
+        if (pf_req->isPrefetchEx()){
+            cmd = MemCmd::HardPFExReq;
+        }else{
+            cmd = MemCmd::HardPFReq;
+        }
+    }
+    PacketPtr pf_pkt = new Packet(pf_req,cmd);
+    pf_pkt->allocate();
+
+    DPRINTF(HWPrefetch, "Packet pfdepth %d %d\n", pf_req->pfdepth(),
+            pf_pkt->pfdepth);
+    return pf_pkt;
+}
+PacketPtr
 QueuedPrefetcher::insert(AddrPriority &pf_info, bool is_secure)
 {
     if (queueFilter) {
@@ -188,7 +220,11 @@ QueuedPrefetcher::insert(AddrPriority &pf_info, bool is_secure)
             pfBufferHit++;
             if (it->priority < pf_info.second) {
                 /* Update priority value and position in the queue */
+                delete it->pkt->req;
+                delete it->pkt;
+                it->pkt = createPfPacket(pf_info, is_secure);
                 it->priority = pf_info.second;
+
                 iterator prev = it;
                 bool cont = true;
                 while (cont && prev != pfq.begin()) {
@@ -217,33 +253,8 @@ QueuedPrefetcher::insert(AddrPriority &pf_info, bool is_secure)
         return nullptr;
     }
 
-    /* Create a prefetch memory request */
-    Request *pf_req =
-        new Request(pf_info.first, blkSize, pf_info.flags, masterId);
+    PacketPtr pf_pkt = createPfPacket(pf_info, is_secure);
 
-    if (is_secure) {
-        pf_req->setFlags(Request::SECURE);
-    }
-    pf_req->taskId(ContextSwitchTaskId::Prefetcher);
-    Packet::Command cmd;
-    if (pf_req->pfdepth()){
-        if (pf_req->isPrefetchEx()){
-            cmd = MemCmd::IndirectPFExReq;
-        }else{
-            cmd = MemCmd::IndirectPFReq;
-        }
-    }else{
-        if (pf_req->isPrefetchEx()){
-            cmd = MemCmd::HardPFExReq;
-        }else{
-            cmd = MemCmd::HardPFReq;
-        }
-    }
-    PacketPtr pf_pkt = new Packet(pf_req,cmd);
-
-    pf_pkt->allocate();
-    DPRINTF(HWPrefetch, "Packet pfdepth %d %d\n", pf_req->pfdepth(),
-            pf_pkt->pfdepth);
     /* Verify prefetch buffer space for request */
     if (pfq.size() == queueSize) {
         pfRemovedFull++;

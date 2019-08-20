@@ -107,6 +107,7 @@ class QueuedPrefetcher : public BasePrefetcher
     using iterator = std::list<DeferredPacket>::iterator;
     std::list<DeferredPacket>::iterator inPrefetch(Addr address,
             bool is_secure);
+    PacketPtr createPfPacket(AddrPriority &p,bool is_secure);
 
     // STATS
     Stats::Scalar pfIdentified;

@@ -62,6 +62,7 @@ class KPrefetcher : public QueuedPrefetcher
         int maxprfofs;
         int degree;
         int slowstart;
+        int prio;
     };
     struct KEntry
     {
