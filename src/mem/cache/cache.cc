@@ -2392,7 +2392,6 @@ Cache::recvTimingSnoopReq(PacketPtr pkt)
     if (mshr && pkt->req->isCacheMaintenance() && pkt->satisfied()) {
         return;
     }
-    //XXX
 
     // Let the MSHR itself track the snoop and decide whether we want
     // to go ahead and do the regular cache snoop
@@ -2400,7 +2399,7 @@ Cache::recvTimingSnoopReq(PacketPtr pkt)
         DPRINTF(Cache, "Deferring snoop on in-service MSHR to blk %#llx (%s)."
                 "mshrs: %s\n", blk_addr, is_secure ? "s" : "ns",
                 mshr->print());
-        //YYY
+
         if (mshr->getNumTargets() > numTarget)
             warn("allocating bonus target for snoop"); //handle later
         return;
