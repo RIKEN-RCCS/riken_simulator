@@ -1389,7 +1389,7 @@ Cache::recvTimingResp(PacketPtr pkt)
         DPRINTF(Cache, "%s: Cache received %s with error\n", __func__,
                 pkt->print());
     }
-    if (onePort){
+    if (onePort && !pkt->cmd.isSWPrefetch()){
         setBlocked(Blocked_Receiving);
         if (!onePortReleaseEvent.scheduled()){
             schedule(onePortReleaseEvent, nextReqTime);
