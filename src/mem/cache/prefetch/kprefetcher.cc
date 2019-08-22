@@ -148,7 +148,8 @@ KPrefetcher::calculateTable(Kpftable &entries, const PacketPtr &pkt,
         if (samePage(pkt_addr, en.pktAddr)){
             entries.push_front(en);
         }
-    } else if (!inCache(pkt->getAddr(), pkt->isSecure()))
+    } else if (!inCache(pkt->getAddr(), pkt->isSecure())
+               && !inMissQueue(pkt->getAddr(), pkt->isSecure()))
       {
         KEntry en0;
         en0.pktAddr = pkt_addr + blkSize;
