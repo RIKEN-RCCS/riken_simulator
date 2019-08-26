@@ -309,11 +309,11 @@ class O3_ARM_PostK_DCache(Cache):
     tag_latency = 2
     data_latency = 3
     response_latency = 3
-    mshrs = 42
+    mshrs = 21
     tgts_per_mshr = 32
     size = '64kB'
     assoc = 4
-    write_buffers = 42
+    write_buffers = 21
     writeback_clean = False
     prefetch_on_access = True
     downgrade_on_shared_req = False
