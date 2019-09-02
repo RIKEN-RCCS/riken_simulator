@@ -386,7 +386,9 @@ LSQUnit<Impl>::checkSnoop(PacketPtr pkt)
     // Should only ever get invalidations in here
     assert(pkt->isInvalidate());
 
-    DPRINTF(LSQUnit, "Got snoop for address %#x\n", pkt->getAddr());
+    DPRINTF(LSQUnit, "Got snoop %s for address %#x\n",
+            pkt->cmdString().c_str(),
+            pkt->getAddr());
 
     for (int x = 0; x < cpu->numContexts(); x++) {
         ThreadContext *tc = cpu->getContext(x);
@@ -555,8 +557,14 @@ LSQUnit<Impl>::executeLoad(const DynInstPtr &inst)
             inst->pcState(), inst->seqNum);
 
     assert(!inst->isSquashed());
-
-    load_fault = inst->initiateAcc();
+    if (!inst->isExecuted()){
+        load_fault = inst->initiateAcc();
+    }else if (dynamic_cast<ReExec *>(inst->fault.get())){
+        DPRINTF(LSQUnit, "Already ReExec inst. remain\n");
+        return inst->fault;
+    }else{
+        panic("inst is already executed\n");
+    }
 
     if (load_fault == NoFault && !inst->readMemAccPredicate()) {
         assert(inst->readPredicate());
