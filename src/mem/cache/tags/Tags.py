@@ -84,3 +84,8 @@ class FALRU(BaseTags):
     type = 'FALRU'
     cxx_class = 'FALRU'
     cxx_header = "mem/cache/tags/fa_lru.hh"
+
+class LRUhash(LRU):
+    type = 'LRUhash'
+    cxx_class = 'LRUhash'
+    cxx_header = 'mem/cache/tags/lruhash.hh'

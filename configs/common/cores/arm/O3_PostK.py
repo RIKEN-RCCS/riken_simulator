@@ -358,6 +358,6 @@ class O3_ARM_PostK_L2(Cache):
 #    one_port = True
     # Simple stride prefetcher
 #    prefetcher = KPrefetcher(degree=8, latency = 1)
-#    tags = RandomRepl()
+    tags = LRUhash()
 #  To Enable cache access round robin by master id
 #    use_master_id = True
