@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 ARM Limited
+ * Copyright (c) 2017-2019 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -774,6 +774,45 @@ SveDotProdOp::generateDisassembly(Addr pc,
     printVecReg(ss, op1, true);
     ccprintf(ss, ", ");
     printVecReg(ss, op2, true);
+    return ss.str();
+}
+
+std::string
+SveComplexOp::generateDisassembly(Addr pc,
+        const SymbolTable *symtab) const
+{
+    std::stringstream ss;
+    printMnemonic(ss, "", false);
+    printPredReg(ss, dest);
+    ccprintf(ss, ", ");
+    printPredReg(ss, gp);
+    ccprintf(ss, "/m, ");
+    printPredReg(ss, op1);
+    ccprintf(ss, ", ");
+    printPredReg(ss, op2);
+    ccprintf(ss, ", #");
+    const char* rotstr[4] = {"0", "90", "180", "270"};
+    ccprintf(ss, rotstr[rot]);
+
+    return ss.str();
+}
+
+std::string
+SveComplexIdxOp::generateDisassembly(Addr pc,
+        const SymbolTable *symtab) const
+{
+    std::stringstream ss;
+    printMnemonic(ss, "", false);
+    printPredReg(ss, dest);
+    ccprintf(ss, ", ");
+    printPredReg(ss, op1);
+    ccprintf(ss, ", ");
+    printPredReg(ss, op2);
+    ccprintf(ss, "[");
+    ss << imm;
+    ccprintf(ss, "], #");
+    const char* rotstr[4] = {"0", "90", "180", "270"};
+    ccprintf(ss, rotstr[rot]);
     return ss.str();
 }
 

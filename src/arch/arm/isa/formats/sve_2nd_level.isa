@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 ARM Limited
+// Copyright (c) 2017-2019 ARM Limited
 // All rights reserved
 //
 // The license below extends only to copyright in the software and shall
@@ -1218,7 +1218,18 @@ namespace Aarch64
             break;
           case 0x1:
             if (!b13) {
-                // sve_int_perm_last_v
+                uint8_t AB = bits(machInst, 16);
+                uint8_t size = bits(machInst, 23, 22);
+                IntRegIndex pg = (IntRegIndex)(uint8_t) bits(machInst, 12, 10);
+                IntRegIndex zn = (IntRegIndex)(uint8_t) bits(machInst, 9, 5);
+                IntRegIndex vd = (IntRegIndex)(uint8_t) bits(machInst, 4, 0);
+                if (!AB) {
+                    return decodeSveUnaryPredU<SveLastaf>(size,
+                            machInst, vd, zn, pg);
+                } else {
+                    return decodeSveUnaryPredU<SveLastbf>(size,
+                            machInst, vd, zn, pg);
+                }
             }
             break;
           case 0x4:
@@ -2716,6 +2727,84 @@ namespace Aarch64
         return new Unknown64(machInst);
     }  // decodeSveFpFusedMulAdd
 
+    StaticInstPtr
+    decodeSveFpCplxAdd(ExtMachInst machInst)
+    {
+        uint8_t size = bits(machInst, 23, 22);
+        uint8_t rot = bits(machInst, 16) << 1 | 0x01;
+        IntRegIndex zdn = (IntRegIndex) (uint8_t) bits(machInst, 4, 0);
+        IntRegIndex zm = (IntRegIndex) (uint8_t) bits(machInst, 9, 5);
+        IntRegIndex pg = (IntRegIndex) (uint8_t) bits(machInst, 12, 10);
+        switch (size) {
+            case 1:
+                return new SveFcadd<uint16_t>(machInst,
+                        zdn, zdn, zm, pg, rot);
+            case 2:
+                return new SveFcadd<uint32_t>(machInst,
+                        zdn, zdn, zm, pg, rot);
+            case 3:
+                return new SveFcadd<uint64_t>(machInst,
+                        zdn, zdn, zm, pg, rot);
+        }
+        return new Unknown64(machInst);
+    }
+
+    StaticInstPtr
+    decodeSveFpCplxMulAddVec(ExtMachInst machInst)
+    {
+        uint8_t size = bits(machInst, 23, 22);
+        if (size == 0) {
+            return new Unknown64(machInst);
+        }
+
+        IntRegIndex zda = (IntRegIndex) (uint8_t) bits(machInst, 4, 0);
+        IntRegIndex zn = (IntRegIndex) (uint8_t) bits(machInst, 9, 5);
+        IntRegIndex pg = (IntRegIndex) (uint8_t) bits(machInst, 12, 10);
+        IntRegIndex zm = (IntRegIndex) (uint8_t) bits(machInst, 20, 16);
+        uint8_t rot = bits(machInst, 14, 13);
+        switch (size) {
+            case 1:
+                return new SveFcmlav<uint16_t>(machInst,
+                        zda, zn, zm, pg, rot);
+            case 2:
+                return new SveFcmlav<uint32_t>(machInst,
+                        zda, zn, zm, pg, rot);
+            case 3:
+                return new SveFcmlav<uint64_t>(machInst,
+                        zda, zn, zm, pg, rot);
+        }
+
+        return new Unknown64(machInst);
+    } // decodeSveFpCplxMulAddVec
+
+    StaticInstPtr
+    decodeSveFpCplxMulAddIndexed(ExtMachInst machInst)
+    {
+        uint8_t size = bits(machInst, 23, 22);
+        if (size < 2) {
+            return new Unknown64(machInst);
+        }
+
+        IntRegIndex zda = (IntRegIndex) (uint8_t) bits(machInst, 4, 0);
+        IntRegIndex zn = (IntRegIndex) (uint8_t) bits(machInst, 9, 5);
+        IntRegIndex zm;
+        uint8_t rot = bits(machInst, 11, 10);
+        uint8_t imm;
+
+        switch (size) {
+            case 2:
+                zm = (IntRegIndex) (uint8_t) bits(machInst, 18, 16);
+                imm = bits(machInst, 20, 19);
+                return new SveFcmlai<uint32_t>(machInst,
+                        zda, zn, zm, rot, imm);
+            case 3:
+                zm = (IntRegIndex) (uint8_t) bits(machInst, 19, 16);
+                imm = bits(machInst, 20);
+                return new SveFcmlai<uint64_t>(machInst,
+                        zda, zn, zm, rot, imm);
+        }
+        return new Unknown64(machInst);
+    } // decodeSveFpCplxMulAddIndexed
 
     StaticInstPtr
     decodeSveFpMulIndexed(ExtMachInst machInst)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2016-2018 ARM Limited
+ * Copyright (c) 2011, 2016-2019 ARM Limited
  * Copyright (c) 2013 Advanced Micro Devices, Inc.
  * All rights reserved
  *
@@ -66,6 +66,7 @@ class PhysRegId : private RegId {
   private:
     PhysRegIndex flatIdx;
     int numPinnedWritesToComplete;
+    bool pinned;
 
   public:
     explicit PhysRegId() : RegId(IntRegClass, -1), flatIdx(-1),
@@ -76,14 +77,14 @@ class PhysRegId : private RegId {
     explicit PhysRegId(RegClass _regClass, PhysRegIndex _regIdx,
               PhysRegIndex _flatIdx)
         : RegId(_regClass, _regIdx), flatIdx(_flatIdx),
-          numPinnedWritesToComplete(0)
+          numPinnedWritesToComplete(0), pinned(false)
     {}
 
     /** Vector PhysRegId constructor (w/ elemIndex). */
     explicit PhysRegId(RegClass _regClass, PhysRegIndex _regIdx,
               ElemIndex elem_idx, PhysRegIndex flat_idx)
         : RegId(_regClass, _regIdx, elem_idx), flatIdx(flat_idx),
-          numPinnedWritesToComplete(0)
+          numPinnedWritesToComplete(0), pinned(false)
     {}
 
     /** Visible RegId methods */
@@ -155,10 +156,20 @@ class PhysRegId : private RegId {
 
     void setNumPinnedWrites(int numWrites)
     {
+        // An instruction with a pinned destination reg can get
+        // squashed. The numPinnedWrites counter may be zero when
+        // the squash happens but we need to know if the dest reg
+        // was pinned originally in order to reset counters properly
+        // for a possible re-rename using the same physical reg (which
+        // may be required in case of a mem access order violation).
+        pinned = (numWrites != 0);
         numPinnedWrites = numWrites;
     }
 
     void decrNumPinnedWrites() { --numPinnedWrites; }
+    void incrNumPinnedWrites() { ++numPinnedWrites; }
+
+    bool isPinned() const { return pinned; }
 
     int getNumPinnedWritesToComplete() const
     {
@@ -171,6 +182,7 @@ class PhysRegId : private RegId {
     }
 
     void decrNumPinnedWritesToComplete() { --numPinnedWritesToComplete; }
+    void incrNumPinnedWritesToComplete() { ++numPinnedWritesToComplete; }
 };
 
 using PhysRegIdPtr = PhysRegId*;

@@ -25,12 +25,6 @@ The current limitations apply to the model:
 
 - Unimplemented instructions:
   - Non-temporal loads/stores ({LD,ST}NT1xx)
-  - Data-processing instructions:
-    - FCADD
-    - FCMLA (indexed)
-    - FCMLA (vectors)
-    - LASTA (SIMD&FP scalar)
-    - LASTB (SIMD&FP scalar)
   - SVE prefetch instructions are treated as no-ops
 
 If you encounter further issues, please contact:

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 ARM Limited
+ * Copyright (c) 2016-2017,2019 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -106,6 +106,9 @@ class MathExprPowerModel : public PowerModelState
      * @return Value of expression.
      */
     double tryEval(const MathExpr &expr) const;
+
+    bool parseVec2dStat(std::string name, Stats::Vector2dInfo **out_v2di,
+                        int *out_idx) const;
 
     // Math expressions for dynamic and static power
     MathExpr dyn_expr, st_expr;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2017 ARM Limited
+ * Copyright (c) 2015-2017, 2019 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -416,6 +416,8 @@ class VecRegContainer
     friend std::ostream& operator<<(std::ostream& os, const MyClass& v)
     {
         os << "0x";
+        // NB: this prints bytes in ascending order, i.e., the lowest-level
+        // byte is left
         for (auto& b: v.container) {
             os << csprintf("%02x", b);
         }
@@ -639,16 +641,39 @@ using ConstVecLane64 = VecLaneT<uint64_t, true>;
 /** @{ */
 template <size_t Sz>
 inline bool
-to_number(const std::string& value, VecRegContainer<Sz>& v)
+to_number(const std::string& input, VecRegContainer<Sz>& dst_vec)
 {
-    assert(value[0] == '0' && value[1] == 'x');
-    assert(value.size() <= 2 * (VecRegContainer<Sz>::SIZE + 1));
-    int i = 1; // skip the 0x prefix
-    while ((i<<1) < value.size()) {
-        std::string byte = value.substr(i<<1, 2);
-        v.template raw_ptr<uint8_t>()[i] = stoul(byte, 0, 16);
-        i++;
+    // Ensure that the string is a hex number
+    assert(input[0] == '0' && input[1] == 'x');
+    // Make sure there is enough room in the target (every byte is two hex
+    // characters)
+    assert((input.size() - 2) <= 2 * VecRegContainer<Sz>::SIZE);
+
+    int src = 2; // skip the 0x prefix
+    int dst = 0;
+    uint8_t *dst_raw = dst_vec.template raw_ptr<uint8_t>();
+
+    // NB: The string has the lowest byte left, so step both address and string
+    // in order; this needs to match operator<<(.. const MyClass& v) above
+    while (src < input.size()) {
+        // extract the next two characters for a byte
+        std::string byte = input.substr(src, 2);
+        uint8_t val      = (uint8_t)stoul(byte, 0, 16);
+        src += 2;
+
+        // poke the data into the target
+        assert(0 <= dst && dst < VecRegContainer<Sz>::SIZE);
+        dst_raw[dst] = val;
+        dst++;
     }
+
+#if (0)
+    // Do an actual forwards / backwards comparison here
+    std::stringstream result;
+    result << dst_vec;
+    chatty_assert(input.compare(result.str()) == 0, "Input: %s Output: %s",
+        input.c_str(), result.str().c_str());
+#endif
     return true;
 }
 /** @} */
