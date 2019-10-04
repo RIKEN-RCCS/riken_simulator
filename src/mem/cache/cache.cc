@@ -2497,6 +2497,9 @@ Cache::recvAtomicSnoop(PacketPtr pkt)
     if (!inRange(pkt->getAddr())) {
         return 0;
     }
+    if (pkt->cmd.isSWPrefetch()){
+        return 0;
+    }
 
     CacheBlk *blk = tags->findBlock(pkt->getAddr(), pkt->isSecure());
     uint32_t snoop_delay = handleSnoop(pkt, blk, false, false, false);
