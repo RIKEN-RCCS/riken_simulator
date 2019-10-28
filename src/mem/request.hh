@@ -370,7 +370,7 @@ class Request
     InstSeqNum _reqInstSeqNum;
 
     /** A pointer to an atomic operation */
-    AtomicOpFunctor *atomicOpFunctor;
+    AtomicOpFunctorPtr atomicOpFunctor;
 
   public:
 
@@ -438,8 +438,7 @@ class Request
     }
 
     Request(int asid, Addr vaddr, unsigned size, Flags flags, MasterID mid,
-            Addr pc, ContextID cid,
-            const std::vector<bool>& byteEnable = std::vector<bool>())
+            Addr pc, ContextID cid)
         : _paddr(0), _size(0),
           _masterId(invldMasterId), _time(0),
           _taskId(ContextSwitchTaskId::Unknown), _asid(0), _vaddr(0),
@@ -447,24 +446,37 @@ class Request
           _reqInstSeqNum(0), atomicOpFunctor(nullptr), translateDelta(0),
           accessDelta(0), depth(0)
     {
-        setVirt(asid, vaddr, size, flags, mid, pc, byteEnable);
-        setContext(cid);
-    }
-
-    Request(int asid, Addr vaddr, unsigned size, Flags flags, MasterID mid,
-            Addr pc, ContextID cid, AtomicOpFunctor *atomic_op)
-        : atomicOpFunctor(atomic_op)
-    {
         setVirt(asid, vaddr, size, flags, mid, pc);
         setContext(cid);
     }
 
-    ~Request()
+    Request(int asid, Addr vaddr, unsigned size, Flags flags,
+            MasterID mid, Addr pc, ContextID cid,
+            AtomicOpFunctorPtr atomic_op)
     {
-        if (hasAtomicOpFunctor()) {
-            delete atomicOpFunctor;
-        }
+        setVirt(asid, vaddr, size, flags, mid, pc, std::move(atomic_op));
+        setContext(cid);
     }
+
+    Request(const Request& other)
+        : _paddr(other._paddr), _size(other._size),
+          _masterId(other._masterId),
+          _flags(other._flags),
+          _memSpaceConfigFlags(other._memSpaceConfigFlags),
+          privateFlags(other.privateFlags),
+          _time(other._time),
+          _taskId(other._taskId), _asid(other._asid), _vaddr(other._vaddr),
+          _extraData(other._extraData), _contextId(other._contextId),
+          _pc(other._pc), _reqInstSeqNum(other._reqInstSeqNum),
+          translateDelta(other.translateDelta),
+          accessDelta(other.accessDelta), depth(other.depth)
+    {
+
+        atomicOpFunctor.reset(other.atomicOpFunctor ?
+                                other.atomicOpFunctor->clone() : nullptr);
+    }
+
+    ~Request() {}
 
     /**
      * Set up Context numbers.
@@ -482,17 +494,13 @@ class Request
      */
     void
     setVirt(int asid, Addr vaddr, unsigned size, Flags flags, MasterID mid,
-            Addr pc,
-            const std::vector<bool>& byteEnable = std::vector<bool>())
+            Addr pc, AtomicOpFunctorPtr amo_op = nullptr)
     {
-        assert(byteEnable.empty() || byteEnable.size() == size);
-
         _asid = asid;
         _vaddr = vaddr;
         _size = size;
         _masterId = mid;
         _pc = pc;
-        _byteEnable = byteEnable;
         _time = curTick();
 
         _flags.clear(~STICKY_FLAGS);
@@ -502,6 +510,7 @@ class Request
         depth = 0;
         accessDelta = 0;
         translateDelta = 0;
+        atomicOpFunctor = std::move(amo_op);
     }
 
     /**
@@ -611,6 +620,13 @@ class Request
         return _byteEnable;
     }
 
+    void
+    setByteEnable(const std::vector<bool>& be)
+    {
+        assert(be.empty() || be.size() == _size);
+        _byteEnable = be;
+    }
+
     /** Accessor for time. */
     Tick
     time() const
@@ -632,7 +648,7 @@ class Request
     getAtomicOpFunctor()
     {
         assert(atomicOpFunctor != NULL);
-        return atomicOpFunctor;
+        return atomicOpFunctor.get();
     }
 
     /** Accessor for flags. */

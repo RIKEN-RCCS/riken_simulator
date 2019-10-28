@@ -768,12 +768,12 @@ class FullO3CPU : public BaseO3CPU
     /** CPU pushRequest function, forwards request to LSQ. */
     Fault pushRequest(const DynInstPtr& inst, bool isLoad, uint8_t *data,
                       unsigned int size, Addr addr, Request::Flags flags,
-                      uint64_t *res,
+                      uint64_t *res, AtomicOpFunctorPtr amo_op = nullptr,
                       const std::vector<bool>& writeByteEnable =
                       std::vector<bool>())
     {
         return iew.ldstQueue.pushRequest(inst, isLoad, data, size, addr,
-                flags, res, writeByteEnable);
+                 flags, res, std::move(amo_op), writeByteEnable);
     }
 
     /** CPU read function, forwards read to LSQ. */

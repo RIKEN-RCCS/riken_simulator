@@ -276,6 +276,29 @@ class ExecContext {
             const std::vector<bool>& byteEnable = std::vector<bool>()) = 0;
 
     /**
+     * For atomic-mode contexts, perform an atomic AMO (a.k.a., Atomic
+     * Read-Modify-Write Memory Operation)
+     */
+    virtual Fault amoMem(Addr addr, uint8_t *data, unsigned int size,
+                         Request::Flags flags,
+                         AtomicOpFunctorPtr amo_op)
+    {
+        panic("ExecContext::amoMem() should be overridden\n");
+    }
+
+    /**
+     * For timing-mode contexts, initiate an atomic AMO (atomic
+     * read-modify-write memory operation)
+     */
+    virtual Fault initiateMemAMO(Addr addr, unsigned int size,
+                                 Request::Flags flags,
+                                 AtomicOpFunctorPtr amo_op)
+    {
+        panic("ExecContext::initiateMemAMO() should be overridden\n");
+    }
+
+
+    /**
      * Sets the number of consecutive store conditional failures.
      */
     virtual void setStCondFailures(unsigned int sc_failures) = 0;

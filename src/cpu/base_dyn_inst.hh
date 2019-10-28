@@ -317,6 +317,8 @@ class BaseDynInst : public ExecContext, public RefCounted
     Fault writeMem(uint8_t *data, unsigned size, Addr addr,
             Request::Flags flags, uint64_t *res,
             const std::vector<bool>& byteEnable = std::vector<bool>());
+    Fault initiateMemAMO(Addr addr, unsigned size, Request::Flags flags,
+                         AtomicOpFunctorPtr amo_op);
 
     /** Splits a request in two if it crosses a dcache block. */
     void splitRequest(RequestPtr req, RequestPtr &sreqLow,
@@ -525,6 +527,7 @@ class BaseDynInst : public ExecContext, public RefCounted
     bool isMemRef()       const { return staticInst->isMemRef(); }
     bool isLoad()         const { return staticInst->isLoad(); }
     bool isStore()        const { return staticInst->isStore(); }
+    bool isAtomic()       const { return staticInst->isAtomic(); }
     bool isStoreConditional() const
     { return staticInst->isStoreConditional(); }
     bool isInstPrefetch() const { return staticInst->isInstPrefetch(); }
@@ -982,7 +985,8 @@ BaseDynInst<Impl>::initiateMemRead(Addr addr, unsigned size,
 {
     return cpu->pushRequest(
             dynamic_cast<typename DynInstPtr::ptr_type>(this),
-            /* ld */ true, nullptr, size, addr, flags, nullptr, byteEnable);
+            /* ld */ true, nullptr, size, addr, flags, nullptr, nullptr,
+            byteEnable);
 }
 
 template<class Impl>
@@ -993,7 +997,24 @@ BaseDynInst<Impl>::writeMem(uint8_t *data, unsigned size, Addr addr,
 {
     return cpu->pushRequest(
             dynamic_cast<typename DynInstPtr::ptr_type>(this),
-            /* st */ false, data, size, addr, flags, res, byteEnable);
+            /* st */ false, data, size, addr, flags, res, nullptr, byteEnable);
+}
+
+template<class Impl>
+Fault
+BaseDynInst<Impl>::initiateMemAMO(Addr addr, unsigned size,
+                                  Request::Flags flags,
+                                  AtomicOpFunctorPtr amo_op)
+{
+    // atomic memory instructions do not have data to be written to memory yet
+    // since the atomic operations will be executed directly in cache/memory.
+    // Therefore, its `data` field is nullptr.
+    // Atomic memory requests need to carry their `amo_op` fields to cache/
+    // memory
+    return cpu->pushRequest(
+            dynamic_cast<typename DynInstPtr::ptr_type>(this),
+            /* atomic */ false, nullptr, size, addr, flags, nullptr,
+            std::move(amo_op));
 }
 
 // TODO: this should be removed

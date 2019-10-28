@@ -704,11 +704,11 @@ class LSQ : public Named
     void completeMemBarrierInst(MinorDynInstPtr inst,
         bool committed);
 
-    /** Single interface for readMem/writeMem to issue requests into
+    /** Single interface for readMem/writeMem/amoMem to issue requests into
      *  the LSQ */
     Fault pushRequest(MinorDynInstPtr inst, bool isLoad, uint8_t *data,
             unsigned int size, Addr addr, Request::Flags flags,
-            uint64_t *res,
+            uint64_t *res, AtomicOpFunctorPtr amo_op,
             const std::vector<bool>& byteEnable = std::vector<bool>());
 
     /** Push a predicate failed-representing request into the queues just

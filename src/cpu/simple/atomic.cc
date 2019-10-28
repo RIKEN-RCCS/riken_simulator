@@ -73,6 +73,7 @@ AtomicSimpleCPU::init()
     ifetch_req.setContext(cid);
     data_read_req.setContext(cid);
     data_write_req.setContext(cid);
+    data_amo_req.setContext(cid);
 }
 
 AtomicSimpleCPU::AtomicSimpleCPU(AtomicSimpleCPUParams *p)
@@ -324,6 +325,40 @@ AtomicSimpleCPU::AtomicCPUDPort::recvFunctionalSnoop(PacketPtr pkt)
     }
 }
 
+bool
+AtomicSimpleCPU::genMemFragmentRequest(const RequestPtr& req, Addr frag_addr,
+                                       int size, Request::Flags flags,
+                                       const std::vector<bool>& byte_enable,
+                                       int& frag_size, int& size_left) const
+{
+    bool predicate = true;
+    Addr inst_addr = threadInfo[curThread]->thread->pcState().instAddr();
+
+    frag_size = std::min(
+        cacheLineSize() - addrBlockOffset(frag_addr, cacheLineSize()),
+        (Addr) size_left);
+    size_left -= frag_size;
+
+    if (!byte_enable.empty()) {
+        // Set up byte-enable mask for the current fragment
+        auto it_start = byte_enable.begin() + (size - (frag_size + size_left));
+        auto it_end = byte_enable.begin() + (size - size_left);
+        if (isAnyActiveElement(it_start, it_end)) {
+            req->setVirt(0, frag_addr, frag_size, flags, dataMasterId(),
+                         inst_addr);
+            req->setByteEnable(std::vector<bool>(it_start, it_end));
+        } else {
+            predicate = false;
+        }
+    } else {
+        req->setVirt(0, frag_addr, frag_size, flags, dataMasterId(),
+                     inst_addr);
+        req->setByteEnable(std::vector<bool>());
+    }
+
+    return predicate;
+}
+
 Fault
 AtomicSimpleCPU::readMem(Addr addr, uint8_t * data, unsigned size,
                          Request::Flags flags,
@@ -349,28 +384,8 @@ AtomicSimpleCPU::readMem(Addr addr, uint8_t * data, unsigned size,
     Fault fault = NoFault;
 
     while (1) {
-        predicate = true;
-        frag_size = std::min(
-            cacheLineSize() - addrBlockOffset(frag_addr, cacheLineSize()),
-            (Addr) size_left);
-        size_left -= frag_size;
-
-        if (!byteEnable.empty()) {
-            // Set up byte-enable mask for the current fragment
-            auto it_start = byteEnable.begin() + (size - (frag_size +
-                                                          size_left));
-            auto it_end = byteEnable.begin() + (size - size_left);
-            if (isAnyActiveElement(it_start, it_end))
-                req->setVirt(0, frag_addr, frag_size, flags, dataMasterId(),
-                             thread->pcState().instAddr(),
-                             std::vector<bool>(it_start, it_end));
-            else
-                predicate = false;
-
-        } else {
-            req->setVirt(0, frag_addr, frag_size, flags, dataMasterId(),
-                         thread->pcState().instAddr());
-        }
+        predicate = genMemFragmentRequest(req, frag_addr, size, flags,
+                                          byteEnable, frag_size, size_left);
 
         // translate to physical address
         if (predicate)
@@ -471,27 +486,8 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size, Addr addr,
     Fault fault = NoFault;
 
     while (1) {
-        predicate = true;
-        frag_size = std::min(
-            cacheLineSize() - addrBlockOffset(frag_addr, cacheLineSize()),
-            (Addr) size_left);
-        size_left -= frag_size;
-
-        if (!byteEnable.empty()) {
-            // Set up byte-enable mask for the current fragment
-            auto it_start = byteEnable.begin() + (size - (frag_size +
-                                                          size_left));
-            auto it_end = byteEnable.begin() + (size - size_left);
-            if (isAnyActiveElement(it_start, it_end))
-                req->setVirt(0, frag_addr, frag_size, flags, dataMasterId(),
-                             thread->pcState().instAddr(),
-                             std::vector<bool>(it_start, it_end));
-            else
-                predicate = false;
-        } else {
-            req->setVirt(0, frag_addr, frag_size, flags, dataMasterId(),
-                         thread->pcState().instAddr());
-        }
+        predicate = genMemFragmentRequest(req, frag_addr, size, flags,
+                                          byteEnable, frag_size, size_left);
 
         // translate to physical address
         if (predicate)
@@ -574,6 +570,71 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size, Addr addr,
     }
 }
 
+Fault
+AtomicSimpleCPU::amoMem(Addr addr, uint8_t* data, unsigned size,
+                        Request::Flags flags, AtomicOpFunctorPtr amo_op)
+{
+    SimpleExecContext& t_info = *threadInfo[curThread];
+    SimpleThread* thread = t_info.thread;
+
+    // use the CPU's statically allocated amo request and packet objects
+    const RequestPtr req = &data_amo_req;
+
+    if (traceData)
+        traceData->setMem(addr, size, flags);
+
+    //The address of the second part of this access if it needs to be split
+    //across a cache line boundary.
+    Addr secondAddr = roundDown(addr + size - 1, cacheLineSize());
+
+    // AMO requests that access across a cache line boundary are not
+    // allowed since the cache does not guarantee AMO ops to be executed
+    // atomically in two cache lines
+    // For ISAs such as x86 that requires AMO operations to work on
+    // accesses that cross cache-line boundaries, the cache needs to be
+    // modified to support locking both cache lines to guarantee the
+    // atomicity.
+    if (secondAddr > addr) {
+        panic("AMO request should not access across a cache line boundary\n");
+    }
+
+    dcache_latency = 0;
+
+    req->taskId(taskId());
+    req->setVirt(0, addr, size, flags, dataMasterId(),
+                 thread->pcState().instAddr(), std::move(amo_op));
+
+    // translate to physical address
+    Fault fault = thread->dtb->translateAtomic(req, thread->getTC(),
+                                                      BaseTLB::Write);
+
+    // Now do the access.
+    if (fault == NoFault && !req->getFlags().isSet(Request::NO_ACCESS)) {
+        // We treat AMO accesses as Write accesses with SwapReq command
+        // data will hold the return data of the AMO access
+        Packet pkt(req, Packet::makeWriteCmd(req));
+        pkt.dataStatic(data);
+
+        if (req->isMmappedIpr())
+            dcache_latency += TheISA::handleIprRead(thread->getTC(), &pkt);
+        else {
+            dcache_latency += dcachePort.sendAtomic(&pkt);
+        }
+
+        dcache_access = true;
+
+        assert(!pkt.isError());
+        assert(!req->isLLSC());
+    }
+
+    if (fault != NoFault && req->isPrefetch()) {
+        return NoFault;
+    }
+
+    //If there's a fault and we're not doing prefetch, return it
+    return fault;
+}
+
 
 void
 AtomicSimpleCPU::tick()
@@ -590,6 +651,7 @@ AtomicSimpleCPU::tick()
         ifetch_req.setContext(cid);
         data_read_req.setContext(cid);
         data_write_req.setContext(cid);
+        data_amo_req.setContext(cid);
     }
 
     SimpleExecContext& t_info = *threadInfo[curThread];

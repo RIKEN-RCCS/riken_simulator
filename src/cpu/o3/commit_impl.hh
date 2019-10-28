@@ -241,6 +241,12 @@ DefaultCommit<Impl>::regStats()
         .desc("Number of loads committed")
         .flags(total)
         ;
+    statComAmos
+        .init(cpu->numThreads)
+        .name(name() +  ".amos")
+        .desc("Number of atomic instructions committed")
+        .flags(total)
+        ;
 
     statComMembars
         .init(cpu->numThreads)
@@ -1274,8 +1280,9 @@ DefaultCommit<Impl>::commitHead(const DynInstPtr &head_inst, unsigned inst_num)
         // Make sure we are only trying to commit un-executed instructions we
         // think are possible.
         assert(head_inst->isNonSpeculative() || head_inst->isStoreConditional()
-               || head_inst->isMemBarrier() || head_inst->isWriteBarrier() ||
-               (head_inst->isLoad() && head_inst->strictlyOrdered()));
+               || head_inst->isMemBarrier() || head_inst->isWriteBarrier()
+               || head_inst->isAtomic()
+               || (head_inst->isLoad() && head_inst->strictlyOrdered()));
 
         DPRINTF(Commit, "Encountered a barrier or non-speculative "
                 "instruction [sn:%lli] at the head of the ROB, PC %s.\n",
@@ -1422,7 +1429,7 @@ DefaultCommit<Impl>::commitHead(const DynInstPtr &head_inst, unsigned inst_num)
 #endif
 
     // If this was a store, record it for this cycle.
-    if (head_inst->isStore())
+    if (head_inst->isStore() || head_inst->isAtomic())
         committedStores[tid] = true;
 
     // Return true to indicate that we have committed an instruction.
@@ -1514,6 +1521,10 @@ DefaultCommit<Impl>::updateComInstStats(const DynInstPtr &inst)
 
         if (inst->isLoad()) {
             statComLoads[tid]++;
+        }
+
+        if (inst->isAtomic()) {
+            statComAmos[tid]++;
         }
     }
 

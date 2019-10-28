@@ -279,10 +279,6 @@ class TimingSimpleCPU : public BaseSimpleCPU
     void activateContext(ThreadID thread_num) override;
     void suspendContext(ThreadID thread_num) override;
 
-    Fault readMem(Addr addr, uint8_t *data, unsigned size,
-            Request::Flags flags,
-            const std::vector<bool>& byteEnable = std::vector<bool>())
-        override;
 
     Fault initiateMemRead(Addr addr, unsigned size,
             Request::Flags flags,
@@ -293,6 +289,8 @@ class TimingSimpleCPU : public BaseSimpleCPU
             Addr addr, Request::Flags flags, uint64_t *res,
             const std::vector<bool>& byteEnable = std::vector<bool>())
         override;
+    Fault initiateMemAMO(Addr addr, unsigned size, Request::Flags flags,
+                         AtomicOpFunctorPtr amo_op) override;
 
     void fetch();
     void sendFetch(const Fault &fault, RequestPtr req, ThreadContext *tc);

@@ -710,14 +710,23 @@ template<class Impl>
 Fault
 LSQ<Impl>::pushRequest(const DynInstPtr& inst, bool isLoad, uint8_t *data,
                        unsigned int size, Addr addr, Request::Flags flags,
-                       uint64_t *res, const std::vector<bool>& byteEnable)
+                       uint64_t *res, AtomicOpFunctorPtr amo_op,
+                       const std::vector<bool>& byteEnable)
 {
+    bool isAtomic M5_VAR_USED = !isLoad && amo_op;
     /* TODO: Revisit if this setRequest is needed */
-    inst->setRequest();
     ThreadID tid = cpu->contextToThread(inst->contextId());
 
     bool needs_burst = transferNeedsBurst(addr, size, lineWidth >> 3);
     LSQRequest* req = nullptr;
+
+    // Atomic requests that access data across cache line boundary are
+    // currently not allowed since the cache does not guarantee corresponding
+    // atomic memory operations to be executed atomically across a cache line.
+    // For ISAs such as x86 that supports cross-cache-line atomic instructions,
+    // the cache needs to be modified to perform atomic update to both cache
+    // lines. For now, such cross-line update is not supported.
+    assert(!isAtomic || (isAtomic && !needs_burst));
 
     if (inst->translationStarted()) {
         req = inst->savedReq;
@@ -725,12 +734,16 @@ LSQ<Impl>::pushRequest(const DynInstPtr& inst, bool isLoad, uint8_t *data,
     } else {
         if (needs_burst) {
             req = new SplitDataRequest(&thread.at(tid), inst, isLoad, addr,
-                    size, flags, data, res, byteEnable);
+                    size, flags, data, res);
         } else {
             req = new SingleDataRequest(&thread.at(tid), inst, isLoad, addr,
-                    size, flags, data, res, byteEnable);
+                    size, flags, data, res, std::move(amo_op));
         }
         assert(req);
+        if (!byteEnable.empty()) {
+            req->_byteEnable = byteEnable;
+        }
+        inst->setRequest();
         req->taskId(cpu->taskId());
 
         // There might be fault from a previous execution attempt if this is
@@ -793,7 +806,7 @@ LSQ<Impl>::SingleDataRequest::finish(const Fault &fault, RequestPtr req,
     } else {
         _inst->strictlyOrdered(req->isStrictlyOrdered());
 
-        flags[(int)Flag::TranslationFinished] = true;
+        flags.set(Flag::TranslationFinished);
         if (fault == NoFault) {
             _inst->physEffAddrLow = req->getPaddr();
             _inst->memReqFlags = req->getFlags();
@@ -832,7 +845,7 @@ LSQ<Impl>::SplitDataRequest::finish(const Fault &fault, RequestPtr req,
             this->squashTranslation();
         } else {
             _inst->strictlyOrdered(mainReq->isStrictlyOrdered());
-            flags[(int)Flag::TranslationFinished] = true;
+            flags.set(Flag::TranslationFinished);
             _inst->translationCompleted(true);
 
             for (i = 0; i < _fault.size() && _fault[i] == NoFault; i++);
@@ -865,24 +878,15 @@ void
 LSQ<Impl>::SingleDataRequest::initiateTranslation()
 {
     assert(_requests.size() == 0);
-    if (_byteEnable.empty()) {
-        _requests.push_back(new Request(_inst->getASID(), _addr, _size, _flags,
-                                        _inst->masterId(), _inst->instAddr(),
-                                        _inst->contextId(), _byteEnable));
-    } else {
-        if (isAnyActiveElement(_byteEnable.begin(), _byteEnable.end()))
-            _requests.push_back(new Request(_inst->getASID(), _addr, _size,
-                                            _flags, _inst->masterId(),
-                                            _inst->instAddr(),
-                                            _inst->contextId(), _byteEnable));
-    }
+
+    this->addRequest(_addr, _size, _byteEnable);
 
     if (_requests.size() > 0) {
         _requests.back()->setReqInstSeqNum(_inst->seqNum);
         _requests.back()->taskId(_taskId);
         _inst->translationStarted(true);
         setState(State::Translation);
-        flags[(int)Flag::TranslationStarted] = true;
+        flags.set(Flag::TranslationStarted);
 
         _inst->savedReq = this;
         sendFragmentToTranslation(0);
@@ -917,8 +921,7 @@ LSQ<Impl>::SplitDataRequest::initiateTranslation()
 
     mainReq = new Request(_inst->getASID(), base_addr,
                 _size, _flags, _inst->masterId(),
-                _inst->instAddr(), _inst->contextId(),
-                _byteEnable);
+                _inst->instAddr(), _inst->contextId());
 
     // Paddr is not used in mainReq. However, we will accumulate the flags
     // from the sub requests into mainReq by calling setFlags() in finish().
@@ -929,36 +932,26 @@ LSQ<Impl>::SplitDataRequest::initiateTranslation()
 
     /* Get the pre-fix, possibly unaligned. */
     if (_byteEnable.empty()) {
-        _requests.push_back(new Request(_inst->getASID(), base_addr,
-                    next_addr - base_addr, _flags, _inst->masterId(),
-                    _inst->instAddr(), _inst->contextId()));
+        this->addRequest(base_addr, next_addr - base_addr, _byteEnable);
     } else {
         auto it_start = _byteEnable.begin();
         auto it_end = _byteEnable.begin() + (next_addr - base_addr);
-        if (isAnyActiveElement(it_start, it_end))
-            _requests.push_back(new Request(_inst->getASID(), base_addr,
-                    next_addr - base_addr, _flags, _inst->masterId(),
-                    _inst->instAddr(), _inst->contextId(),
-                    std::vector<bool>(it_start, it_end)));
+        this->addRequest(base_addr, next_addr - base_addr,
+                         std::vector<bool>(it_start, it_end));
     }
-    size_so_far = next_addr - base_addr;
+   size_so_far = next_addr - base_addr;
 
     /* We are block aligned now, reading whole blocks. */
     base_addr = next_addr;
     while (base_addr != final_addr) {
         if (_byteEnable.empty()) {
-            _requests.push_back(new Request(_inst->getASID(), base_addr,
-                        line_width, _flags, _inst->masterId(),
-                        _inst->instAddr(), _inst->contextId()));
+            this->addRequest(base_addr, line_width, _byteEnable);
         } else {
             auto it_start = _byteEnable.begin() + size_so_far;
             auto it_end = _byteEnable.begin() + size_so_far + line_width;
-            if (isAnyActiveElement(it_start, it_end))
-                _requests.push_back(new Request(_inst->getASID(), base_addr,
-                        line_width, _flags, _inst->masterId(),
-                        _inst->instAddr(), _inst->contextId(),
-                        std::vector<bool>(it_start, it_end)));
-        }
+            this->addRequest(base_addr, line_width,
+                             std::vector<bool>(it_start, it_end));
+       }
         size_so_far += line_width;
         base_addr += line_width;
     }
@@ -966,17 +959,12 @@ LSQ<Impl>::SplitDataRequest::initiateTranslation()
     /* Deal with the tail. */
     if (size_so_far < _size) {
         if (_byteEnable.empty()) {
-            _requests.push_back(new Request(_inst->getASID(), base_addr,
-                        _size - size_so_far, _flags, _inst->masterId(),
-                        _inst->instAddr(), _inst->contextId()));
+            this->addRequest(base_addr, _size - size_so_far, _byteEnable);
         } else {
             auto it_start = _byteEnable.begin() + size_so_far;
             auto it_end = _byteEnable.end();
-            if (isAnyActiveElement(it_start, it_end))
-                _requests.push_back(new Request(_inst->getASID(), base_addr,
-                        _size - size_so_far, _flags, _inst->masterId(),
-                        _inst->instAddr(), _inst->contextId(),
-                        std::vector<bool>(it_start, it_end)));
+            this->addRequest(base_addr, _size - size_so_far,
+                             std::vector<bool>(it_start, it_end));
         }
     }
 
@@ -989,7 +977,7 @@ LSQ<Impl>::SplitDataRequest::initiateTranslation()
 
         _inst->translationStarted(true);
         setState(State::Translation);
-        flags[(int)Flag::TranslationStarted] = true;
+        flags.set(Flag::TranslationStarted);
         this->_inst->savedReq = this;
         numInTranslationFragments = 0;
         numTranslatedFragments = 0;
@@ -1020,7 +1008,7 @@ LSQ<Impl>::SingleDataRequest::recvTimingResp(PacketPtr pkt)
 {
     assert(_numOutstandingPackets == 1);
     auto state = dynamic_cast<LSQSenderState*>(pkt->senderState);
-    flags[(int)Flag::Complete] = true;
+    flags.set(Flag::Complete);
     state->outstanding--;
     assert(pkt == _packets.front());
     _port.completeDataAccess(pkt);
@@ -1039,7 +1027,7 @@ LSQ<Impl>::SplitDataRequest::recvTimingResp(PacketPtr pkt)
     numReceivedPackets++;
     state->outstanding--;
     if (numReceivedPackets == _packets.size()) {
-        flags[(int)Flag::Complete] = true;
+      flags.set(Flag::Complete);
         /* Assemble packets. */
         PacketPtr resp = isLoad()
             ? Packet::createRead(mainReq)

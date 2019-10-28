@@ -727,13 +727,14 @@ LSQUnit<Impl>::read(LSQRequest *req, int load_idx)
             bool upper_load_has_store_part = req_e > st_s;
 
             AddrRangeCoverage coverage = NoAddrRangeCoverage;
-
-            if (store_has_lower_limit && store_has_upper_limit &&
+            // If the store entry is not atomic (atomic does not have valid
+            // data), the store's data has all of the data needed and the load
+            // isn't LLSC then we can forward. Execept if the store request
+            // has a byte strobe mask. In the latter case, we fall back
+            // to PartialAddrRangeCoverage to disable forward.
+            if (!store_it->instruction()->isAtomic() &&
+                store_has_lower_limit && store_has_upper_limit &&
                 !req->mainRequest()->isLLSC()) {
-                // If the store's data has all of the data needed and the load
-                // isn't LLSC then we can forward. Execept if the store request
-                // has a byte strobe mask. In the latter case, we fall back
-                // to PartialAddrRangeCoverage to disable forward.
                 const auto& store_req = store_it->request()->mainRequest();
                 if (store_req->getByteEnable().empty())
                     coverage = FullAddrRangeCoverage;
@@ -746,7 +747,11 @@ LSQUnit<Impl>::read(LSQRequest *req, int load_idx)
                   (lower_load_has_store_part && upper_load_has_store_part))) ||
                 (req->mainRequest()->isLLSC() &&
                  ((store_has_lower_limit || upper_load_has_store_part) &&
+                  (store_has_upper_limit || lower_load_has_store_part))) ||
+                (store_it->instruction()->isAtomic() &&
+                 ((store_has_lower_limit || upper_load_has_store_part) &&
                   (store_has_upper_limit || lower_load_has_store_part)))) {
+
                 // This is the partial store-load forwarding case where a store
                 // has only part of the load's data and the load isn't LLSC or
                 // the load is LLSC and the store has all or part of the load's
@@ -891,8 +896,10 @@ LSQUnit<Impl>::write(LSQRequest *req, uint8_t *data, int store_idx)
     storeQueue[store_idx].isAllZeros() = store_no_data;
     assert(size <= SQEntry::DataSize || store_no_data);
 
+    // copy data into the storeQueue only if the store request has valid data
     if (!(req->request()->getFlags() & Request::CACHE_BLOCK_ZERO) &&
-        !req->request()->isCacheMaintenance())
+        !req->request()->isCacheMaintenance() &&
+        !req->request()->isAtomic())
         memcpy(storeQueue[store_idx].data(), data, size);
 
     // This function only writes the data to the store queue, so no fault

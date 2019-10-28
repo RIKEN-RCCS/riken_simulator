@@ -182,33 +182,37 @@ class LSQ {
      */
     class LSQRequest : public BaseTLB::Translation {
       protected:
-        enum class Flag {
-            IsLoad,
-            /** True if this is a store that writes registers (SC). */
-            WbStore,
-            Delayed,
-            IsSplit,
+        typedef uint32_t FlagsStorage;
+        typedef ::Flags<FlagsStorage> FlagsType;
+
+        enum Flag : FlagsStorage
+        {
+            IsLoad              = 0x00000001,
+            /** True if this is a store/atomic that writes registers (SC). */
+            WbStore             = 0x00000002,
+            Delayed             = 0x00000004,
+            IsSplit             = 0x00000008,
             /** True if any translation has been sent to TLB. */
-            TranslationStarted,
+            TranslationStarted  = 0x00000010,
             /** True if there are un-replied outbound translations.. */
-            TranslationFinished,
-            Sent,
-            Retry,
-            Complete,
+            TranslationFinished = 0x00000020,
+            Sent                = 0x00000040,
+            Retry               = 0x00000080,
+            Complete            = 0x00000100,
             /** Ownership tracking flags. */
             /** Translation squashed. */
-            TranslationSquashed,
+            TranslationSquashed = 0x00000200,
             /** Request discarded */
-            Discarded,
+            Discarded           = 0x00000400,
             /** LSQ resources freed. */
-            LSQEntryFreed,
+            LSQEntryFreed       = 0x00000800,
             /** Store written back. */
-            WritebackScheduled,
-            WritebackDone,
-            Max
+            WritebackScheduled  = 0x00001000,
+            WritebackDone       = 0x00002000,
+            /** True if this is an atomic request */
+            IsAtomic            = 0x00004000
         };
-        static constexpr auto MaxFlag = (size_t) Flag::Max;
-        std::bitset<MaxFlag> flags;
+        FlagsType flags;
 
         enum class State
         {
@@ -228,8 +232,8 @@ class LSQ {
         /** LQ/SQ entry idx. */
         uint32_t _entryIdx;
 
-        void markDelayed() { flags[(int)Flag::Delayed] = 1; }
-        bool isDelayed() { return flags[(int)Flag::Delayed]; }
+        void markDelayed() { flags.set(Flag::Delayed); }
+        bool isDelayed() { return flags.isSet(Flag::Delayed); }
       public:
         LSQUnit& _port;
         const DynInstPtr _inst;
@@ -244,52 +248,62 @@ class LSQ {
         const Request::Flags _flags;
         std::vector<bool> _byteEnable;
         uint32_t _numOutstandingPackets;
+        AtomicOpFunctorPtr _amo_op;
       protected:
         LSQUnit* lsqUnit() { return &_port; }
         LSQRequest(LSQUnit* port, const DynInstPtr& inst, bool isLoad) :
             _state(State::NotIssued), _senderState(nullptr),
             _port(*port), _inst(inst), _data(nullptr),
             _res(nullptr), _addr(0), _size(0), _flags(0),
-            _numOutstandingPackets(0)
+            _numOutstandingPackets(0), _amo_op(nullptr)
         {
-            flags[(int)Flag::IsLoad] = isLoad;
-            flags[(int)Flag::WbStore] = _inst->isStoreConditional();
+            flags.set(Flag::IsLoad, isLoad);
+            flags.set(Flag::WbStore,
+                      _inst->isStoreConditional() || _inst->isAtomic());
+            flags.set(Flag::IsAtomic, _inst->isAtomic());
             install();
         }
         LSQRequest(LSQUnit* port, const DynInstPtr& inst, bool isLoad,
                    const Addr& addr, const uint32_t& size,
                    const Request::Flags& flags_,
                    PacketDataPtr data = nullptr, uint64_t* res = nullptr,
-                   const std::vector<bool>& byteEnable =
-                   std::vector<bool>())
+                   AtomicOpFunctorPtr amo_op = nullptr)
             : _state(State::NotIssued), _senderState(nullptr),
             numTranslatedFragments(0),
             numInTranslationFragments(0),
             _port(*port), _inst(inst), _data(data),
             _res(res), _addr(addr), _size(size),
             _flags(flags_),
-            _byteEnable(byteEnable),
-            _numOutstandingPackets(0)
+            _numOutstandingPackets(0),
+            _amo_op(std::move(amo_op))
         {
-            flags[(int)Flag::IsLoad] = isLoad;
-            flags[(int)Flag::WbStore] = _inst->isStoreConditional();
-            if (!byteEnable.empty() &&
-                isAllActiveElement(byteEnable.cbegin(), byteEnable.cend()))
-                _byteEnable = std::vector<bool>();
+            flags.set(Flag::IsLoad, isLoad);
+            flags.set(Flag::WbStore,
+                      _inst->isStoreConditional() || _inst->isAtomic());
+            flags.set(Flag::IsAtomic, _inst->isAtomic());
             install();
         }
 
         bool
         isLoad() const
         {
-            return flags[(int)Flag::IsLoad];
+            return flags.isSet(Flag::IsLoad);
         }
+
+        bool
+        isAtomic() const
+        {
+            return flags.isSet(Flag::IsAtomic);
+        }
+
 
         /** Install the request in the LQ/SQ. */
         void install() {
             if (isLoad()) {
                 _port.loadQueue[_inst->lqIdx].setRequest(this);
             } else {
+                // Store, StoreConditional, and Atomic requests are pushed
+                // to this storeQueue
                 _port.storeQueue[_inst->sqIdx].setRequest(this);
             }
         }
@@ -307,8 +321,8 @@ class LSQ {
         bool
         isReleased()
         {
-            return flags[(int)Flag::LSQEntryFreed] ||
-                flags[(int)Flag::Discarded];
+            return flags.isSet(Flag::LSQEntryFreed) ||
+                flags.isSet(Flag::Discarded);
         }
 
         /** Release the LSQRequest.
@@ -329,7 +343,30 @@ class LSQ {
                 if (_senderState) {
                     _senderState->deleteRequest();
                 }
-                flags[(int)reason] = true;
+                flags.set(reason);
+            }
+        }
+
+        /** Helper function used to add a (sub)request, given its address
+         * `addr`, size `size` and byte-enable mask `byteEnable`.
+         *
+         * The request is only added if the mask is empty or if there is at
+         * least an active element in it.
+         */
+        void
+        addRequest(Addr addr, unsigned size,
+                   const std::vector<bool>& byteEnable)
+        {
+            if (byteEnable.empty() ||
+                isAnyActiveElement(byteEnable.begin(), byteEnable.end())) {
+                auto request = new Request(_inst->getASID(),
+                        addr, size, _flags, _inst->masterId(),
+                        _inst->instAddr(), _inst->contextId(),
+                        std::move(_amo_op));
+                if (!byteEnable.empty()) {
+                    request->setByteEnable(byteEnable);
+                }
+                _requests.push_back(request);
             }
         }
 
@@ -381,8 +418,7 @@ class LSQ {
                 MasterID mid, Addr pc,
                 const std::vector<bool>& byteEnable = std::vector<bool>())
         {
-            request()->setVirt(asid, vaddr, size, flags_, mid, pc,
-                               byteEnable);
+            request()->setVirt(asid, vaddr, size, flags_, mid, pc);
         }
 
         void taskId(const uint32_t& v)
@@ -442,14 +478,14 @@ class LSQ {
         {
             return numInTranslationFragments > 0 ||
                 _numOutstandingPackets > 0 ||
-                (flags[(int)Flag::WritebackScheduled] &&
-                 !flags[(int)Flag::WritebackDone]);
+                (flags.isSet(Flag::WritebackScheduled) &&
+                 !flags.isSet(Flag::WritebackDone));
         }
 
         bool
         isSplit() const
         {
-            return flags[(int)Flag::IsSplit];
+            return flags.isSet(Flag::IsSplit);
         }
         /** @} */
         virtual bool recvTimingResp(PacketPtr pkt) = 0;
@@ -460,7 +496,7 @@ class LSQ {
         void
         packetSent()
         {
-            flags[(int)Flag::Sent] = 1;
+            flags.set(Flag::Sent);
         }
         /** Update the status to reflect that a packet was not sent.
          * When a packet fails to be sent, we mark the request as needing a
@@ -469,14 +505,14 @@ class LSQ {
         void
         packetNotSent()
         {
-            flags[(int)Flag::Retry] = 1;
-            flags[(int)Flag::Sent] = 0;
+            flags.set(Flag::Retry);
+            flags.clear(Flag::Sent);
         }
 
         void sendFragmentToTranslation(int i);
         bool
         isComplete() {
-            return flags[(int)Flag::Complete];
+            return flags.isSet(Flag::Complete);
         }
 
         bool
@@ -486,21 +522,21 @@ class LSQ {
 
         bool
         isTranslationComplete() {
-            return flags[(int)Flag::TranslationStarted] &&
+            return flags.isSet(Flag::TranslationStarted) &&
                    !isInTranslation();
         }
 
         bool
         isTranslationBlocked() {
             return _state == State::Translation &&
-                flags[(int)Flag::TranslationStarted] &&
-                !flags[(int)Flag::TranslationFinished];
+                flags.isSet(Flag::TranslationStarted) &&
+                !flags.isSet(Flag::TranslationFinished);
         }
 
         bool
         isSent()
         {
-            return flags[(int)Flag::Sent];
+            return flags.isSet(Flag::Sent);
         }
 
         bool
@@ -543,13 +579,13 @@ class LSQ {
 
         void writebackScheduled()
         {
-            assert(!flags[(int)Flag::WritebackScheduled]);
-            flags[(int)Flag::WritebackScheduled] = true;
+            assert(!flags.isSet(Flag::WritebackScheduled));
+            flags.set(Flag::WritebackScheduled);
         }
 
         void writebackDone()
         {
-            flags[(int)Flag::WritebackDone] = true;
+            flags.set(Flag::WritebackDone);
             /* If the lsq resources are already free */
             if (isReleased()) {
                 delete this;
@@ -560,7 +596,7 @@ class LSQ {
         squashTranslation()
         {
             assert(numInTranslationFragments == 0);
-            flags[(int)Flag::TranslationSquashed] = true;
+            flags.set(Flag::TranslationSquashed);
             /* If we are on our own, self-destruct. */
             if (isReleased()) {
                 delete this;
@@ -569,7 +605,7 @@ class LSQ {
 
         void complete()
         {
-            flags[(int)Flag::Complete] = 1;
+            flags.set(Flag::Complete);
         }
     };
 
@@ -603,16 +639,16 @@ class LSQ {
         using LSQRequest::numInTranslationFragments;
         using LSQRequest::numTranslatedFragments;
         using LSQRequest::_numOutstandingPackets;
+        using LSQRequest::_amo_op;
       public:
         SingleDataRequest(LSQUnit* port, const DynInstPtr& inst, bool isLoad,
                           const Addr& addr, const uint32_t& size,
                           const Request::Flags& flags_,
                           PacketDataPtr data = nullptr,
                           uint64_t* res = nullptr,
-                          const std::vector<bool>& byteEnable =
-                          std::vector<bool>()) :
+                          AtomicOpFunctorPtr amo_op = nullptr) :
             LSQRequest(port, inst, isLoad, addr, size, flags_, data, res,
-                       byteEnable) {}
+                       std::move(amo_op)) {}
         inline virtual ~SingleDataRequest() {}
         virtual void initiateTranslation();
         virtual void finish(const Fault &fault, RequestPtr req,
@@ -663,17 +699,15 @@ class LSQ {
         SplitDataRequest(LSQUnit* port, const DynInstPtr& inst, bool isLoad,
                          const Addr& addr, const uint32_t& size,
                          const Request::Flags & flags_,
-                         PacketDataPtr data = nullptr, uint64_t* res = nullptr,
-                         const std::vector<bool>& byteEnable =
-                         std::vector<bool>()) :
-            LSQRequest(port, inst, isLoad, addr, size, flags_, data, res,
-                       byteEnable),
+                         PacketDataPtr data = nullptr,
+                         uint64_t* res = nullptr) :
+            LSQRequest(port, inst, isLoad, addr, size, flags_, data, res),
             numFragments(0),
             numReceivedPackets(0),
             mainReq(nullptr),
             _mainPacket(nullptr)
         {
-            flags[(int)Flag::IsSplit] = true;
+            flags.set(Flag::IsSplit);
         }
         virtual ~SplitDataRequest() {
             if (mainReq) {
@@ -924,7 +958,8 @@ class LSQ {
 
     Fault pushRequest(const DynInstPtr& inst, bool isLoad, uint8_t *data,
                       unsigned int size, Addr addr, Request::Flags flags,
-                      uint64_t *res, const std::vector<bool>& byteEnable);
+                      uint64_t *res, AtomicOpFunctorPtr amo_op,
+                      const std::vector<bool>& byteEnable);
 
     /** The CPU pointer. */
     O3CPU *cpu;

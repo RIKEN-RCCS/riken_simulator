@@ -850,7 +850,7 @@ class Packet : public Printable
     {
         if (req->isLLSC())
             return MemCmd::StoreCondReq;
-        else if (req->isSwap())
+        else if (req->isSwap() || req->isAtomic())
             return MemCmd::SwapReq;
         else if (req->isCacheInvalidate()) {
           return req->isCacheClean() ? MemCmd::CleanInvalidReq :

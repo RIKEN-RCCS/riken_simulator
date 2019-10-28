@@ -124,11 +124,12 @@ LSQUnit<Impl>::completeDataAccess(PacketPtr pkt)
     assert(!cpu->switchedOut());
     if (!inst->isSquashed()) {
         if (state->needWB) {
-            // Only loads and store conditionals perform the writeback
+            // Only loads, store conditionals and atomics perform the writeback
             // after receving the response from the memory
-            assert(inst->isLoad() || inst->isStoreConditional());
+            assert(inst->isLoad() || inst->isStoreConditional()||
+                   inst->isAtomic());
             writeback(inst, state->request()->mainPacket());
-            if (inst->isStore()) {
+            if (inst->isStore() || inst->isAtomic()) {
                 auto ss = dynamic_cast<SQSenderState*>(state);
                 ss->writebackDone();
                 completeStore(ss->idx);
@@ -276,7 +277,7 @@ LSQUnit<Impl>::insert(const DynInstPtr &inst)
 {
     assert(inst->isMemRef());
 
-    assert(inst->isLoad() || inst->isStore());
+    assert(inst->isLoad() || inst->isStore() || inst->isAtomic());
 
     if (inst->isLoad()) {
         insertLoad(inst);
@@ -661,8 +662,8 @@ LSQUnit<Impl>::executeStore(const DynInstPtr &store_inst)
 
     assert(store_fault == NoFault);
 
-    if (store_inst->isStoreConditional()) {
-        // Store conditionals need to set themselves as able to
+    if (store_inst->isStoreConditional() || store_inst->isAtomic() ) {
+        // Store conditionals and Atomics need to set themselves as able to
         // writeback if we haven't had a fault by here.
         storeQueue[store_idx].canWB() = true;
 
@@ -798,8 +799,8 @@ LSQUnit<Impl>::writebackStores()
             state->inst = inst;
 
             req->senderState(state);
-            if (inst->isStoreConditional()) {
-                /* Only store conditionals need a writeback. */
+            if (inst->isStoreConditional() || inst->isAtomic()) {
+                /* Only store conditionals and atomics need a writeback. */
                 state->needWB = true;
             }
         }

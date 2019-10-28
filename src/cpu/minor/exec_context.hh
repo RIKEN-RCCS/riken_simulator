@@ -118,7 +118,7 @@ class ExecContext : public ::ExecContext
     {
         return execute.getLSQ().pushRequest(inst, true /* load */, nullptr,
                                             size, addr, flags, nullptr,
-                                            byteEnable);
+                                            nullptr, byteEnable);
     }
 
     Fault
@@ -129,7 +129,16 @@ class ExecContext : public ::ExecContext
     {
         assert(byteEnable.empty() || byteEnable.size() == size);
         return execute.getLSQ().pushRequest(inst, false /* store */, data,
-            size, addr, flags, res, byteEnable);
+            size, addr, flags, res, nullptr, byteEnable);
+    }
+
+    Fault
+    initiateMemAMO(Addr addr, unsigned int size, Request::Flags flags,
+                   AtomicOpFunctorPtr amo_op) override
+    {
+        // AMO requests are pushed through the store path
+        return execute.getLSQ().pushRequest(inst, false /* amo */, nullptr,
+            size, addr, flags, nullptr, std::move(amo_op));
     }
 
     IntReg
