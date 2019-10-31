@@ -441,6 +441,7 @@ class DefaultCommit
      */
     const Cycles trapLatency;
 
+    bool commitStopOnBranch;
     /** The interrupt fault. */
     Fault interrupt;
 

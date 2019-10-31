@@ -78,6 +78,8 @@ class DerivO3CPU(BaseCPU):
     iewToFetchDelay = Param.Cycles(1, "Issue/Execute/Writeback to fetch "
                                    "delay")
     commitToFetchDelay = Param.Cycles(1, "Commit to fetch delay")
+    commitStopOnBranch = Param.Cycles(False, "Commit stop when encountered"
+                                              "to branch")
     fetchWidth = Param.Unsigned(8, "Fetch width")
     fetchBufferSize = Param.Unsigned(64, "Fetch buffer size in bytes")
     fetchQueueSize = Param.Unsigned(32, "Fetch queue size in micro-ops "

@@ -94,6 +94,7 @@ DefaultCommit<Impl>::DefaultCommit(O3CPU *_cpu, DerivO3CPUParams *params)
       drainPending(false),
       drainImminent(false),
       trapLatency(params->trapLatency),
+      commitStopOnBranch(params->commitStopOnBranch),
       canHandleInterrupts(true),
       avoidQuiesceLiveLock(false)
 {
@@ -1219,6 +1220,11 @@ DefaultCommit<Impl>::commitInsts()
                     if (count > 1) {
                         DPRINTF(Commit,
                                 "PC skip function event, stopping commit\n");
+                        break;
+                    }
+                    if (commitStopOnBranch && head_inst->isControl()){
+                        DPRINTF(Commit,
+                                "Branch encounterd, stopping commit\n");
                         break;
                     }
                 }
