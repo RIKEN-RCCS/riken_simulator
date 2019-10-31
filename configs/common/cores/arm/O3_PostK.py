@@ -284,6 +284,7 @@ class O3_ARM_PostK_3(DerivO3CPU):
     splitUnalignedAccess = False
     switched_out = False
     requestLineWidth=2048
+    commitStopOnBranch=True
     branchPred = O3_ARM_PostK_BP()
     def createThreads(self):
         # If no ISAs have been created, assume that the user wants the
