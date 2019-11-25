@@ -253,11 +253,14 @@ class O3_ARM_PostK_3(DerivO3CPU):
     commitToIEWDelay = 1
     fetchWidth = 8
     fetchBufferSize = 128 # 192 but should be 256/n
-    fetchToDecodeDelay = 1
+#    fetchToDecodeDelay = 1
+    fetchToDecodeDelay = 5
     decodeWidth = 4
-    decodeToRenameDelay = 1
+#    decodeToRenameDelay = 1
+    decodeToRenameDelay = 2
     renameWidth = 4
-    renameToIEWDelay = 1
+#    renameToIEWDelay = 1
+    renameToIEWDelay = 2
     issueToExecuteDelay = 1
     dispatchWidth = 4
     issueWidth = 4
