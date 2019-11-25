@@ -254,7 +254,7 @@ class O3_ARM_PostK_3(DerivO3CPU):
     fetchWidth = 8
     fetchBufferSize = 128 # 192 but should be 256/n
 #    fetchToDecodeDelay = 1
-    fetchToDecodeDelay = 5
+    fetchToDecodeDelay = 2
     decodeWidth = 4
 #    decodeToRenameDelay = 1
     decodeToRenameDelay = 2
@@ -298,10 +298,13 @@ class O3_ARM_PostK_3(DerivO3CPU):
 
 # Instruction Cache
 class O3_ARM_PostK_ICache(Cache):
-    tag_latency = 1
-    data_latency = 1
-    response_latency = 1
-    mshrs = 2
+#    tag_latency = 1
+    tag_latency = 2
+#    data_latency = 1
+    data_latency = 3
+#    response_latency = 1
+    response_latency = 3
+    mshrs = 8
     tgts_per_mshr = 8
     size = '64kB'
     assoc = 4
