@@ -1360,9 +1360,9 @@ let {{
                      fcvtzuIntCode, scalar=True)
     # FDIV
     fdivCode = fpBinOp % "Div"
-    threeEqualRegInstX("fdiv", "FdivDX", "SimdFloatDivOp", smallFloatTypes, 2,
+    threeEqualRegInstX("fdiv", "FdivDX", "FloatDivdOp", smallFloatTypes, 2,
                        fdivCode)
-    threeEqualRegInstX("fdiv", "FdivQX", "SimdFloatDivOp", floatTypes, 4,
+    threeEqualRegInstX("fdiv", "FdivQX", "FloatDivdOp", floatTypes, 4,
                        fdivCode)
     # FMAX
     fmaxCode = fpBinOp % "Max"
@@ -1597,9 +1597,9 @@ let {{
                        4, frsqrtsCode, scalar=True)
     # FSQRT
     fsqrtCode = fpOp % "fplibSqrt<Element>(srcElem1, fpscr)"
-    twoEqualRegInstX("fsqrt", "FsqrtDX", "SimdFloatSqrtOp", smallFloatTypes, 2,
+    twoEqualRegInstX("fsqrt", "FsqrtDX", "FloatSqrtdOp", smallFloatTypes, 2,
                      fsqrtCode)
-    twoEqualRegInstX("fsqrt", "FsqrtQX", "SimdFloatSqrtOp", floatTypes, 4,
+    twoEqualRegInstX("fsqrt", "FsqrtQX", "FloatSqrtdOp", floatTypes, 4,
                      fsqrtCode)
     # FSUB
     fsubCode = fpBinOp % "Sub"
