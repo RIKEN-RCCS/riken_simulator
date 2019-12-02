@@ -114,6 +114,7 @@ class O3_ARM_PostK_FLA(FUDesc):
                OpDesc(opClass='SimdFloatMisc', opLat=4),
                OpDesc(opClass='SimdFloatMult', opLat=9),
                OpDesc(opClass='SimdFloatMultAcc',opLat=9),
+               OpDesc(opClass='SimdFloatSqrtS', opLat=98, pipelined=False),
                OpDesc(opClass='SimdFloatSqrt', opLat=154, pipelined=False),
                OpDesc(opClass='SimdAluA', opLat=4),
                OpDesc(opClass='SimdMiscA', opLat=6),

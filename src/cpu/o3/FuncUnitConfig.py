@@ -100,6 +100,7 @@ class SIMD_Unit(FUDesc):
                OpDesc(opClass='SimdFloatMult'),
                OpDesc(opClass='SimdFloatMultAcc'),
                OpDesc(opClass='SimdFloatSqrt'),
+               OpDesc(opClass='SimdFloatSqrtS'),
                OpDesc(opClass='SimdReduceAdd'),
                OpDesc(opClass='SimdReduceAlu'),
                OpDesc(opClass='SimdReduceCmp'),

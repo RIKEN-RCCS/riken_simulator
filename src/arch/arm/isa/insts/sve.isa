@@ -43,6 +43,11 @@ output header {{
         return (sizeof(T)>=sizeof(int64_t)) ? Enums::SimdDiv :
           Enums::SimdDivS;
     }
+    // Select SimdFloatSqrt Op class by element size
+    template <typename T> constexpr OpClass sveFSqrtOp(){
+        return (sizeof(T)>=sizeof(int64_t)) ? Enums::SimdFloatSqrt :
+          Enums::SimdFloatSqrtS;
+    }
     // Decodes unary, constructive, predicated (merging) SVE instructions,
     // handling signed and unsigned variants.
 
@@ -3861,13 +3866,13 @@ let {{
                fcvtzuCode, CvtDir.Widen)
     # FDIV
     fdivCode = fpBinOp % 'Div'
-    sveBinInst('fdiv', 'Fdiv', 'SimdFloatDivOp', floatTypes, fdivCode,
-               PredType.MERGE, True)
+    sveBinInst('fdiv', 'Fdiv', 'sveFSqrtOp<Element>()', floatTypes,
+               fdivCode, PredType.MERGE, True)
     # FDIVR
     fpBinRevOp = fpOp % 'fplib%s<Element>(srcElem2, srcElem1, fpscr)'
     fdivrCode = fpBinRevOp % 'Div'
-    sveBinInst('fdivr', 'Fdivr', 'SimdFloatDivOp', floatTypes, fdivrCode,
-               PredType.MERGE, True)
+    sveBinInst('fdivr', 'Fdivr', 'sveFSqrtOp<Element>()', floatTypes,
+               fdivrCode, PredType.MERGE, True)
     # FDUP
     sveWideImmInst('fdup', 'Fdup', 'SimdAluAOp', floatTypes, dupCode,
                    isUnary=True)
@@ -4045,8 +4050,8 @@ let {{
                PredType.MERGE, True)
     # FSQRT
     fsqrtCode = fpOp % "fplibSqrt<Element>(srcElem1, fpscr)"
-    sveUnaryInst('fsqrt', 'Fsqrt', 'SimdFloatSqrtOp', floatTypes, fsqrtCode,
-                 PredType.MERGE)
+    sveUnaryInst('fsqrt', 'Fsqrt', 'sveFSqrtOp<Element>()', floatTypes,
+                 fsqrtCode, PredType.MERGE)
     # FSUB (immediate)
     fsubCode = fpBinOp % 'Sub'
     sveBinImmInst('fsub', 'FsubImm', 'SimdFloatAddAOp', floatTypes, fsubCode,

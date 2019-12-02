@@ -38,6 +38,14 @@
 // Authors: Giacomo Gabrielli
 //          Mbou Eyole
 
+output header {{
+    // Select SimdFloatSqrt Op class by element size
+    template <typename T> constexpr OpClass neonFSqrtOp(){
+        return (sizeof(T)>=sizeof(int64_t)) ? Enums::FloatSqrtd :
+          Enums::FloatSqrt;
+    }
+}};
+
 let {{
 
     header_output = ""
@@ -1360,10 +1368,10 @@ let {{
                      fcvtzuIntCode, scalar=True)
     # FDIV
     fdivCode = fpBinOp % "Div"
-    threeEqualRegInstX("fdiv", "FdivDX", "FloatDivdOp", smallFloatTypes, 2,
-                       fdivCode)
-    threeEqualRegInstX("fdiv", "FdivQX", "FloatDivdOp", floatTypes, 4,
-                       fdivCode)
+    threeEqualRegInstX("fdiv", "FdivDX", "neonFSqrtOp<Element>()",
+                       smallFloatTypes, 2, fdivCode)
+    threeEqualRegInstX("fdiv", "FdivQX", "neonFSqrtOp<Element>()",
+                       floatTypes, 4, fdivCode)
     # FMAX
     fmaxCode = fpBinOp % "Max"
     threeEqualRegInstX("fmax", "FmaxDX", "SimdFloatCmpOp", smallFloatTypes, 2,
@@ -1597,10 +1605,10 @@ let {{
                        4, frsqrtsCode, scalar=True)
     # FSQRT
     fsqrtCode = fpOp % "fplibSqrt<Element>(srcElem1, fpscr)"
-    twoEqualRegInstX("fsqrt", "FsqrtDX", "FloatSqrtdOp", smallFloatTypes, 2,
-                     fsqrtCode)
-    twoEqualRegInstX("fsqrt", "FsqrtQX", "FloatSqrtdOp", floatTypes, 4,
-                     fsqrtCode)
+    twoEqualRegInstX("fsqrt", "FsqrtDX", "neonFSqrtOp<Element>()",
+                     smallFloatTypes, 2, fsqrtCode)
+    twoEqualRegInstX("fsqrt", "FsqrtQX", "neonFSqrtOp<Element>()",
+                     floatTypes, 4, fsqrtCode)
     # FSUB
     fsubCode = fpBinOp % "Sub"
     threeEqualRegInstX("fsub", "FsubDX", "SimdFloatAddOp", smallFloatTypes, 2,
