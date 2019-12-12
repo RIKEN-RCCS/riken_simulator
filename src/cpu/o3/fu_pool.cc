@@ -90,6 +90,7 @@ FUPool::FUPool(const Params *p)
 
     maxOpLatencies.fill(Cycles(0));
     pipelined.fill(true);
+    cyclesPerOps.fill(Cycles(0));
 
     //
     //  Iterate through the list of FUDescData structures
@@ -122,13 +123,16 @@ FUPool::FUPool(const Params *p)
                     fuPerCapList[(*j)->opClass].addFU(numFU + k);
 
                 // indicate that this FU has the capability
-                fu->addCapability((*j)->opClass, (*j)->opLat, (*j)->pipelined);
+                fu->addCapability((*j)->opClass, (*j)->opLat, (*j)->pipelined,
+                                  (*j)->cyclesPerOp);
 
                 if ((*j)->opLat > maxOpLatencies[(*j)->opClass])
                     maxOpLatencies[(*j)->opClass] = (*j)->opLat;
 
                 if (!(*j)->pipelined)
                     pipelined[(*j)->opClass] = false;
+
+                cyclesPerOps[(*j)->opClass] = (*j)->cyclesPerOp;
             }
 
             numFU++;
@@ -192,6 +196,15 @@ FUPool::freeUnitNextCycle(int fu_idx)
 }
 
 void
+FUPool::freeUnitCyclesLater(int fu_idx, int cpo)
+{
+    /** cpo = cycles per operation (inverse of throughput) **/
+    assert(unitBusy[fu_idx]);
+    pairfc element = {fu_idx, cpo};
+    unitsToBeFreedLater.push_back(element);
+}
+
+void
 FUPool::processFreeUnits()
 {
     while (!unitsToBeFreed.empty()) {
@@ -201,6 +214,18 @@ FUPool::processFreeUnits()
         assert(unitBusy[fu_idx]);
 
         unitBusy[fu_idx] = false;
+    }
+    std::vector<pairfc>::iterator i = unitsToBeFreedLater.begin();
+    while (i != unitsToBeFreedLater.end()) {
+      if (i->cpo == 1) {
+        assert(unitBusy[i->fu_idx]);
+        unitBusy[i->fu_idx] = false;
+        unitsToBeFreedLater.erase(i);
+      } else {
+        assert(unitBusy[i->fu_idx]);
+        i->cpo --;
+        i ++;
+      }
     }
 }
 

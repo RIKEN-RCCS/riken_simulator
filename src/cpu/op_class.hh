@@ -111,6 +111,7 @@ static const OpClass SimdMiscBOp = Enums::SimdMiscB;
 static const OpClass SimdFloatAddAOp = Enums::SimdFloatAddA;
 static const OpClass SimdFloatMultAOp = Enums::SimdFloatMultA;
 static const OpClass SimdFloatAOp = Enums::SimdFloatA;
+static const OpClass SimdFCMLAOp = Enums::SimdFCMLA;
 static const OpClass SimdFloatReduceAddAOp = Enums::SimdFloatReduceAddA;
 static const OpClass SveMemReadOp = Enums::SveMemRead;
 static const OpClass SveMemWriteOp = Enums::SveMemWrite;

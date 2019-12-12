@@ -873,10 +873,18 @@ InstructionQueue<Impl>::scheduleReadyInsts()
                 i2e_info->size++;
                 instsToExecute.push_back(issuing_inst);
 
-                // Add the FU onto the list of FU's to be freed next
-                // cycle if we used one.
-                if (idx >= 0)
+                Cycles cpo = fuPool->getCyclesPerOps(op_class);
+                if (cpo > 1) {
+                  // Add the FU onto the list of FU's to be freed
+                  // multiple cycles later.
+                  if (idx >= 0)
+                    fuPool->freeUnitCyclesLater(idx, cpo);
+                } else {
+                  // Add the FU onto the list of FU's to be freed next
+                  // cycle if we used one.
+                  if (idx >= 0)
                     fuPool->freeUnitNextCycle(idx);
+                }
             } else {
                 bool pipelined = fuPool->isPipelined(op_class);
                 // Generate completion event for the FU
@@ -892,8 +900,16 @@ InstructionQueue<Impl>::scheduleReadyInsts()
                     // upon the execution completing.
                     execution->setFreeFU();
                 } else {
+                  Cycles cpo = fuPool->getCyclesPerOps(op_class);
+                  if (cpo > 1) {
+                    // Add the FU onto the list of FU's to be freed
+                    // multiple cycles later.
+                    //std::cout << op_class << ":" << cpo << std::endl;
+                      fuPool->freeUnitCyclesLater(idx, cpo);
+                    } else {
                     // Add the FU onto the list of FU's to be freed next cycle.
                     fuPool->freeUnitNextCycle(idx);
+                  }
                 }
             }
 

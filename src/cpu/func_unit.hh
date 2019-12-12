@@ -54,10 +54,11 @@ class OpDesc : public SimObject
     OpClass opClass;
     Cycles opLat;
     bool pipelined;
+    Cycles cyclesPerOp;
 
     OpDesc(const OpDescParams *p)
         : SimObject(p), opClass(p->opClass), opLat(p->opLat),
-          pipelined(p->pipelined) {};
+          pipelined(p->pipelined), cyclesPerOp(p->cyclesPerOp) {};
 };
 
 class FUDesc : public SimObject
@@ -87,6 +88,7 @@ class FuncUnit
   private:
     std::array<unsigned, Num_OpClasses> opLatencies;
     std::array<bool, Num_OpClasses> pipelined;
+    std::array<unsigned, Num_OpClasses> cyclesPerOps;
     std::bitset<Num_OpClasses> capabilityList;
 
   public:
@@ -95,13 +97,15 @@ class FuncUnit
 
     std::string name;
 
-    void addCapability(OpClass cap, unsigned oplat, bool pipelined);
+    void addCapability(OpClass cap, unsigned oplat, bool pipelined,
+                       unsigned cyclesPerOp);
 
     bool provides(OpClass capability);
     std::bitset<Num_OpClasses> capabilities();
 
     unsigned &opLatency(OpClass capability);
     bool isPipelined(OpClass capability);
+    unsigned &getCyclesPerOp(OpClass capability);
 };
 
 #endif // __FU_POOL_HH__

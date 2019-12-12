@@ -122,14 +122,14 @@ FUPipeline::FUPipeline(const std::string &name, const MinorFU &description_,
      * rather than instruction classes in Minor */
 
     /* All pipelines should be able to execute No_OpClass instructions */
-    addCapability(No_OpClass, description.opLat, 1);
+    addCapability(No_OpClass, description.opLat, 1, 1);
 
     /* Add the capabilities listed in the MinorFU for this functional unit */
     for (unsigned int i = 0; i < description.opClasses->opClasses.size();
          i++)
     {
         addCapability(description.opClasses->opClasses[i]->opClass,
-            description.opLat, 1);
+                      description.opLat, 1, 1);
     }
 
     for (unsigned int i = 0; i < description.timings.size(); i++) {

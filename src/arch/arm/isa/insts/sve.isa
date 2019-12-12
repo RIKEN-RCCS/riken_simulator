@@ -3815,10 +3815,10 @@ let {{
     fcmuoCode = fpCmpOp % 'UN'
     sveCmpInst('fcmuo', 'Fcmuo', 'SimdFloatCmpOp', fpTypes, fcmuoCode)
     # FCMLA (indexed)
-    sveComplexMulAddInst('fcmla', 'Fcmlai', 'SimdFloatMultAccOp',
+    sveComplexMulAddInst('fcmla', 'Fcmlai', 'SimdFCMLAOp',
             fpTypes[1:], predType = PredType.NONE)
     # FCMLA (vectors)
-    sveComplexMulAddInst('fcmla', 'Fcmlav', 'SimdFloatMultAccOp',
+    sveComplexMulAddInst('fcmla', 'Fcmlav', 'SimdFCMLAOp',
             fpTypes, predType = PredType.MERGE)
     # FCPY
     sveWideImmInst('fcpy', 'Fcpy', 'SimdAluAOp', unsignedTypes, dupCode,

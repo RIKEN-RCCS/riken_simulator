@@ -75,6 +75,8 @@ class FUPool : public SimObject
     std::array<Cycles, Num_OpClasses> maxOpLatencies;
     /** Whether op is pipelined or not. */
     std::array<bool, Num_OpClasses> pipelined;
+    /** Whether op is pipelined or not. */
+    std::array<Cycles, Num_OpClasses> cyclesPerOps;
 
     /** Bitvector listing capabilities of this FU pool. */
     std::bitset<Num_OpClasses> capabilityList;
@@ -84,6 +86,14 @@ class FUPool : public SimObject
 
     /** List of units to be freed at the end of this cycle. */
     std::vector<int> unitsToBeFreed;
+
+    /** List of units to be freed later. */
+    struct pairfc // pair_of_fu_cpo
+    {
+      int fu_idx;
+      int cpo;
+    };
+    std::vector<pairfc> unitsToBeFreedLater;
 
     /**
      * Class that implements a circular queue to hold FU indices. The hope is
@@ -151,6 +161,9 @@ class FUPool : public SimObject
     /** Frees a FU at the end of this cycle. */
     void freeUnitNextCycle(int fu_idx);
 
+    /** Frees a FU multiple cycles later. */
+    void freeUnitCyclesLater(int fu_idx, int cpo);
+
     /** Frees all FUs on the list. */
     void processFreeUnits();
 
@@ -168,6 +181,11 @@ class FUPool : public SimObject
     /** Returns the issue latency of the given capability. */
     bool isPipelined(OpClass capability) {
         return pipelined[capability];
+    }
+
+    /** Returns the inverse of throughput of the given capability. */
+    Cycles getCyclesPerOps(OpClass capability) {
+        return cyclesPerOps[capability];
     }
 
     /** Have all the FUs drained? */

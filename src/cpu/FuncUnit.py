@@ -59,7 +59,7 @@ class OpClass(Enum):
             'IprAccess', 'InstPrefetch', 'IntDiv4', 'IntDiv8',
             'IntAlu2', 'SimdPredCmp', 'SimdMvp', 'SimdGpr',
             'SimdAluA', 'SimdAluB', 'SimdMiscA', 'SimdMiscB',
-            'SimdFloatAddA', 'SimdFloatMultA', 'SimdFloatA',
+            'SimdFloatAddA', 'SimdFloatMultA', 'SimdFloatA', 'SimdFCMLA',
             'SimdFloatReduceAddA', 'SveMemRead', 'SveMemWrite']
 
 class OpDesc(SimObject):
@@ -69,6 +69,8 @@ class OpDesc(SimObject):
     opLat = Param.Cycles(1, "cycles until result is available")
     pipelined = Param.Bool(True, "set to true when the functional unit for"
         "this op is fully pipelined. False means not pipelined at all.")
+    cyclesPerOp = Param.Cycles(1,
+                               "cycles per operateion (inverse of throughput)")
 
 class FUDesc(SimObject):
     type = 'FUDesc'

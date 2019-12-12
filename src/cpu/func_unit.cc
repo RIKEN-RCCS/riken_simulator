@@ -46,6 +46,7 @@ FuncUnit::FuncUnit()
     opLatencies.fill(0);
     pipelined.fill(false);
     capabilityList.reset();
+    cyclesPerOps.fill(0);
 }
 
 
@@ -56,6 +57,7 @@ FuncUnit::FuncUnit(const FuncUnit &fu)
     for (int i = 0; i < Num_OpClasses; ++i) {
         opLatencies[i] = fu.opLatencies[i];
         pipelined[i] = fu.pipelined[i];
+        cyclesPerOps[i] = fu.cyclesPerOps[i];
     }
 
     capabilityList = fu.capabilityList;
@@ -63,15 +65,20 @@ FuncUnit::FuncUnit(const FuncUnit &fu)
 
 
 void
-FuncUnit::addCapability(OpClass cap, unsigned oplat, bool pipeline)
+FuncUnit::addCapability(OpClass cap, unsigned oplat, bool pipeline,
+                        unsigned cyclesPerOp)
 {
     if (oplat == 0)
         panic("FuncUnit:  you don't really want a zero-cycle latency do you?");
+
+    if (cyclesPerOp == 0)
+        panic("FuncUnit:  you don't really want an infinite throughput?");
 
     capabilityList.set(cap);
 
     opLatencies[cap] = oplat;
     pipelined[cap] = pipeline;
+    cyclesPerOps[cap] = cyclesPerOp;
 }
 
 bool
@@ -96,6 +103,12 @@ bool
 FuncUnit::isPipelined(OpClass capability)
 {
     return pipelined[capability];
+}
+
+unsigned &
+FuncUnit::getCyclesPerOp(OpClass cap)
+{
+    return cyclesPerOps[cap];
 }
 
 ////////////////////////////////////////////////////////////////////////////
