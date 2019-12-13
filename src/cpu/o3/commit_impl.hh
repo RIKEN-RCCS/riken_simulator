@@ -313,23 +313,44 @@ DefaultCommit<Impl>::regStats()
       ;
 
     pahflops
-        .name(name() + ".hflops")
+        .name(name() + ".pahflops")
         .desc("Number of flops committed (half)")
         ;
 
     pasflops
-        .name(name() + ".sflops")
+        .name(name() + ".pasflops")
         .desc("Number of flops committed (single)")
         ;
 
     padflops
+        .name(name() + ".padflops")
+        .desc("Number of flops committed (double)")
+        ;
+
+    hflops
+        .name(name() + ".hflops")
+        .desc("Number of flops committed (half)")
+        ;
+
+    sflops
+        .name(name() + ".sflops")
+        .desc("Number of flops committed (single)")
+        ;
+
+    dflops
         .name(name() + ".dflops")
         .desc("Number of flops committed (double)")
         ;
 
+
     //printf("%lf\n", flops.value());
 
     pabytes
+        .name(name() + ".pabytes")
+        .desc("Number of bytes transferred")
+        ;
+
+    bytes
         .name(name() + ".bytes")
         .desc("Number of bytes transferred")
         ;
