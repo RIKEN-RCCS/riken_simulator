@@ -121,7 +121,7 @@ class O3_ARM_PostK_FLA(FUDesc):
                OpDesc(opClass='SimdFloatAddA', opLat=9),
                OpDesc(opClass='SimdFloatMultA', opLat=9),
                OpDesc(opClass='SimdFloatA', opLat=9),
-               OpDesc(opClass='SimdFCMLA', opLat=16, cyclesPerOp=3),
+               OpDesc(opClass='SimdFCMLA', opLat=16, cyclesPerOp=2),
 
                OpDesc(opClass='FloatAdd', opLat=9),
                OpDesc(opClass='FloatCmp', opLat=4),
