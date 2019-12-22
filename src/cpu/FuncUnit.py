@@ -47,7 +47,8 @@ class OpClass(Enum):
             'FloatCmp', 'FloatCvt', 'FloatMult', 'FloatMultAcc', 'FloatDiv',
             'FloatMisc', 'FloatSqrt', 'FloatSqrtd', 'FloatDivd',
             'SimdAdd', 'SimdAddAcc', 'SimdAlu', 'SimdCmp', 'SimdCvt',
-            'SimdMisc', 'SimdMult', 'SimdMultAcc', 'SimdShift', 'SimdShiftAcc',
+            'SimdMisc', 'SimdMisc2', 'SimdMult', 'SimdMultAcc',
+            'SimdShift', 'SimdShiftAcc',
             'SimdDivS', 'SimdDiv', 'SimdSqrt', 'SimdFloatAdd', 'SimdFloatAlu',
             'SimdFloatCmp', 'SimdFloatCvt', 'SimdFloatDiv', 'SimdFloatMisc',
             'SimdFloatMult', 'SimdFloatMultAcc',
@@ -58,8 +59,9 @@ class OpClass(Enum):
             'MemRead', 'MemWrite', 'FloatMemRead', 'FloatMemWrite',
             'IprAccess', 'InstPrefetch', 'IntDiv4', 'IntDiv8',
             'IntAlu2', 'SimdPredCmp', 'SimdMvp', 'SimdGpr',
-            'SimdAluA', 'SimdAluB', 'SimdMiscA', 'SimdMiscB',
-            'SimdFloatAddA', 'SimdFloatMultA', 'SimdFloatA', 'SimdFCMLA',
+            'SimdAluA', 'SimdAluB', 'SimdMiscA', 'SimdMiscB', 'SimdMiscA2',
+            'SimdFloatA', 'SimdFloatB', 'SimdIndexA', 'SimdIndexB',
+            'SimdFCMLA', 'SimdFIDX', 'SimdFloatF', 'SimdFloatP',
             'SimdFloatReduceAddA', 'SveMemRead', 'SveMemWrite']
 
 class OpDesc(SimObject):

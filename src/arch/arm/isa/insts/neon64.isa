@@ -934,34 +934,34 @@ let {{
             destElem = ((BigElement)srcElem1 + (BigElement)srcElem2) >>
                         (sizeof(Element) * 8);
     '''
-    threeRegNarrowInstX("addhn", "AddhnX", "SimdAddOp", smallUnsignedTypes,
-                        addhnCode)
-    threeRegNarrowInstX("addhn2", "Addhn2X", "SimdAddOp", smallUnsignedTypes,
-                        addhnCode, hi=True)
+    threeRegNarrowInstX("addhn", "AddhnX", "SimdFloatBOp",
+                        smallUnsignedTypes, addhnCode)
+    threeRegNarrowInstX("addhn2", "Addhn2X", "SimdFloatBOp",
+                        smallUnsignedTypes, addhnCode, hi=True)
     # ADDP (scalar)
-    twoRegPairwiseScInstX("addp", "AddpScQX", "SimdAddOp", ("uint64_t",), 4,
+    twoRegPairwiseScInstX("addp", "AddpScQX", "SimdMiscA2Op", ("uint64_t",), 4,
                           addCode)
     # ADDP (vector)
-    threeEqualRegInstX("addp", "AddpDX", "SimdAddOp", smallUnsignedTypes, 2,
+    threeEqualRegInstX("addp", "AddpDX", "SimdIndexAOp", smallUnsignedTypes, 2,
                        addCode, pairwise=True)
-    threeEqualRegInstX("addp", "AddpQX", "SimdAddOp", unsignedTypes, 4,
+    threeEqualRegInstX("addp", "AddpQX", "SimdIndexAOp", unsignedTypes, 4,
                        addCode, pairwise=True)
     # ADDV
     # Note: SimdAddOp can be a bit optimistic here
     addAcrossCode = "destElem += srcElem1;"
-    twoRegAcrossInstX("addv", "AddvDX", "SimdAddOp", ("uint8_t", "uint16_t"),
-                      2, addAcrossCode)
-    twoRegAcrossInstX("addv", "AddvQX", "SimdAddOp", smallUnsignedTypes, 4,
-                      addAcrossCode)
+    twoRegAcrossInstX("addv", "AddvDX", "SimdIndexAOp",
+                      ("uint8_t", "uint16_t"), 2, addAcrossCode)
+    twoRegAcrossInstX("addv", "AddvQX", "SimdIndexAOp",
+                      smallUnsignedTypes, 4, addAcrossCode)
     # AND
     andCode = "destElem = srcElem1 & srcElem2;"
     threeEqualRegInstX("and", "AndDX", "SimdAluOp", ("uint64_t",), 2, andCode)
     threeEqualRegInstX("and", "AndQX", "SimdAluOp", ("uint64_t",), 4, andCode)
     # BIC (immediate)
     bicImmCode = "destElem &= ~imm;"
-    oneRegImmInstX("bic", "BicImmDX", "SimdAluOp", ("uint64_t",), 2,
+    oneRegImmInstX("bic", "BicImmDX", "SimdAluAOp", ("uint64_t",), 2,
                    bicImmCode, True)
-    oneRegImmInstX("bic", "BicImmQX", "SimdAluOp", ("uint64_t",), 4,
+    oneRegImmInstX("bic", "BicImmQX", "SimdAluAOp", ("uint64_t",), 4,
                    bicImmCode, True)
     # BIC (register)
     bicCode = "destElem = srcElem1 & ~srcElem2;"
@@ -1096,9 +1096,9 @@ let {{
     twoEqualRegInstX("dup", "DupElemScX", "SimdMiscAOp", unsignedTypes, 4,
                      dupCode, isDup=True, byElem=True, scalar=True)
     # DUP (general register)
-    dupGprInstX("dup", "DupGprWDX", "SimdMiscOp", smallUnsignedTypes, 2, 'W')
-    dupGprInstX("dup", "DupGprWQX", "SimdMiscOp", smallUnsignedTypes, 4, 'W')
-    dupGprInstX("dup", "DupGprXQX", "SimdMiscOp", ("uint64_t",), 4, 'X')
+    dupGprInstX("dup", "DupGprWDX", "SimdMiscAOp", smallUnsignedTypes, 2, 'W')
+    dupGprInstX("dup", "DupGprWQX", "SimdMiscAOp", smallUnsignedTypes, 4, 'W')
+    dupGprInstX("dup", "DupGprXQX", "SimdMiscAOp", ("uint64_t",), 4, 'X')
     # EOR
     eorCode = "destElem = srcElem1 ^ srcElem2;"
     threeEqualRegInstX("eor", "EorDX", "SimdAluOp", ("uint64_t",), 2, eorCode)
@@ -1120,8 +1120,8 @@ let {{
                 }
             }
     '''
-    extInstX("Ext", "ExtDX", "SimdMiscAOp", ("uint8_t",), 2, extCode)
-    extInstX("Ext", "ExtQX", "SimdMiscAOp", ("uint8_t",), 4, extCode)
+    extInstX("ext", "ExtDX", "SimdMiscAOp", ("uint8_t",), 2, extCode)
+    extInstX("ext", "ExtQX", "SimdMiscAOp", ("uint8_t",), 4, extCode)
     # FABD
     fpOp = '''
             FPSCR fpscr = (FPSCR) FpscrExc;
@@ -1137,9 +1137,9 @@ let {{
                        fabdCode, scalar=True)
     # FABS
     fabsCode = fpOp % "fplibAbs<Element>(srcElem1)"
-    twoEqualRegInstX("Abs", "FabsDX", "SimdFloatAluOp", smallFloatTypes, 2,
+    twoEqualRegInstX("fabs", "FabsDX", "SimdFloatAluOp", smallFloatTypes, 2,
                      fabsCode)
-    twoEqualRegInstX("Abs", "FabsQX", "SimdFloatAluOp", floatTypes, 4,
+    twoEqualRegInstX("fabs", "FabsQX", "SimdFloatAluOp", floatTypes, 4,
                      fabsCode)
     # FACGE
     fpCmpAbsOp = fpOp % ("fplibCompare%s<Element>(fplibAbs<Element>(srcElem1),"
@@ -1167,14 +1167,14 @@ let {{
     threeEqualRegInstX("fadd", "FaddQX", "SimdFloatAddOp", floatTypes, 4,
                        faddCode)
     # FADDP (scalar)
-    twoRegPairwiseScInstX("faddp", "FaddpScDX", "SimdFloatAddOp",
+    twoRegPairwiseScInstX("faddp", "FaddpScDX", "SimdFIDXOp",
                           ("uint32_t",), 2, faddCode)
-    twoRegPairwiseScInstX("faddp", "FaddpScQX", "SimdFloatAddOp",
+    twoRegPairwiseScInstX("faddp", "FaddpScQX", "SimdFIDXOp",
                           ("uint64_t",), 4, faddCode)
     # FADDP (vector)
-    threeEqualRegInstX("faddp", "FaddpDX", "SimdFloatAddOp", smallFloatTypes,
+    threeEqualRegInstX("faddp", "FaddpDX", "SimdFloatPOp", smallFloatTypes,
                        2, faddCode, pairwise=True)
-    threeEqualRegInstX("faddp", "FaddpQX", "SimdFloatAddOp", floatTypes, 4,
+    threeEqualRegInstX("faddp", "FaddpQX", "SimdFloatPOp", floatTypes, 4,
                        faddCode, pairwise=True)
     # FCMEQ (register)
     fpCmpOp = fpOp % ("fplibCompare%s<Element>(srcElem1, srcElem2, fpscr) ?"
@@ -1253,7 +1253,7 @@ let {{
                      fcvtasCode)
     twoEqualRegInstX("fcvtas", "FcvtasQX", "SimdCvtOp", floatTypes, 4,
                      fcvtasCode)
-    twoEqualRegInstX("fcvtas", "FcvtasScX", "SimdCvtOp", floatTypes, 4,
+    twoEqualRegInstX("fcvtas", "FcvtasScX", "SimdGprOp", floatTypes, 4,
                      fcvtasCode, scalar=True)
     # FCVTAU
     fcvtauCode = fcvtCode % ("0", "true", "FPRounding_TIEAWAY")
@@ -1261,22 +1261,22 @@ let {{
                      fcvtauCode)
     twoEqualRegInstX("fcvtau", "FcvtauQX", "SimdCvtOp", floatTypes, 4,
                      fcvtauCode)
-    twoEqualRegInstX("fcvtau", "FcvtauScX", "SimdCvtOp", floatTypes, 4,
+    twoEqualRegInstX("fcvtau", "FcvtauScX", "SimdGprOp", floatTypes, 4,
                      fcvtauCode, scalar=True)
     # FCVTL, FCVTL2
     fcvtlCode = fpOp % ("fplibConvert<Element, BigElement>("
                         "srcElem1, FPCRRounding(fpscr), fpscr)")
-    twoRegLongInstX("fcvtl", "FcvtlX", "SimdCvtOp", ("uint16_t", "uint32_t"),
-                    fcvtlCode)
-    twoRegLongInstX("fcvtl", "Fcvtl2X", "SimdCvtOp", ("uint16_t", "uint32_t"),
-                    fcvtlCode, hi=True)
+    twoRegLongInstX("fcvtl", "FcvtlX", "SimdMiscBOp",
+                    ("uint16_t", "uint32_t"), fcvtlCode)
+    twoRegLongInstX("fcvtl", "Fcvtl2X", "SimdMiscBOp",
+                    ("uint16_t", "uint32_t"), fcvtlCode, hi=True)
     # FCVTMS
     fcvtmsCode = fcvtCode % ("0", "false", "FPRounding_NEGINF")
     twoEqualRegInstX("fcvtms", "FcvtmsDX", "SimdCvtOp", smallFloatTypes, 2,
                      fcvtmsCode)
     twoEqualRegInstX("fcvtms", "FcvtmsQX", "SimdCvtOp", floatTypes, 4,
                      fcvtmsCode)
-    twoEqualRegInstX("fcvtms", "FcvtmsScX", "SimdCvtOp", floatTypes, 4,
+    twoEqualRegInstX("fcvtms", "FcvtmsScX", "SimdGprOp", floatTypes, 4,
                      fcvtmsCode, scalar=True)
     # FCVTMU
     fcvtmuCode = fcvtCode % ("0", "true", "FPRounding_NEGINF")
@@ -1284,14 +1284,14 @@ let {{
                      fcvtmuCode)
     twoEqualRegInstX("fcvtmu", "FcvtmuQX", "SimdCvtOp", floatTypes, 4,
                      fcvtmuCode)
-    twoEqualRegInstX("fcvtmu", "FcvtmuScX", "SimdCvtOp", floatTypes, 4,
+    twoEqualRegInstX("fcvtmu", "FcvtmuScX", "SimdGprOp", floatTypes, 4,
                      fcvtmuCode, scalar=True)
     # FCVTN, FCVTN2
     fcvtnCode = fpOp % ("fplibConvert<BigElement, Element>("
                         "srcElem1, FPCRRounding(fpscr), fpscr)")
-    twoRegNarrowInstX("fcvtn", "FcvtnX", "SimdCvtOp",
+    twoRegNarrowInstX("fcvtn", "FcvtnX", "SimdIndexAOp",
                       ("uint16_t", "uint32_t"), fcvtnCode)
-    twoRegNarrowInstX("fcvtn", "Fcvtn2X", "SimdCvtOp",
+    twoRegNarrowInstX("fcvtn", "Fcvtn2X", "SimdIndexAOp",
                       ("uint16_t", "uint32_t"), fcvtnCode, hi=True)
     # FCVTNS
     fcvtnsCode = fcvtCode % ("0", "false", "FPRounding_TIEEVEN")
@@ -1299,7 +1299,7 @@ let {{
                      fcvtnsCode)
     twoEqualRegInstX("fcvtns", "FcvtnsQX", "SimdCvtOp", floatTypes, 4,
                      fcvtnsCode)
-    twoEqualRegInstX("fcvtns", "FcvtnsScX", "SimdCvtOp", floatTypes, 4,
+    twoEqualRegInstX("fcvtns", "FcvtnsScX", "SimdGprOp", floatTypes, 4,
                      fcvtnsCode, scalar=True)
     # FCVTNU
     fcvtnuCode = fcvtCode % ("0", "true", "FPRounding_TIEEVEN")
@@ -1307,7 +1307,7 @@ let {{
                      fcvtnuCode)
     twoEqualRegInstX("fcvtnu", "FcvtnuQX", "SimdCvtOp", floatTypes, 4,
                      fcvtnuCode)
-    twoEqualRegInstX("fcvtnu", "FcvtnuScX", "SimdCvtOp", floatTypes, 4,
+    twoEqualRegInstX("fcvtnu", "FcvtnuScX", "SimdGprOp", floatTypes, 4,
                      fcvtnuCode, scalar=True)
     # FCVTPS
     fcvtpsCode = fcvtCode % ("0", "false", "FPRounding_POSINF")
@@ -1315,7 +1315,7 @@ let {{
                      fcvtpsCode)
     twoEqualRegInstX("fcvtps", "FcvtpsQX", "SimdCvtOp", floatTypes, 4,
                      fcvtpsCode)
-    twoEqualRegInstX("fcvtps", "FcvtpsScX", "SimdCvtOp", floatTypes, 4,
+    twoEqualRegInstX("fcvtps", "FcvtpsScX", "SimdGprOp", floatTypes, 4,
                      fcvtpsCode, scalar=True)
     # FCVTPU
     fcvtpuCode = fcvtCode % ("0", "true", "FPRounding_POSINF")
@@ -1323,14 +1323,14 @@ let {{
                      fcvtpuCode)
     twoEqualRegInstX("fcvtpu", "FcvtpuQX", "SimdCvtOp", floatTypes, 4,
                      fcvtpuCode)
-    twoEqualRegInstX("fcvtpu", "FcvtpuScX", "SimdCvtOp", floatTypes, 4,
+    twoEqualRegInstX("fcvtpu", "FcvtpuScX", "SimdGprOp", floatTypes, 4,
                      fcvtpuCode, scalar=True)
     # FCVTXN, FCVTXN2
     fcvtxnCode = fpOp % ("fplibConvert<BigElement, Element>("
                          "srcElem1, FPRounding_ODD, fpscr)")
-    twoRegNarrowInstX("fcvtxn", "FcvtxnX", "SimdCvtOp", smallFloatTypes,
+    twoRegNarrowInstX("fcvtxn", "FcvtxnX", "SimdIndexAOp", smallFloatTypes,
                       fcvtxnCode)
-    twoRegNarrowInstX("fcvtxn", "Fcvtxn2X", "SimdCvtOp", smallFloatTypes,
+    twoRegNarrowInstX("fcvtxn", "Fcvtxn2X", "SimdIndexAOp", smallFloatTypes,
                       fcvtxnCode, hi=True)
     twoRegNarrowInstX("fcvtxn", "FcvtxnScX", "SimdCvtOp", smallFloatTypes,
                       fcvtxnCode, scalar=True)
@@ -1340,7 +1340,7 @@ let {{
                      2, fcvtzsCode, hasImm=True)
     twoEqualRegInstX("fcvtzs", "FcvtzsFixedQX", "SimdCvtOp", floatTypes, 4,
                      fcvtzsCode, hasImm=True)
-    twoEqualRegInstX("fcvtzs", "FcvtzsFixedScX", "SimdCvtOp", floatTypes, 4,
+    twoEqualRegInstX("fcvtzs", "FcvtzsFixedScX", "SimdGprOp", floatTypes, 4,
                      fcvtzsCode, hasImm=True, scalar=True)
     # FCVTZS (integer)
     fcvtzsIntCode = fcvtCode % ("0", "false", "FPRounding_ZERO")
@@ -1348,7 +1348,7 @@ let {{
                      2, fcvtzsIntCode)
     twoEqualRegInstX("fcvtzs", "FcvtzsIntQX", "SimdCvtOp", floatTypes, 4,
                      fcvtzsIntCode)
-    twoEqualRegInstX("fcvtzs", "FcvtzsIntScX", "SimdCvtOp", floatTypes, 4,
+    twoEqualRegInstX("fcvtzs", "FcvtzsIntScX", "SimdGprOp", floatTypes, 4,
                      fcvtzsIntCode, scalar=True)
     # FCVTZU (fixed-point)
     fcvtzuCode = fcvtCode % ("imm", "true", "FPRounding_ZERO")
@@ -1356,7 +1356,7 @@ let {{
                      2, fcvtzuCode, hasImm=True)
     twoEqualRegInstX("fcvtzu", "FcvtzuFixedQX", "SimdCvtOp", floatTypes, 4,
                      fcvtzuCode, hasImm=True)
-    twoEqualRegInstX("fcvtzu", "FcvtzuFixedScX", "SimdCvtOp", floatTypes, 4,
+    twoEqualRegInstX("fcvtzu", "FcvtzuFixedScX", "SimdGprOp", floatTypes, 4,
                      fcvtzuCode, hasImm=True, scalar=True)
     # FCVTZU (integer)
     fcvtzuIntCode = fcvtCode % ("0", "true", "FPRounding_ZERO")
@@ -1364,7 +1364,7 @@ let {{
                      fcvtzuIntCode)
     twoEqualRegInstX("fcvtzu", "FcvtzuIntQX", "SimdCvtOp", floatTypes, 4,
                      fcvtzuIntCode)
-    twoEqualRegInstX("fcvtzu", "FcvtzuIntScX", "SimdCvtOp", floatTypes, 4,
+    twoEqualRegInstX("fcvtzu", "FcvtzuIntScX", "SimdGprOp", floatTypes, 4,
                      fcvtzuIntCode, scalar=True)
     # FDIV
     fdivCode = fpBinOp % "Div"
@@ -1385,36 +1385,36 @@ let {{
     threeEqualRegInstX("fmaxnm", "FmaxnmQX", "SimdFloatCmpOp", floatTypes, 4,
                        fmaxnmCode)
     # FMAXNMP (scalar)
-    twoRegPairwiseScInstX("fmaxnmp", "FmaxnmpScDX", "SimdFloatCmpOp",
+    twoRegPairwiseScInstX("fmaxnmp", "FmaxnmpScDX", "SimdMiscA2Op",
                           ("uint32_t",), 2, fmaxnmCode)
-    twoRegPairwiseScInstX("fmaxnmp", "FmaxnmpScQX", "SimdFloatCmpOp",
+    twoRegPairwiseScInstX("fmaxnmp", "FmaxnmpScQX", "SimdMiscA2Op",
                           ("uint64_t",), 4, fmaxnmCode)
     # FMAXNMP (vector)
-    threeEqualRegInstX("fmaxnmp", "FmaxnmpDX", "SimdFloatCmpOp",
+    threeEqualRegInstX("fmaxnmp", "FmaxnmpDX", "SimdIndexAOp",
                        smallFloatTypes, 2, fmaxnmCode, pairwise=True)
-    threeEqualRegInstX("fmaxnmp", "FmaxnmpQX", "SimdFloatCmpOp", floatTypes, 4,
+    threeEqualRegInstX("fmaxnmp", "FmaxnmpQX", "SimdIndexAOp", floatTypes, 4,
                        fmaxnmCode, pairwise=True)
     # FMAXNMV
     # Note: SimdFloatCmpOp can be a bit optimistic here
     fpAcrossOp = fpOp % "fplib%s<Element>(destElem, srcElem1, fpscr)"
     fmaxnmAcrossCode = fpAcrossOp % "MaxNum"
-    twoRegAcrossInstX("fmaxnmv", "FmaxnmvQX", "SimdFloatCmpOp", ("uint32_t",),
-                      4, fmaxnmAcrossCode)
+    twoRegAcrossInstX("fmaxnmv", "FmaxnmvQX", "SimdFloatReduceCmpOp",
+                      ("uint32_t",), 4, fmaxnmAcrossCode)
     # FMAXP (scalar)
-    twoRegPairwiseScInstX("fmaxp", "FmaxpScDX", "SimdFloatCmpOp",
+    twoRegPairwiseScInstX("fmaxp", "FmaxpScDX", "SimdMiscA2Op",
                           ("uint32_t",), 2, fmaxCode)
-    twoRegPairwiseScInstX("fmaxp", "FmaxpScQX", "SimdFloatCmpOp",
+    twoRegPairwiseScInstX("fmaxp", "FmaxpScQX", "SimdMiscA2Op",
                           ("uint64_t",), 4, fmaxCode)
     # FMAXP (vector)
-    threeEqualRegInstX("fmaxp", "FmaxpDX", "SimdFloatCmpOp", smallFloatTypes,
+    threeEqualRegInstX("fmaxp", "FmaxpDX", "SimdIndexAOp", smallFloatTypes,
                        2, fmaxCode, pairwise=True)
-    threeEqualRegInstX("fmaxp", "FmaxpQX", "SimdFloatCmpOp", floatTypes, 4,
+    threeEqualRegInstX("fmaxp", "FmaxpQX", "SimdIndexAOp", floatTypes, 4,
                        fmaxCode, pairwise=True)
     # FMAXV
     # Note: SimdFloatCmpOp can be a bit optimistic here
     fmaxAcrossCode = fpAcrossOp % "Max"
-    twoRegAcrossInstX("fmaxv", "FmaxvQX", "SimdFloatCmpOp", ("uint32_t",), 4,
-                      fmaxAcrossCode)
+    twoRegAcrossInstX("fmaxv", "FmaxvQX", "SimdFloatReduceCmpOp",
+                      ("uint32_t",), 4, fmaxAcrossCode)
     # FMIN
     fminCode = fpBinOp % "Min"
     threeEqualRegInstX("fmin", "FminDX", "SimdFloatCmpOp", smallFloatTypes, 2,
@@ -1428,43 +1428,43 @@ let {{
     threeEqualRegInstX("fminnm", "FminnmQX", "SimdFloatCmpOp", floatTypes, 4,
                        fminnmCode)
     # FMINNMP (scalar)
-    twoRegPairwiseScInstX("fminnmp", "FminnmpScDX", "SimdFloatCmpOp",
+    twoRegPairwiseScInstX("fminnmp", "FminnmpScDX", "SimdMiscA2Op",
                           ("uint32_t",), 2, fminnmCode)
-    twoRegPairwiseScInstX("fminnmp", "FminnmpScQX", "SimdFloatCmpOp",
+    twoRegPairwiseScInstX("fminnmp", "FminnmpScQX", "SimdMiscA2Op",
                           ("uint64_t",), 4, fminnmCode)
     # FMINNMP (vector)
-    threeEqualRegInstX("fminnmp", "FminnmpDX", "SimdFloatCmpOp",
+    threeEqualRegInstX("fminnmp", "FminnmpDX", "SimdIndexAOp",
                        smallFloatTypes, 2, fminnmCode, pairwise=True)
-    threeEqualRegInstX("fminnmp", "FminnmpQX", "SimdFloatCmpOp", floatTypes, 4,
+    threeEqualRegInstX("fminnmp", "FminnmpQX", "SimdIndexAOp", floatTypes, 4,
                        fminnmCode, pairwise=True)
     # FMINNMV
     # Note: SimdFloatCmpOp can be a bit optimistic here
     fminnmAcrossCode = fpAcrossOp % "MinNum"
-    twoRegAcrossInstX("fminnmv", "FminnmvQX", "SimdFloatCmpOp", ("uint32_t",),
-                      4, fminnmAcrossCode)
+    twoRegAcrossInstX("fminnmv", "FminnmvQX", "SimdFloatReduceCmpOp",
+                      ("uint32_t",), 4, fminnmAcrossCode)
     # FMINP (scalar)
-    twoRegPairwiseScInstX("fminp", "FminpScDX", "SimdFloatCmpOp",
+    twoRegPairwiseScInstX("fminp", "FminpScDX", "SimdMiscA2Op",
                           ("uint32_t",), 2, fminCode)
-    twoRegPairwiseScInstX("fminp", "FminpScQX", "SimdFloatCmpOp",
+    twoRegPairwiseScInstX("fminp", "FminpScQX", "SimdMiscA2Op",
                           ("uint64_t",), 4, fminCode)
     # FMINP (vector)
-    threeEqualRegInstX("fminp", "FminpDX", "SimdFloatCmpOp", smallFloatTypes,
+    threeEqualRegInstX("fminp", "FminpDX", "SimdIndexAOp", smallFloatTypes,
                        2, fminCode, pairwise=True)
-    threeEqualRegInstX("fminp", "FminpQX", "SimdFloatCmpOp", floatTypes, 4,
+    threeEqualRegInstX("fminp", "FminpQX", "SimdIndexAOp", floatTypes, 4,
                        fminCode, pairwise=True)
     # FMINV
     # Note: SimdFloatCmpOp can be a bit optimistic here
     fminAcrossCode = fpAcrossOp % "Min"
-    twoRegAcrossInstX("fminv", "FminvQX", "SimdFloatCmpOp", ("uint32_t",), 4,
-                      fminAcrossCode)
+    twoRegAcrossInstX("fminv", "FminvQX", "SimdFloatReduceCmpOp",
+                      ("uint32_t",), 4, fminAcrossCode)
     # FMLA (by element)
     fmlaCode = fpOp % ("fplibMulAdd<Element>("
                        "destElem, srcElem1, srcElem2, fpscr)")
-    threeEqualRegInstX("fmla", "FmlaElemDX", "SimdFloatMultAccOp",
+    threeEqualRegInstX("fmla", "FmlaElemDX", "SimdFIDXOp",
                        smallFloatTypes, 2, fmlaCode, True, byElem=True)
-    threeEqualRegInstX("fmla", "FmlaElemQX", "SimdFloatMultAccOp", floatTypes,
+    threeEqualRegInstX("fmla", "FmlaElemQX", "SimdFIDXOp", floatTypes,
                        4, fmlaCode, True, byElem=True)
-    threeEqualRegInstX("fmla", "FmlaElemScX", "SimdFloatMultAccOp", floatTypes,
+    threeEqualRegInstX("fmla", "FmlaElemScX", "SimdFIDXOp", floatTypes,
                        4, fmlaCode, True, byElem=True, scalar=True)
     # FMLA (vector)
     threeEqualRegInstX("fmla", "FmlaDX", "SimdFloatMultAccOp", smallFloatTypes,
@@ -1474,11 +1474,11 @@ let {{
     # FMLS (by element)
     fmlsCode = fpOp % ("fplibMulAdd<Element>(destElem,"
                        " fplibNeg<Element>(srcElem1), srcElem2, fpscr)")
-    threeEqualRegInstX("fmls", "FmlsElemDX", "SimdFloatMultAccOp",
+    threeEqualRegInstX("fmls", "FmlsElemDX", "SimdFIDXOp",
                        smallFloatTypes, 2, fmlsCode, True, byElem=True)
-    threeEqualRegInstX("fmls", "FmlsElemQX", "SimdFloatMultAccOp", floatTypes,
+    threeEqualRegInstX("fmls", "FmlsElemQX", "SimdFIDXOp", floatTypes,
                        4, fmlsCode, True, byElem=True)
-    threeEqualRegInstX("fmls", "FmlsElemScX", "SimdFloatMultAccOp", floatTypes,
+    threeEqualRegInstX("fmls", "FmlsElemScX", "SimdFIDXOp", floatTypes,
                        4, fmlsCode, True, byElem=True, scalar=True)
     # FMLS (vector)
     threeEqualRegInstX("fmls", "FmlsDX", "SimdFloatMultAccOp", smallFloatTypes,
@@ -1492,9 +1492,9 @@ let {{
     oneRegImmInstX("fmov", "FmovQX", "SimdAluAOp", floatTypes, 4, fmovCode)
     # FMUL (by element)
     fmulCode = fpBinOp % "Mul"
-    threeEqualRegInstX("fmul", "FmulElemDX", "SimdFloatMultOp",
+    threeEqualRegInstX("fmul", "FmulElemDX", "SimdFloatFOp",
                        smallFloatTypes, 2, fmulCode, byElem=True)
-    threeEqualRegInstX("fmul", "FmulElemQX", "SimdFloatMultOp", floatTypes, 4,
+    threeEqualRegInstX("fmul", "FmulElemQX", "SimdFloatFOp", floatTypes, 4,
                        fmulCode, byElem=True)
     threeEqualRegInstX("fmul", "FmulElemScX", "SimdFloatMultOp", floatTypes, 4,
                        fmulCode, byElem=True, scalar=True)
@@ -1512,17 +1512,17 @@ let {{
     threeEqualRegInstX("fmulx", "FmulxScX", "SimdFloatMultOp", floatTypes, 4,
                        fmulxCode, scalar=True)
     # FMULX (by element)
-    threeEqualRegInstX("fmulx", "FmulxElemDX", "SimdFloatMultOp",
+    threeEqualRegInstX("fmulx", "FmulxElemDX", "SimdFloatFOp",
                        smallFloatTypes, 2, fmulxCode, byElem=True)
-    threeEqualRegInstX("fmulx", "FmulxElemQX", "SimdFloatMultOp", floatTypes,
+    threeEqualRegInstX("fmulx", "FmulxElemQX", "SimdFloatFOp", floatTypes,
                        4, fmulxCode, byElem=True)
-    threeEqualRegInstX("fmulx", "FmulxElemScX", "SimdFloatMultOp", floatTypes,
+    threeEqualRegInstX("fmulx", "FmulxElemScX", "SimdFloatFOp", floatTypes,
                        4, fmulxCode, byElem=True, scalar=True)
     # FNEG
     fnegCode = fpOp % "fplibNeg<Element>(srcElem1)"
-    twoEqualRegInstX("Neg", "FnegDX", "SimdFloatAluOp", smallFloatTypes, 2,
+    twoEqualRegInstX("fneg", "FnegDX", "SimdFloatAluOp", smallFloatTypes, 2,
                      fnegCode)
-    twoEqualRegInstX("Neg", "FnegQX", "SimdFloatAluOp", floatTypes, 4,
+    twoEqualRegInstX("fneg", "FnegQX", "SimdFloatAluOp", floatTypes, 4,
                      fnegCode)
     # FRECPE
     frecpeCode = fpOp % "fplibRecipEstimate<Element>(srcElem1, fpscr)"
@@ -1534,11 +1534,11 @@ let {{
                      4, frecpeCode, scalar=True)
     # FRECPS
     frecpsCode = fpBinOp % "RecipStepFused"
-    threeEqualRegInstX("frecps", "FrecpsDX", "SimdFloatAOp",
+    threeEqualRegInstX("frecps", "FrecpsDX", "SimdFloatPOp",
                        smallFloatTypes, 2, frecpsCode)
-    threeEqualRegInstX("frecps", "FrecpsQX", "SimdFloatAOp", floatTypes,
+    threeEqualRegInstX("frecps", "FrecpsQX", "SimdFloatPOp", floatTypes,
                        4, frecpsCode)
-    threeEqualRegInstX("frecps", "FrecpsScX", "SimdFloatAOp", floatTypes,
+    threeEqualRegInstX("frecps", "FrecpsScX", "SimdFloatPOp", floatTypes,
                        4, frecpsCode, scalar=True)
     # FRECPX
     frecpxCode = fpOp % "fplibRecpX<Element>(srcElem1, fpscr)"
@@ -1597,11 +1597,11 @@ let {{
                      frsqrteCode, scalar=True)
     # FRSQRTS
     frsqrtsCode = fpBinOp % "RSqrtStepFused"
-    threeEqualRegInstX("frsqrts", "FrsqrtsDX", "SimdFloatAOp",
+    threeEqualRegInstX("frsqrts", "FrsqrtsDX", "SimdFloatPOp",
                        smallFloatTypes, 2, frsqrtsCode)
-    threeEqualRegInstX("frsqrts", "FrsqrtsQX", "SimdFloatAOp", floatTypes,
+    threeEqualRegInstX("frsqrts", "FrsqrtsQX", "SimdFloatPOp", floatTypes,
                        4, frsqrtsCode)
-    threeEqualRegInstX("frsqrts", "FrsqrtsScX", "SimdFloatAOp", floatTypes,
+    threeEqualRegInstX("frsqrts", "FrsqrtsScX", "SimdFloatPOp", floatTypes,
                        4, frsqrtsCode, scalar=True)
     # FSQRT
     fsqrtCode = fpOp % "fplibSqrt<Element>(srcElem1, fpscr)"
@@ -1618,14 +1618,14 @@ let {{
     # INS (element)
     insFromVecElemInstX("ins", "InsElemX", "SimdMiscAOp", unsignedTypes, 4)
     # INS (general register)
-    insFromGprInstX("ins", "InsGprWX", "SimdMiscOp", smallUnsignedTypes, 4,
+    insFromGprInstX("ins", "InsGprWX", "SimdMiscAOp", smallUnsignedTypes, 4,
                     'W')
-    insFromGprInstX("ins", "InsGprXX", "SimdMiscOp", unsignedTypes, 4, 'X')
+    insFromGprInstX("ins", "InsGprXX", "SimdMiscAOp", unsignedTypes, 4, 'X')
     # MLA (by element)
     mlaCode = "destElem += srcElem1 * srcElem2;"
-    threeEqualRegInstX("mla", "MlaElemDX", "SimdMultAccOp",
+    threeEqualRegInstX("mla", "MlaElemDX", "SimdIndexAOp",
                        ("uint16_t", "uint32_t"), 2, mlaCode, True, byElem=True)
-    threeEqualRegInstX("mla", "MlaElemQX", "SimdMultAccOp",
+    threeEqualRegInstX("mla", "MlaElemQX", "SimdIndexAOp",
                        ("uint16_t", "uint32_t"), 4, mlaCode, True, byElem=True)
     # MLA (vector)
     threeEqualRegInstX("mla", "MlaDX", "SimdMultAccOp", smallUnsignedTypes, 2,
@@ -1634,9 +1634,9 @@ let {{
                        mlaCode, True)
     # MLS (by element)
     mlsCode = "destElem -= srcElem1 * srcElem2;"
-    threeEqualRegInstX("mls", "MlsElemDX", "SimdMultAccOp",
+    threeEqualRegInstX("mls", "MlsElemDX", "SimdIndexAOp",
                        ("uint16_t", "uint32_t"), 2, mlsCode, True, byElem=True)
-    threeEqualRegInstX("mls", "MlsElemQX", "SimdMultAccOp",
+    threeEqualRegInstX("mls", "MlsElemQX", "SimdIndexAOp",
                        ("uint16_t", "uint32_t"), 4, mlsCode, True, byElem=True)
     # MLS (vector)
     threeEqualRegInstX("mls", "MlsDX", "SimdMultAccOp", smallUnsignedTypes, 2,
@@ -1656,9 +1656,9 @@ let {{
                    movImmCode)
     # MUL (by element)
     mulCode = "destElem = srcElem1 * srcElem2;"
-    threeEqualRegInstX("mul", "MulElemDX", "SimdMultOp",
+    threeEqualRegInstX("mul", "MulElemDX", "SimdIndexAOp",
                        ("uint16_t", "uint32_t"), 2, mulCode, byElem=True)
-    threeEqualRegInstX("mul", "MulElemQX", "SimdMultOp",
+    threeEqualRegInstX("mul", "MulElemQX", "SimdIndexAOp",
                        ("uint16_t", "uint32_t"), 4, mulCode, byElem=True)
     # MUL (vector)
     threeEqualRegInstX("mul", "MulDX", "SimdMultOp", smallUnsignedTypes, 2,
@@ -1713,8 +1713,9 @@ let {{
                     destElem ^= (BigElement)srcElem1 << j;
             }
     '''
-    threeRegLongInstX("pmull", "PmullX", "SimdMultOp", ("uint8_t",), pmullCode)
-    threeRegLongInstX("pmull", "Pmull2X", "SimdMultOp", ("uint8_t",),
+    threeRegLongInstX("pmull", "PmullX", "SimdFloatAOp", ("uint8_t",),
+                      pmullCode)
+    threeRegLongInstX("pmull", "Pmull2X", "SimdFloatAOp", ("uint8_t",),
                       pmullCode, hi=True)
     # RADDHN, RADDHN2
     raddhnCode = '''
@@ -1722,10 +1723,10 @@ let {{
                         ((BigElement)1 << (sizeof(Element) * 8 - 1))) >>
                        (sizeof(Element) * 8);
     '''
-    threeRegNarrowInstX("raddhn", "RaddhnX", "SimdAddOp", smallUnsignedTypes,
-                        raddhnCode)
-    threeRegNarrowInstX("raddhn2", "Raddhn2X", "SimdAddOp", smallUnsignedTypes,
-                        raddhnCode, hi=True)
+    threeRegNarrowInstX("raddhn", "RaddhnX", "SimdIndexBOp",
+                        smallUnsignedTypes, raddhnCode)
+    threeRegNarrowInstX("raddhn2", "Raddhn2X", "SimdIndexBOp",
+                        smallUnsignedTypes, raddhnCode, hi=True)
     # RBIT
     rbitCode = '''
             destElem = 0;
@@ -1782,9 +1783,9 @@ let {{
                 destElem = srcElem1;
             }
     '''
-    twoRegNarrowInstX("rshrn", "RshrnX", "SimdShiftOp", smallUnsignedTypes,
+    twoRegNarrowInstX("rshrn", "RshrnX", "SimdIndexBOp", smallUnsignedTypes,
                       rshrnCode, hasImm=True)
-    twoRegNarrowInstX("rshrn2", "Rshrn2X", "SimdShiftOp", smallUnsignedTypes,
+    twoRegNarrowInstX("rshrn2", "Rshrn2X", "SimdIndexBOp", smallUnsignedTypes,
                       rshrnCode, hasImm=True, hi=True)
     # RSUBHN, RSUBHN2
     rsubhnCode = '''
@@ -1792,9 +1793,9 @@ let {{
                         ((BigElement)1 << (sizeof(Element) * 8 - 1))) >>
                        (sizeof(Element) * 8);
     '''
-    threeRegNarrowInstX("rsubhn", "RsubhnX", "SimdAddOp", smallTypes,
+    threeRegNarrowInstX("rsubhn", "RsubhnX", "SimdIndexBOp", smallTypes,
                         rsubhnCode)
-    threeRegNarrowInstX("rsubhn2", "Rsubhn2X", "SimdAddOp", smallTypes,
+    threeRegNarrowInstX("rsubhn2", "Rsubhn2X", "SimdIndexBOp", smallTypes,
                         rsubhnCode, hi=True)
     # SABA
     abaCode = '''
@@ -1811,9 +1812,9 @@ let {{
                 ((BigElement)srcElem1 - (BigElement)srcElem2) :
                 ((BigElement)srcElem2 - (BigElement)srcElem1);
     '''
-    threeRegLongInstX("sabal", "SabalX", "SimdAddAccOp", smallSignedTypes,
+    threeRegLongInstX("sabal", "SabalX", "SimdIndexBOp", smallSignedTypes,
                       abalCode, True)
-    threeRegLongInstX("sabal2", "Sabal2X", "SimdAddAccOp", smallSignedTypes,
+    threeRegLongInstX("sabal2", "Sabal2X", "SimdIndexBOp", smallSignedTypes,
                       abalCode, True, hi=True)
     # SABD
     abdCode = '''
@@ -1830,40 +1831,41 @@ let {{
                 ((BigElement)srcElem1 - (BigElement)srcElem2) :
                 ((BigElement)srcElem2 - (BigElement)srcElem1);
     '''
-    threeRegLongInstX("sabdl", "SabdlX", "SimdAddAccOp", smallSignedTypes,
+    threeRegLongInstX("sabdl", "SabdlX", "SimdIndexBOp", smallSignedTypes,
                       abdlCode, True)
-    threeRegLongInstX("sabdl2", "Sabdl2X", "SimdAddAccOp", smallSignedTypes,
+    threeRegLongInstX("sabdl2", "Sabdl2X", "SimdIndexBOp", smallSignedTypes,
                       abdlCode, True, hi=True)
     # SADALP
     adalpCode = "destElem += (BigElement)srcElem1 + (BigElement)srcElem2;"
-    twoRegCondenseInstX("sadalp", "SadalpDX", "SimdAddOp", smallSignedTypes, 2,
-                        adalpCode, True)
-    twoRegCondenseInstX("sadalp", "SadalpQX", "SimdAddOp", smallSignedTypes, 4,
-                        adalpCode, True)
+    twoRegCondenseInstX("sadalp", "SadalpDX", "SimdIndexBOp", smallSignedTypes,
+                        2, adalpCode, True)
+    twoRegCondenseInstX("sadalp", "SadalpQX", "SimdIndexBOp", smallSignedTypes,
+                        4, adalpCode, True)
     # SADDL, SADDL2
     addlwCode = "destElem = (BigElement)srcElem1 + (BigElement)srcElem2;"
-    threeRegLongInstX("saddl", "SaddlX", "SimdAddAccOp", smallSignedTypes,
+    threeRegLongInstX("saddl", "SaddlX", "SimdIndexBOp", smallSignedTypes,
                       addlwCode)
-    threeRegLongInstX("saddl2", "Saddl2X", "SimdAddAccOp", smallSignedTypes,
+    threeRegLongInstX("saddl2", "Saddl2X", "SimdIndexBOp", smallSignedTypes,
                       addlwCode, hi=True)
     # SADDLP
-    twoRegCondenseInstX("saddlp", "SaddlpDX", "SimdAddOp", smallSignedTypes, 2,
-                        addlwCode)
-    twoRegCondenseInstX("saddlp", "SaddlpQX", "SimdAddOp", smallSignedTypes, 4,
-                        addlwCode)
+    twoRegCondenseInstX("saddlp", "SaddlpDX", "SimdFloatBOp", smallSignedTypes,
+                        2, addlwCode)
+    twoRegCondenseInstX("saddlp", "SaddlpQX", "SimdFloatBOp", smallSignedTypes,
+                        4, addlwCode)
     # SADDLV
     # Note: SimdAddOp can be a bit optimistic here
     addAcrossLongCode = "destElem += (BigElement)srcElem1;"
-    twoRegAcrossInstX("saddlv", "SaddlvDX", "SimdAddOp", ("int8_t", "int16_t"),
-                      2, addAcrossLongCode, long=True)
-    twoRegAcrossInstX("saddlv", "SaddlvQX", "SimdAddOp", ("int8_t", "int16_t"),
-                      4, addAcrossLongCode, long=True)
-    twoRegAcrossInstX("saddlv", "SaddlvBQX", "SimdAddOp", ("int32_t",), 4,
+    twoRegAcrossInstX("saddlv", "SaddlvDX", "SimdIndexAOp",
+                      ("int8_t", "int16_t"), 2, addAcrossLongCode, long=True)
+    twoRegAcrossInstX("saddlv", "SaddlvQX", "SimdIndexAOp",
+                      ("int8_t", "int16_t"), 4, addAcrossLongCode, long=True)
+    twoRegAcrossInstX("saddlv", "SaddlvBQX", "SimdIndexAOp",
+                      ("int32_t",), 4,
                       addAcrossLongCode, doubleDest=True, long=True)
     # SADDW, SADDW2
-    threeRegWideInstX("saddw", "SaddwX", "SimdAddAccOp", smallSignedTypes,
+    threeRegWideInstX("saddw", "SaddwX", "SimdFloatBOp", smallSignedTypes,
                       addlwCode)
-    threeRegWideInstX("saddw2", "Saddw2X", "SimdAddAccOp", smallSignedTypes,
+    threeRegWideInstX("saddw2", "Saddw2X", "SimdFloatBOp", smallSignedTypes,
                       addlwCode, hi=True)
     # SCVTF (fixed-point)
     scvtfFixedCode = fpOp % ("fplibFixedToFP<Element>((int%d_t) srcElem1, imm,"
@@ -1874,9 +1876,11 @@ let {{
                      scvtfFixedCode % 32, hasImm=True)
     twoEqualRegInstX("scvtf", "ScvtfFixedDQX", "SimdCvtOp", ("uint64_t",), 4,
                      scvtfFixedCode % 64, hasImm=True)
-    twoEqualRegInstX("scvtf", "ScvtfFixedScSX", "SimdCvtOp", smallFloatTypes,
-                     4, scvtfFixedCode % 32, hasImm=True, scalar=True)
-    twoEqualRegInstX("scvtf", "ScvtfFixedScDX", "SimdCvtOp", ("uint64_t",), 4,
+    twoEqualRegInstX("scvtf", "ScvtfFixedScSX", "SimdMiscAOp",
+                     smallFloatTypes, 4,
+                     scvtfFixedCode % 32, hasImm=True, scalar=True)
+    twoEqualRegInstX("scvtf", "ScvtfFixedScDX", "SimdMiscAOp",
+                     ("uint64_t",), 4,
                      scvtfFixedCode % 64, hasImm=True, scalar=True)
     # SCVTF (integer)
     scvtfIntCode = fpOp % ("fplibFixedToFP<Element>((int%d_t) srcElem1, 0,"
@@ -1887,9 +1891,11 @@ let {{
                      scvtfIntCode % 32)
     twoEqualRegInstX("scvtf", "ScvtfIntDQX", "SimdCvtOp", ("uint64_t",), 4,
                      scvtfIntCode % 64)
-    twoEqualRegInstX("scvtf", "ScvtfIntScSX", "SimdCvtOp", smallFloatTypes, 4,
+    twoEqualRegInstX("scvtf", "ScvtfIntScSX", "SimdMiscAOp",
+                     smallFloatTypes, 4,
                      scvtfIntCode % 32, scalar=True)
-    twoEqualRegInstX("scvtf", "ScvtfIntScDX", "SimdCvtOp", ("uint64_t",), 4,
+    twoEqualRegInstX("scvtf", "ScvtfIntScDX", "SimdMiscAOp",
+                     ("uint64_t",), 4,
                      scvtfIntCode % 64, scalar=True)
     # SHADD
     haddCode = '''
@@ -1919,8 +1925,8 @@ let {{
                      hasImm=True)
     # SHLL, SHLL2
     shllCode = "destElem = ((BigElement)srcElem1) << (sizeof(Element) * 8);"
-    twoRegLongInstX("shll", "ShllX", "SimdShiftOp", smallTypes, shllCode)
-    twoRegLongInstX("shll", "Shll2X", "SimdShiftOp", smallTypes, shllCode,
+    twoRegLongInstX("shll", "ShllX", "SimdFloatBOp", smallTypes, shllCode)
+    twoRegLongInstX("shll", "Shll2X", "SimdFloatBOp", smallTypes, shllCode,
                     hi=True)
     # SHRN, SHRN2
     shrnCode = '''
@@ -1930,9 +1936,9 @@ let {{
                 destElem = srcElem1 >> imm;
             }
     '''
-    twoRegNarrowInstX("shrn", "ShrnX", "SimdShiftOp", smallUnsignedTypes,
+    twoRegNarrowInstX("shrn", "ShrnX", "SimdFloatBOp", smallUnsignedTypes,
                       shrnCode, hasImm=True)
-    twoRegNarrowInstX("shrn2", "Shrn2X", "SimdShiftOp", smallUnsignedTypes,
+    twoRegNarrowInstX("shrn2", "Shrn2X", "SimdFloatBOp", smallUnsignedTypes,
                       shrnCode, hasImm=True, hi=True)
     # SHSUB
     hsubCode = '''
@@ -1955,9 +1961,9 @@ let {{
             else
                 destElem = (srcElem1 << imm) | (destElem & mask(imm));
     '''
-    twoEqualRegInstX("sli", "SliDX", "SimdShiftOp", unsignedTypes, 2, sliCode,
+    twoEqualRegInstX("sli", "SliDX", "SimdIndexAOp", unsignedTypes, 2, sliCode,
                      True, hasImm=True)
-    twoEqualRegInstX("sli", "SliQX", "SimdShiftOp", unsignedTypes, 4, sliCode,
+    twoEqualRegInstX("sli", "SliQX", "SimdIndexAOp", unsignedTypes, 4, sliCode,
                      True, hasImm=True)
     # SMAX
     maxCode = "destElem = (srcElem1 > srcElem2) ? srcElem1 : srcElem2;"
@@ -1966,19 +1972,19 @@ let {{
     threeEqualRegInstX("smax", "SmaxQX", "SimdCmpOp", smallSignedTypes, 4,
                        maxCode)
     # SMAXP
-    threeEqualRegInstX("smaxp", "SmaxpDX", "SimdCmpOp", smallSignedTypes, 2,
+    threeEqualRegInstX("smaxp", "SmaxpDX", "SimdIndexAOp", smallSignedTypes, 2,
                        maxCode, pairwise=True)
-    threeEqualRegInstX("smaxp", "SmaxpQX", "SimdCmpOp", smallSignedTypes, 4,
+    threeEqualRegInstX("smaxp", "SmaxpQX", "SimdIndexAOp", smallSignedTypes, 4,
                        maxCode, pairwise=True)
     # SMAXV
     maxAcrossCode = '''
             if (i == 0 || srcElem1 > destElem)
                 destElem = srcElem1;
     '''
-    twoRegAcrossInstX("smaxv", "SmaxvDX", "SimdCmpOp", ("int8_t", "int16_t"),
-                      2, maxAcrossCode)
-    twoRegAcrossInstX("smaxv", "SmaxvQX", "SimdCmpOp", smallSignedTypes, 4,
-                      maxAcrossCode)
+    twoRegAcrossInstX("smaxv", "SmaxvDX", "SimdIndexAOp",
+                      ("int8_t", "int16_t"), 2, maxAcrossCode)
+    twoRegAcrossInstX("smaxv", "SmaxvQX", "SimdIndexAOp",
+                      smallSignedTypes, 4, maxAcrossCode)
     # SMIN
     minCode = "destElem = (srcElem1 < srcElem2) ? srcElem1 : srcElem2;"
     threeEqualRegInstX("smin", "SminDX", "SimdCmpOp", smallSignedTypes, 2,
@@ -1986,60 +1992,60 @@ let {{
     threeEqualRegInstX("smin", "SminQX", "SimdCmpOp", smallSignedTypes, 4,
                        minCode)
     # SMINP
-    threeEqualRegInstX("sminp", "SminpDX", "SimdCmpOp", smallSignedTypes, 2,
+    threeEqualRegInstX("sminp", "SminpDX", "SimdIndexAOp", smallSignedTypes, 2,
                        minCode, pairwise=True)
-    threeEqualRegInstX("sminp", "SminpQX", "SimdCmpOp", smallSignedTypes, 4,
+    threeEqualRegInstX("sminp", "SminpQX", "SimdIndexAOp", smallSignedTypes, 4,
                        minCode, pairwise=True)
     # SMINV
     minAcrossCode = '''
             if (i == 0 || srcElem1 < destElem)
                 destElem = srcElem1;
     '''
-    twoRegAcrossInstX("sminv", "SminvDX", "SimdCmpOp", ("int8_t", "int16_t"),
-                      2, minAcrossCode)
-    twoRegAcrossInstX("sminv", "SminvQX", "SimdCmpOp", smallSignedTypes, 4,
-                      minAcrossCode)
+    twoRegAcrossInstX("sminv", "SminvDX", "SimdIndexAOp",
+                      ("int8_t", "int16_t"), 2, minAcrossCode)
+    twoRegAcrossInstX("sminv", "SminvQX", "SimdIndexAOp",
+                      smallSignedTypes, 4, minAcrossCode)
 
     split('exec')
 
     # SMLAL, SMLAL2 (by element)
     mlalCode = "destElem += (BigElement)srcElem1 * (BigElement)srcElem2;"
-    threeRegLongInstX("smlal", "SmlalElemX", "SimdMultAccOp",
+    threeRegLongInstX("smlal", "SmlalElemX", "SimdIndexBOp",
                       ("int16_t", "int32_t"), mlalCode, True, byElem=True)
-    threeRegLongInstX("smlal", "SmlalElem2X", "SimdMultAccOp",
+    threeRegLongInstX("smlal", "SmlalElem2X", "SimdIndexBOp",
                       ("int16_t", "int32_t"), mlalCode, True, byElem=True,
                       hi=True)
     # SMLAL, SMLAL2 (vector)
-    threeRegLongInstX("smlal", "SmlalX", "SimdMultAccOp", smallSignedTypes,
+    threeRegLongInstX("smlal", "SmlalX", "SimdIndexBOp", smallSignedTypes,
                       mlalCode, True)
-    threeRegLongInstX("smlal", "Smlal2X", "SimdMultAccOp", smallSignedTypes,
+    threeRegLongInstX("smlal", "Smlal2X", "SimdIndexBOp", smallSignedTypes,
                       mlalCode, True, hi=True)
     # SMLSL, SMLSL2 (by element)
     mlslCode = "destElem -= (BigElement)srcElem1 * (BigElement)srcElem2;"
-    threeRegLongInstX("smlsl", "SmlslElemX", "SimdMultAccOp", smallSignedTypes,
+    threeRegLongInstX("smlsl", "SmlslElemX", "SimdIndexBOp", smallSignedTypes,
                       mlslCode, True, byElem=True)
-    threeRegLongInstX("smlsl", "SmlslElem2X", "SimdMultAccOp",
+    threeRegLongInstX("smlsl", "SmlslElem2X", "SimdIndexBOp",
                       smallSignedTypes, mlslCode, True, byElem=True, hi=True)
     # SMLSL, SMLSL2 (vector)
-    threeRegLongInstX("smlsl", "SmlslX", "SimdMultAccOp", smallSignedTypes,
+    threeRegLongInstX("smlsl", "SmlslX", "SimdIndexBOp", smallSignedTypes,
                       mlslCode, True)
-    threeRegLongInstX("smlsl", "Smlsl2X", "SimdMultAccOp", smallSignedTypes,
+    threeRegLongInstX("smlsl", "Smlsl2X", "SimdIndexBOp", smallSignedTypes,
                       mlslCode, True, hi=True)
     # SMOV
-    insToGprInstX("smov", "SmovWX", "SimdMiscOp", ("int8_t", "int16_t"), 4,
+    insToGprInstX("smov", "SmovWX", "SimdGprOp", ("int8_t", "int16_t"), 4,
                   'W', True)
-    insToGprInstX("smov", "SmovXX", "SimdMiscOp", smallSignedTypes, 4, 'X',
+    insToGprInstX("smov", "SmovXX", "SimdGprOp", smallSignedTypes, 4, 'X',
                   True)
     # SMULL, SMULL2 (by element)
     mullCode = "destElem = (BigElement)srcElem1 * (BigElement)srcElem2;"
-    threeRegLongInstX("smull", "SmullElemX", "SimdMultOp", smallSignedTypes,
+    threeRegLongInstX("smull", "SmullElemX", "SimdIndexBOp", smallSignedTypes,
                       mullCode, byElem=True)
-    threeRegLongInstX("smull", "SmullElem2X", "SimdMultOp", smallSignedTypes,
+    threeRegLongInstX("smull", "SmullElem2X", "SimdIndexBOp", smallSignedTypes,
                       mullCode, byElem=True, hi=True)
     # SMULL, SMULL2 (vector)
-    threeRegLongInstX("smull", "SmullX", "SimdMultOp", smallSignedTypes,
+    threeRegLongInstX("smull", "SmullX", "SimdIndexBOp", smallSignedTypes,
                       mullCode)
-    threeRegLongInstX("smull", "Smull2X", "SimdMultOp", smallSignedTypes,
+    threeRegLongInstX("smull", "Smull2X", "SimdIndexBOp", smallSignedTypes,
                       mullCode, hi=True)
     # SQABS
     sqabsCode = '''
@@ -2105,18 +2111,18 @@ let {{
         }
         FpscrQc = fpscr;
     '''
-    threeRegLongInstX("sqdmlal", "SqdmlalElemX", "SimdMultAccOp",
+    threeRegLongInstX("sqdmlal", "SqdmlalElemX", "SimdIndexBOp",
                       ("int16_t", "int32_t"), qdmlalCode, True, byElem=True)
-    threeRegLongInstX("sqdmlal", "SqdmlalElem2X", "SimdMultAccOp",
+    threeRegLongInstX("sqdmlal", "SqdmlalElem2X", "SimdIndexBOp",
                       ("int16_t", "int32_t"), qdmlalCode, True, byElem=True,
                       hi=True)
-    threeRegLongInstX("sqdmlal", "SqdmlalElemScX", "SimdMultAccOp",
+    threeRegLongInstX("sqdmlal", "SqdmlalElemScX", "SimdIndexAOp",
                       ("int16_t", "int32_t"), qdmlalCode, True, byElem=True,
                       scalar=True)
     # SQDMLAL, SQDMLAL2 (vector)
-    threeRegLongInstX("sqdmlal", "SqdmlalX", "SimdMultAccOp",
+    threeRegLongInstX("sqdmlal", "SqdmlalX", "SimdIndexBOp",
                       ("int16_t", "int32_t"), qdmlalCode, True)
-    threeRegLongInstX("sqdmlal", "Sqdmlal2X", "SimdMultAccOp",
+    threeRegLongInstX("sqdmlal", "Sqdmlal2X", "SimdIndexBOp",
                       ("int16_t", "int32_t"), qdmlalCode, True, hi=True)
     threeRegLongInstX("sqdmlal", "SqdmlalScX", "SimdMultAccOp",
                       ("int16_t", "int32_t"), qdmlalCode, True, scalar=True)
@@ -2144,18 +2150,18 @@ let {{
         }
         FpscrQc = fpscr;
     '''
-    threeRegLongInstX("sqdmlsl", "SqdmlslElemX", "SimdMultAccOp",
+    threeRegLongInstX("sqdmlsl", "SqdmlslElemX", "SimdIndexBOp",
                       ("int16_t", "int32_t"), qdmlslCode, True, byElem=True)
-    threeRegLongInstX("sqdmlsl", "SqdmlslElem2X", "SimdMultAccOp",
+    threeRegLongInstX("sqdmlsl", "SqdmlslElem2X", "SimdIndexBOp",
                       ("int16_t", "int32_t"), qdmlslCode, True, byElem=True,
                       hi=True)
-    threeRegLongInstX("sqdmlsl", "SqdmlslElemScX", "SimdMultAccOp",
+    threeRegLongInstX("sqdmlsl", "SqdmlslElemScX", "SimdIndexAOp",
                       ("int16_t", "int32_t"), qdmlslCode, True, byElem=True,
                       scalar=True)
     # SQDMLSL, SQDMLSL2 (vector)
-    threeRegLongInstX("sqdmlsl", "SqdmlslX", "SimdMultAccOp",
+    threeRegLongInstX("sqdmlsl", "SqdmlslX", "SimdIndexBOp",
                       ("int16_t", "int32_t"), qdmlslCode, True)
-    threeRegLongInstX("sqdmlsl", "Sqdmlsl2X", "SimdMultAccOp",
+    threeRegLongInstX("sqdmlsl", "Sqdmlsl2X", "SimdIndexBOp",
                       ("int16_t", "int32_t"), qdmlslCode, True, hi=True)
     threeRegLongInstX("sqdmlsl", "SqdmlslScX", "SimdMultAccOp",
                       ("int16_t", "int32_t"), qdmlslCode, True, scalar=True)
@@ -2172,11 +2178,11 @@ let {{
             }
             FpscrQc = fpscr;
     '''
-    threeEqualRegInstX("sqdmulh", "SqdmulhElemDX", "SimdMultOp",
+    threeEqualRegInstX("sqdmulh", "SqdmulhElemDX", "SimdIndexAOp",
                        ("int16_t", "int32_t"), 2, sqdmulhCode, byElem=True)
-    threeEqualRegInstX("sqdmulh", "SqdmulhElemQX", "SimdMultOp",
+    threeEqualRegInstX("sqdmulh", "SqdmulhElemQX", "SimdIndexAOp",
                        ("int16_t", "int32_t"), 4, sqdmulhCode, byElem=True)
-    threeEqualRegInstX("sqdmulh", "SqdmulhElemScX", "SimdMultOp",
+    threeEqualRegInstX("sqdmulh", "SqdmulhElemScX", "SimdIndexAOp",
                        ("int16_t", "int32_t"), 4, sqdmulhCode, byElem=True,
                        scalar=True)
     # SQDMULH (vector)
@@ -2198,18 +2204,18 @@ let {{
         }
         FpscrQc = fpscr;
     '''
-    threeRegLongInstX("sqdmull", "SqdmullElemX", "SimdMultOp",
+    threeRegLongInstX("sqdmull", "SqdmullElemX", "SimdIndexBOp",
                       ("int16_t", "int32_t"), qdmullCode, True, byElem=True)
-    threeRegLongInstX("sqdmull", "SqdmullElem2X", "SimdMultOp",
+    threeRegLongInstX("sqdmull", "SqdmullElem2X", "SimdIndexBOp",
                       ("int16_t", "int32_t"), qdmullCode, True, byElem=True,
                       hi=True)
-    threeRegLongInstX("sqdmull", "SqdmullElemScX", "SimdMultOp",
+    threeRegLongInstX("sqdmull", "SqdmullElemScX", "SimdIndexAOp",
                       ("int16_t", "int32_t"), qdmullCode, True, byElem=True,
                       scalar=True)
     # SQDMULL, SQDMULL2 (vector)
-    threeRegLongInstX("sqdmull", "SqdmullX", "SimdMultOp",
+    threeRegLongInstX("sqdmull", "SqdmullX", "SimdIndexBOp",
                       ("int16_t", "int32_t"), qdmullCode, True)
-    threeRegLongInstX("sqdmull", "Sqdmull2X", "SimdMultOp",
+    threeRegLongInstX("sqdmull", "Sqdmull2X", "SimdIndexBOp",
                       ("int16_t", "int32_t"), qdmullCode, True, hi=True)
     threeRegLongInstX("sqdmull", "SqdmullScX", "SimdMultOp",
                       ("int16_t", "int32_t"), qdmullCode, True, scalar=True)
@@ -2250,11 +2256,11 @@ let {{
             }
             FpscrQc = fpscr;
     '''
-    threeEqualRegInstX("sqrdmulh", "SqrdmulhElemDX", "SimdMultOp",
+    threeEqualRegInstX("sqrdmulh", "SqrdmulhElemDX", "SimdIndexAOp",
                        ("int16_t", "int32_t"), 2, sqrdmulhCode, byElem=True)
-    threeEqualRegInstX("sqrdmulh", "SqrdmulhElemQX", "SimdMultOp",
+    threeEqualRegInstX("sqrdmulh", "SqrdmulhElemQX", "SimdIndexAOp",
                        ("int16_t", "int32_t"), 4, sqrdmulhCode, byElem=True)
-    threeEqualRegInstX("sqrdmulh", "SqrdmulhElemScX", "SimdMultOp",
+    threeEqualRegInstX("sqrdmulh", "SqrdmulhElemScX", "SimdIndexAOp",
                        ("int16_t", "int32_t"), 4, sqrdmulhCode, byElem=True,
                        scalar=True)
     # SQRDMULH (vector)
@@ -2314,11 +2320,11 @@ let {{
             }
             FpscrQc = fpscr;
     '''
-    threeEqualRegInstX("sqrshl", "SqrshlDX", "SimdCmpOp", smallSignedTypes, 2,
+    threeEqualRegInstX("sqrshl", "SqrshlDX", "SimdFloatBOp", smallSignedTypes,
+                       2, sqrshlCode)
+    threeEqualRegInstX("sqrshl", "SqrshlQX", "SimdFloatBOp", signedTypes, 4,
                        sqrshlCode)
-    threeEqualRegInstX("sqrshl", "SqrshlQX", "SimdCmpOp", signedTypes, 4,
-                       sqrshlCode)
-    threeEqualRegInstX("sqrshl", "SqrshlScX", "SimdCmpOp", signedTypes, 4,
+    threeEqualRegInstX("sqrshl", "SqrshlScX", "SimdFloatBOp", signedTypes, 4,
                        sqrshlCode, scalar=True)
     # SQRSHRN, SQRSHRN2
     sqrshrnCode = '''
@@ -2354,12 +2360,12 @@ let {{
             }
             FpscrQc = fpscr;
     '''
-    twoRegNarrowInstX("sqrshrn", "SqrshrnX", "SimdShiftOp", smallSignedTypes,
-                      sqrshrnCode, hasImm=True)
-    twoRegNarrowInstX("sqrshrn2", "Sqrshrn2X", "SimdShiftOp", smallSignedTypes,
-                      sqrshrnCode, hasImm=True, hi=True)
-    twoRegNarrowInstX("sqrshrn", "SqrshrnScX", "SimdShiftOp", smallSignedTypes,
-                      sqrshrnCode, hasImm=True, scalar=True)
+    twoRegNarrowInstX("sqrshrn", "SqrshrnX", "SimdIndexBOp",
+                      smallSignedTypes, sqrshrnCode, hasImm=True)
+    twoRegNarrowInstX("sqrshrn2", "Sqrshrn2X", "SimdIndexBOp",
+                      smallSignedTypes, sqrshrnCode, hasImm=True, hi=True)
+    twoRegNarrowInstX("sqrshrn", "SqrshrnScX", "SimdIndexBOp",
+                      smallSignedTypes, sqrshrnCode, hasImm=True, scalar=True)
     # SQRSHRUN, SQRSHRUN2
     sqrshrunCode = '''
             FPSCR fpscr = (FPSCR) FpscrQc;
@@ -2395,11 +2401,11 @@ let {{
             }
             FpscrQc = fpscr;
     '''
-    twoRegNarrowInstX("sqrshrun", "SqrshrunX", "SimdShiftOp", smallSignedTypes,
-                      sqrshrunCode, hasImm=True)
-    twoRegNarrowInstX("sqrshrun", "Sqrshrun2X", "SimdShiftOp",
+    twoRegNarrowInstX("sqrshrun", "SqrshrunX", "SimdIndexBOp",
+                      smallSignedTypes, sqrshrunCode, hasImm=True)
+    twoRegNarrowInstX("sqrshrun", "Sqrshrun2X", "SimdIndexBOp",
                       smallSignedTypes, sqrshrunCode, hasImm=True, hi=True)
-    twoRegNarrowInstX("sqrshrun", "SqrshrunScX", "SimdShiftOp",
+    twoRegNarrowInstX("sqrshrun", "SqrshrunScX", "SimdIndexBOp",
                       smallSignedTypes, sqrshrunCode, hasImm=True, scalar=True)
     # SQSHL (immediate)
     sqshlImmCode = '''
@@ -2479,11 +2485,11 @@ let {{
             }
             FpscrQc = fpscr;
     '''
-    threeEqualRegInstX("sqshl", "SqshlDX", "SimdAluOp", smallSignedTypes, 2,
+    threeEqualRegInstX("sqshl", "SqshlDX", "SimdMiscBOp", smallSignedTypes, 2,
                        sqshlCode)
-    threeEqualRegInstX("sqshl", "SqshlQX", "SimdAluOp", signedTypes, 4,
+    threeEqualRegInstX("sqshl", "SqshlQX", "SimdMiscBOp", signedTypes, 4,
                        sqshlCode)
-    threeEqualRegInstX("sqshl", "SqshlScX", "SimdAluOp", signedTypes, 4,
+    threeEqualRegInstX("sqshl", "SqshlScX", "SimdMiscBOp", signedTypes, 4,
                        sqshlCode, scalar=True)
     # SQSHLU
     sqshluCode = '''
@@ -2520,11 +2526,11 @@ let {{
             }
             FpscrQc = fpscr;
     '''
-    twoEqualRegInstX("sqshlu", "SqshluDX", "SimdAluOp", smallSignedTypes, 2,
+    twoEqualRegInstX("sqshlu", "SqshluDX", "SimdMiscBOp", smallSignedTypes, 2,
                      sqshluCode, hasImm=True)
-    twoEqualRegInstX("sqshlu", "SqshluQX", "SimdAluOp", signedTypes, 4,
+    twoEqualRegInstX("sqshlu", "SqshluQX", "SimdMiscBOp", signedTypes, 4,
                      sqshluCode, hasImm=True)
-    twoEqualRegInstX("sqshlu", "SqshluScX", "SimdAluOp", signedTypes, 4,
+    twoEqualRegInstX("sqshlu", "SqshluScX", "SimdMiscBOp", signedTypes, 4,
                      sqshluCode, hasImm=True, scalar=True)
     # SQSHRN, SQSHRN2
     sqshrnCode = '''
@@ -2550,11 +2556,11 @@ let {{
         }
         FpscrQc = fpscr;
     '''
-    twoRegNarrowInstX("sqshrn", "SqshrnX", "SimdShiftOp", smallSignedTypes,
+    twoRegNarrowInstX("sqshrn", "SqshrnX", "SimdFloatBOp", smallSignedTypes,
                       sqshrnCode, hasImm=True)
-    twoRegNarrowInstX("sqshrn2", "Sqshrn2X", "SimdShiftOp", smallSignedTypes,
+    twoRegNarrowInstX("sqshrn2", "Sqshrn2X", "SimdFloatBOp", smallSignedTypes,
                       sqshrnCode, hasImm=True, hi=True)
-    twoRegNarrowInstX("sqshrn", "SqshrnScX", "SimdShiftOp", smallSignedTypes,
+    twoRegNarrowInstX("sqshrn", "SqshrnScX", "SimdFloatBOp", smallSignedTypes,
                       sqshrnCode, hasImm=True, scalar=True)
     # SQSHRUN, SQSHRUN2
     sqshrunCode = '''
@@ -2581,12 +2587,12 @@ let {{
             }
             FpscrQc = fpscr;
     '''
-    twoRegNarrowInstX("sqshrun", "SqshrunX", "SimdShiftOp", smallSignedTypes,
+    twoRegNarrowInstX("sqshrun", "SqshrunX", "SimdFloatBOp", smallSignedTypes,
                       sqshrunCode, hasImm=True)
-    twoRegNarrowInstX("sqshrun", "Sqshrun2X", "SimdShiftOp", smallSignedTypes,
+    twoRegNarrowInstX("sqshrun", "Sqshrun2X", "SimdFloatBOp", smallSignedTypes,
                       sqshrunCode, hasImm=True, hi=True)
-    twoRegNarrowInstX("sqshrun", "SqshrunScX", "SimdShiftOp", smallSignedTypes,
-                      sqshrunCode, hasImm=True, scalar=True)
+    twoRegNarrowInstX("sqshrun", "SqshrunScX", "SimdFloatBOp",
+                      smallSignedTypes, sqshrunCode, hasImm=True, scalar=True)
     # SQSUB
     sqsubCode = '''
             destElem = srcElem1 - srcElem2;
@@ -2668,9 +2674,9 @@ let {{
                 destElem = (srcElem1 >> imm) |
                     (destElem & ~mask(sizeof(Element) * 8 - imm));
     '''
-    twoEqualRegInstX("sri", "SriDX", "SimdShiftOp", unsignedTypes, 2, sriCode,
+    twoEqualRegInstX("sri", "SriDX", "SimdIndexAOp", unsignedTypes, 2, sriCode,
                      True, hasImm=True)
-    twoEqualRegInstX("sri", "SriQX", "SimdShiftOp", unsignedTypes, 4, sriCode,
+    twoEqualRegInstX("sri", "SriQX", "SimdIndexAOp", unsignedTypes, 4, sriCode,
                      True, hasImm=True)
     # SRSHL
     rshlCode = '''
@@ -2704,9 +2710,9 @@ let {{
                 destElem = srcElem1;
             }
     '''
-    threeEqualRegInstX("srshl", "SrshlDX", "SimdShiftOp", signedTypes, 2,
+    threeEqualRegInstX("srshl", "SrshlDX", "SimdFloatBOp", signedTypes, 2,
                        rshlCode)
-    threeEqualRegInstX("srshl", "SrshlQX", "SimdShiftOp", signedTypes, 4,
+    threeEqualRegInstX("srshl", "SrshlQX", "SimdFloatBOp", signedTypes, 4,
                        rshlCode)
     # SRSHR
     rshrCode = '''
@@ -2719,9 +2725,9 @@ let {{
                 destElem = srcElem1;
             }
     '''
-    twoEqualRegInstX("srshr", "SrshrDX", "SimdShiftOp", signedTypes, 2,
+    twoEqualRegInstX("srshr", "SrshrDX", "SimdMisc2Op", signedTypes, 2,
                      rshrCode, hasImm=True)
-    twoEqualRegInstX("srshr", "SrshrQX", "SimdShiftOp", signedTypes, 4,
+    twoEqualRegInstX("srshr", "SrshrQX", "SimdMisc2Op", signedTypes, 4,
                      rshrCode, hasImm=True)
     # SRSRA
     rsraCode = '''
@@ -2734,9 +2740,9 @@ let {{
                 destElem += srcElem1;
             }
     '''
-    twoEqualRegInstX("srsra", "SrsraDX", "SimdShiftOp", signedTypes, 2,
+    twoEqualRegInstX("srsra", "SrsraDX", "SimdMisc2Op", signedTypes, 2,
                      rsraCode, True, hasImm=True)
-    twoEqualRegInstX("srsra", "SrsraQX", "SimdShiftOp", signedTypes, 4,
+    twoEqualRegInstX("srsra", "SrsraQX", "SimdMisc2Op", signedTypes, 4,
                      rsraCode, True, hasImm=True)
     # SSHL
     shlCode = '''
@@ -2774,9 +2780,9 @@ let {{
                 destElem = (BigElement)srcElem1 << imm;
             }
     '''
-    twoRegLongInstX("sshll", "SshllX", "SimdShiftOp", smallSignedTypes,
+    twoRegLongInstX("sshll", "SshllX", "SimdFloatBOp", smallSignedTypes,
                     shllCode, hasImm=True)
-    twoRegLongInstX("sshll", "Sshll2X", "SimdShiftOp", smallSignedTypes,
+    twoRegLongInstX("sshll", "Sshll2X", "SimdFloatBOp", smallSignedTypes,
                     shllCode, hasImm=True, hi=True)
     # SSHR
     shrCode = '''
@@ -2807,20 +2813,20 @@ let {{
             }
             destElem += mid;
     '''
-    twoEqualRegInstX("ssra", "SsraDX", "SimdShiftOp", signedTypes, 2, sraCode,
-                     True, hasImm=True)
-    twoEqualRegInstX("ssra", "SsraQX", "SimdShiftOp", signedTypes, 4, sraCode,
-                     True, hasImm=True)
+    twoEqualRegInstX("ssra", "SsraDX", "SimdMisc2Op", signedTypes, 2,
+                     sraCode, True, hasImm=True)
+    twoEqualRegInstX("ssra", "SsraQX", "SimdMisc2Op", signedTypes, 4,
+                     sraCode, True, hasImm=True)
     # SSUBL
     sublwCode = "destElem = (BigElement)srcElem1 - (BigElement)srcElem2;"
-    threeRegLongInstX("ssubl", "SsublX", "SimdAddOp", smallSignedTypes,
+    threeRegLongInstX("ssubl", "SsublX", "SimdFloatBOp", smallSignedTypes,
                       sublwCode)
-    threeRegLongInstX("ssubl2", "Ssubl2X", "SimdAddOp", smallSignedTypes,
+    threeRegLongInstX("ssubl2", "Ssubl2X", "SimdFloatBOp", smallSignedTypes,
                       sublwCode, hi=True)
     # SSUBW
-    threeRegWideInstX("ssubw", "SsubwX", "SimdAddOp", smallSignedTypes,
+    threeRegWideInstX("ssubw", "SsubwX", "SimdFloatBOp", smallSignedTypes,
                       sublwCode)
-    threeRegWideInstX("ssubw2", "Ssubw2X", "SimdAddOp", smallSignedTypes,
+    threeRegWideInstX("ssubw2", "Ssubw2X", "SimdFloatBOp", smallSignedTypes,
                       sublwCode, hi=True)
     # SUB
     subCode = "destElem = srcElem1 - srcElem2;"
@@ -2831,10 +2837,10 @@ let {{
             destElem = ((BigElement)srcElem1 - (BigElement)srcElem2) >>
                         (sizeof(Element) * 8);
     '''
-    threeRegNarrowInstX("subhn", "SubhnX", "SimdAddOp", smallUnsignedTypes,
+    threeRegNarrowInstX("subhn", "SubhnX", "SimdFloatBOp", smallUnsignedTypes,
                         subhnCode)
-    threeRegNarrowInstX("subhn2", "Subhn2X", "SimdAddOp", smallUnsignedTypes,
-                        subhnCode, hi=True)
+    threeRegNarrowInstX("subhn2", "Subhn2X", "SimdFloatBOp",
+                        smallUnsignedTypes, subhnCode, hi=True)
     # SUQADD
     suqaddCode = '''
             FPSCR fpscr = (FPSCR) FpscrQc;
@@ -2873,21 +2879,21 @@ let {{
     # TBL
     tbxTblInstX("tbl", "Tbl1DX", "SimdMiscBOp", ("uint8_t",), 1, "true", 2)
     tbxTblInstX("tbl", "Tbl1QX", "SimdMiscBOp", ("uint8_t",), 1, "true", 4)
-    tbxTblInstX("tbl", "Tbl2DX", "SimdMiscBOp", ("uint8_t",), 2, "true", 2)
-    tbxTblInstX("tbl", "Tbl2QX", "SimdMiscBOp", ("uint8_t",), 2, "true", 4)
-    tbxTblInstX("tbl", "Tbl3DX", "SimdMiscBOp", ("uint8_t",), 3, "true", 2)
-    tbxTblInstX("tbl", "Tbl3QX", "SimdMiscBOp", ("uint8_t",), 3, "true", 4)
-    tbxTblInstX("tbl", "Tbl4DX", "SimdMiscBOp", ("uint8_t",), 4, "true", 2)
-    tbxTblInstX("tbl", "Tbl4QX", "SimdMiscBOp", ("uint8_t",), 4, "true", 4)
+    tbxTblInstX("tbl", "Tbl2DX", "SimdFloatBOp", ("uint8_t",), 2, "true", 2)
+    tbxTblInstX("tbl", "Tbl2QX", "SimdFloatBOp", ("uint8_t",), 2, "true", 4)
+    tbxTblInstX("tbl", "Tbl3DX", "SimdIndexBOp", ("uint8_t",), 3, "true", 2)
+    tbxTblInstX("tbl", "Tbl3QX", "SimdIndexBOp", ("uint8_t",), 3, "true", 4)
+    tbxTblInstX("tbl", "Tbl4DX", "SimdIndexBOp", ("uint8_t",), 4, "true", 2)
+    tbxTblInstX("tbl", "Tbl4QX", "SimdIndexBOp", ("uint8_t",), 4, "true", 4)
     # TBX
-    tbxTblInstX("tbx", "Tbx1DX", "SimdMiscOp", ("uint8_t",), 1, "false", 2)
-    tbxTblInstX("tbx", "Tbx1QX", "SimdMiscOp", ("uint8_t",), 1, "false", 4)
-    tbxTblInstX("tbx", "Tbx2DX", "SimdMiscOp", ("uint8_t",), 2, "false", 2)
-    tbxTblInstX("tbx", "Tbx2QX", "SimdMiscOp", ("uint8_t",), 2, "false", 4)
-    tbxTblInstX("tbx", "Tbx3DX", "SimdMiscOp", ("uint8_t",), 3, "false", 2)
-    tbxTblInstX("tbx", "Tbx3QX", "SimdMiscOp", ("uint8_t",), 3, "false", 4)
-    tbxTblInstX("tbx", "Tbx4DX", "SimdMiscOp", ("uint8_t",), 4, "false", 2)
-    tbxTblInstX("tbx", "Tbx4QX", "SimdMiscOp", ("uint8_t",), 4, "false", 4)
+    tbxTblInstX("tbx", "Tbx1DX", "SimdFloatBOp", ("uint8_t",), 1, "false", 2)
+    tbxTblInstX("tbx", "Tbx1QX", "SimdFloatBOp", ("uint8_t",), 1, "false", 4)
+    tbxTblInstX("tbx", "Tbx2DX", "SimdIndexBOp", ("uint8_t",), 2, "false", 2)
+    tbxTblInstX("tbx", "Tbx2QX", "SimdIndexBOp", ("uint8_t",), 2, "false", 4)
+    tbxTblInstX("tbx", "Tbx3DX", "SimdIndexBOp", ("uint8_t",), 3, "false", 2)
+    tbxTblInstX("tbx", "Tbx3QX", "SimdIndexBOp", ("uint8_t",), 3, "false", 4)
+    tbxTblInstX("tbx", "Tbx4DX", "SimdIndexBOp", ("uint8_t",), 4, "false", 2)
+    tbxTblInstX("tbx", "Tbx4QX", "SimdIndexBOp", ("uint8_t",), 4, "false", 4)
     # TRN1
     trnCode = '''
         unsigned part = %s;
@@ -2910,14 +2916,14 @@ let {{
                           unsignedTypes, 4,
                           trnCode % "1")
     # UABA
-    threeEqualRegInstX("uaba", "UabaDX", "SimdAddAccOp", smallUnsignedTypes, 2,
-                       abaCode, True)
-    threeEqualRegInstX("uaba", "UabaQX", "SimdAddAccOp", smallUnsignedTypes, 4,
-                       abaCode, True)
+    threeEqualRegInstX("uaba", "UabaDX", "SimdMisc2Op",
+                       smallUnsignedTypes, 2, abaCode, True)
+    threeEqualRegInstX("uaba", "UabaQX", "SimdMisc2Op",
+                       smallUnsignedTypes, 4, abaCode, True)
     # UABAL, UABAL2
-    threeRegLongInstX("uabal", "UabalX", "SimdAddAccOp", smallUnsignedTypes,
+    threeRegLongInstX("uabal", "UabalX", "SimdIndexBOp", smallUnsignedTypes,
                       abalCode, True)
-    threeRegLongInstX("uabal2", "Uabal2X", "SimdAddAccOp", smallUnsignedTypes,
+    threeRegLongInstX("uabal2", "Uabal2X", "SimdIndexBOp", smallUnsignedTypes,
                       abalCode, True, hi=True)
     # UABD
     threeEqualRegInstX("uabd", "UabdDX", "SimdAddOp", smallUnsignedTypes, 2,
@@ -2925,9 +2931,9 @@ let {{
     threeEqualRegInstX("uabd", "UabdQX", "SimdAddOp", smallUnsignedTypes, 4,
                        abdCode)
     # UABDL, UABDL2
-    threeRegLongInstX("uabdl", "UabdlX", "SimdAddAccOp", smallUnsignedTypes,
+    threeRegLongInstX("uabdl", "UabdlX", "SimdFloatBOp", smallUnsignedTypes,
                       abdlCode, True)
-    threeRegLongInstX("uabdl2", "Uabdl2X", "SimdAddAccOp", smallUnsignedTypes,
+    threeRegLongInstX("uabdl2", "Uabdl2X", "SimdFloatBOp", smallUnsignedTypes,
                       abdlCode, True, hi=True)
     # UADALP
     twoRegCondenseInstX("uadalp", "UadalpDX", "SimdMiscBOp",
@@ -2937,27 +2943,27 @@ let {{
                         smallUnsignedTypes,
                         4, adalpCode, True)
     # UADDL, UADDL2
-    threeRegLongInstX("uaddl", "UaddlX", "SimdAddAccOp", smallUnsignedTypes,
+    threeRegLongInstX("uaddl", "UaddlX", "SimdFloatBOp", smallUnsignedTypes,
                       addlwCode)
-    threeRegLongInstX("uaddl2", "Uaddl2X", "SimdAddAccOp",
+    threeRegLongInstX("uaddl2", "Uaddl2X", "SimdFloatBOp",
                       smallUnsignedTypes,
                       addlwCode, hi=True)
     # UADDLP
-    twoRegCondenseInstX("uaddlp", "UaddlpDX", "SimdAddOp", smallUnsignedTypes,
-                        2, addlwCode)
-    twoRegCondenseInstX("uaddlp", "UaddlpQX", "SimdAddOp", smallUnsignedTypes,
-                        4, addlwCode)
+    twoRegCondenseInstX("uaddlp", "UaddlpDX", "SimdFloatBOp",
+                        smallUnsignedTypes, 2, addlwCode)
+    twoRegCondenseInstX("uaddlp", "UaddlpQX", "SimdFloatBOp",
+                        smallUnsignedTypes, 4, addlwCode)
     # UADDLV
-    twoRegAcrossInstX("uaddlv", "UaddlvDX", "SimdAddOp",
+    twoRegAcrossInstX("uaddlv", "UaddlvDX", "SimdIndexAOp",
                       ("uint8_t", "uint16_t"), 2, addAcrossLongCode, long=True)
-    twoRegAcrossInstX("uaddlv", "UaddlvQX", "SimdAddOp",
+    twoRegAcrossInstX("uaddlv", "UaddlvQX", "SimdIndexAOp",
                       ("uint8_t", "uint16_t"), 4, addAcrossLongCode, long=True)
-    twoRegAcrossInstX("uaddlv", "UaddlvBQX", "SimdAddOp", ("uint32_t",), 4,
+    twoRegAcrossInstX("uaddlv", "UaddlvBQX", "SimdIndexAOp", ("uint32_t",), 4,
                       addAcrossLongCode, doubleDest=True, long=True)
     # UADDW
-    threeRegWideInstX("uaddw", "UaddwX", "SimdAddAccOp", smallUnsignedTypes,
+    threeRegWideInstX("uaddw", "UaddwX", "SimdFloatBOp", smallUnsignedTypes,
                       addlwCode)
-    threeRegWideInstX("uaddw2", "Uaddw2X", "SimdAddAccOp", smallUnsignedTypes,
+    threeRegWideInstX("uaddw2", "Uaddw2X", "SimdFloatBOp", smallUnsignedTypes,
                       addlwCode, hi=True)
     # UCVTF (fixed-point)
     ucvtfFixedCode = fpOp % ("fplibFixedToFP<Element>(srcElem1, imm, true,"
@@ -2966,7 +2972,7 @@ let {{
                      ucvtfFixedCode, hasImm=True)
     twoEqualRegInstX("ucvtf", "UcvtfFixedQX", "SimdCvtOp", floatTypes, 4,
                      ucvtfFixedCode, hasImm=True)
-    twoEqualRegInstX("ucvtf", "UcvtfFixedScX", "SimdCvtOp", floatTypes, 4,
+    twoEqualRegInstX("ucvtf", "UcvtfFixedScX", "SimdMiscAOp", floatTypes, 4,
                      ucvtfFixedCode, hasImm=True, scalar=True)
     # UCVTF (integer)
     ucvtfIntCode = fpOp % ("fplibFixedToFP<Element>(srcElem1, 0, true,"
@@ -2975,7 +2981,7 @@ let {{
                      ucvtfIntCode)
     twoEqualRegInstX("ucvtf", "UcvtfIntQX", "SimdCvtOp", floatTypes, 4,
                      ucvtfIntCode)
-    twoEqualRegInstX("ucvtf", "UcvtfIntScX", "SimdCvtOp", floatTypes, 4,
+    twoEqualRegInstX("ucvtf", "UcvtfIntScX", "SimdMiscAOp", floatTypes, 4,
                      ucvtfIntCode, scalar=True)
     # UHADD
     threeEqualRegInstX("uhadd", "UhaddDX", "SimdAddOp", smallUnsignedTypes, 2,
@@ -2993,62 +2999,62 @@ let {{
     threeEqualRegInstX("umax", "UmaxQX", "SimdCmpOp", smallUnsignedTypes, 4,
                        maxCode)
     # UMAXP
-    threeEqualRegInstX("umaxp", "UmaxpDX", "SimdCmpOp", smallUnsignedTypes, 2,
-                       maxCode, pairwise=True)
-    threeEqualRegInstX("umaxp", "UmaxpQX", "SimdCmpOp", smallUnsignedTypes, 4,
-                       maxCode, pairwise=True)
+    threeEqualRegInstX("umaxp", "UmaxpDX", "SimdIndexAOp",
+                       smallUnsignedTypes, 2, maxCode, pairwise=True)
+    threeEqualRegInstX("umaxp", "UmaxpQX", "SimdIndexAOp",
+                       smallUnsignedTypes, 4, maxCode, pairwise=True)
     # UMAXV
-    twoRegAcrossInstX("umaxv", "UmaxvDX", "SimdCmpOp", ("uint8_t", "uint16_t"),
-                      2, maxAcrossCode)
-    twoRegAcrossInstX("umaxv", "UmaxvQX", "SimdCmpOp", smallUnsignedTypes, 4,
-                      maxAcrossCode)
+    twoRegAcrossInstX("umaxv", "UmaxvDX", "SimdIndexAOp",
+                      ("uint8_t", "uint16_t"), 2, maxAcrossCode)
+    twoRegAcrossInstX("umaxv", "UmaxvQX", "SimdIndexAOp",
+                      smallUnsignedTypes, 4, maxAcrossCode)
     # UMIN
     threeEqualRegInstX("umin", "UminDX", "SimdCmpOp", smallUnsignedTypes, 2,
                        minCode)
     threeEqualRegInstX("umin", "UminQX", "SimdCmpOp", smallUnsignedTypes, 4,
                        minCode)
     # UMINP
-    threeEqualRegInstX("uminp", "UminpDX", "SimdCmpOp", smallUnsignedTypes, 2,
-                       minCode, pairwise=True)
-    threeEqualRegInstX("uminp", "UminpQX", "SimdCmpOp", smallUnsignedTypes, 4,
-                       minCode, pairwise=True)
+    threeEqualRegInstX("uminp", "UminpDX", "SimdIndexAOp", smallUnsignedTypes,
+                       2, minCode, pairwise=True)
+    threeEqualRegInstX("uminp", "UminpQX", "SimdIndexAOp", smallUnsignedTypes,
+                       4, minCode, pairwise=True)
     # UMINV
-    twoRegAcrossInstX("uminv", "UminvDX", "SimdCmpOp", ("uint8_t", "uint16_t"),
-                      2, minAcrossCode)
-    twoRegAcrossInstX("uminv", "UminvQX", "SimdCmpOp", smallUnsignedTypes, 4,
-                      minAcrossCode)
+    twoRegAcrossInstX("uminv", "UminvDX", "SimdIndexAOp",
+                      ("uint8_t", "uint16_t"), 2, minAcrossCode)
+    twoRegAcrossInstX("uminv", "UminvQX", "SimdIndexAOp",
+                      smallUnsignedTypes, 4, minAcrossCode)
     # UMLAL (by element)
-    threeRegLongInstX("umlal", "UmlalElemX", "SimdMultAccOp",
+    threeRegLongInstX("umlal", "UmlalElemX", "SimdIndexBOp",
                       smallUnsignedTypes, mlalCode, True, byElem=True)
-    threeRegLongInstX("umlal", "UmlalElem2X", "SimdMultAccOp",
+    threeRegLongInstX("umlal", "UmlalElem2X", "SimdIndexBOp",
                       smallUnsignedTypes, mlalCode, True, byElem=True, hi=True)
     # UMLAL (vector)
-    threeRegLongInstX("umlal", "UmlalX", "SimdMultAccOp", smallUnsignedTypes,
+    threeRegLongInstX("umlal", "UmlalX", "SimdIndexBOp", smallUnsignedTypes,
                       mlalCode, True)
-    threeRegLongInstX("umlal", "Umlal2X", "SimdMultAccOp", smallUnsignedTypes,
+    threeRegLongInstX("umlal", "Umlal2X", "SimdIndexBOp", smallUnsignedTypes,
                       mlalCode, True, hi=True)
     # UMLSL (by element)
-    threeRegLongInstX("umlsl", "UmlslElemX", "SimdMultAccOp",
+    threeRegLongInstX("umlsl", "UmlslElemX", "SimdIndexBOp",
                       smallUnsignedTypes, mlslCode, True, byElem=True)
-    threeRegLongInstX("umlsl", "UmlslElem2X", "SimdMultAccOp",
+    threeRegLongInstX("umlsl", "UmlslElem2X", "SimdIndexBOp",
                       smallUnsignedTypes, mlslCode, True, byElem=True, hi=True)
     # UMLSL (vector)
-    threeRegLongInstX("umlsl", "UmlslX", "SimdMultAccOp", smallUnsignedTypes,
+    threeRegLongInstX("umlsl", "UmlslX", "SimdIndexBOp", smallUnsignedTypes,
                       mlslCode, True)
-    threeRegLongInstX("umlsl", "Umlsl2X", "SimdMultAccOp", smallUnsignedTypes,
+    threeRegLongInstX("umlsl", "Umlsl2X", "SimdIndexBOp", smallUnsignedTypes,
                       mlslCode, True, hi=True)
     # UMOV
-    insToGprInstX("umov", "UmovWX", "SimdMiscOp", smallUnsignedTypes, 4, 'W')
-    insToGprInstX("umov", "UmovXX", "SimdMiscOp", ("uint64_t",), 4, 'X')
+    insToGprInstX("umov", "UmovWX", "SimdGprOp", smallUnsignedTypes, 4, 'W')
+    insToGprInstX("umov", "UmovXX", "SimdGprOp", ("uint64_t",), 4, 'X')
     # UMULL, UMULL2 (by element)
-    threeRegLongInstX("umull", "UmullElemX", "SimdMultOp", smallUnsignedTypes,
-                      mullCode, byElem=True)
-    threeRegLongInstX("umull", "UmullElem2X", "SimdMultOp", smallUnsignedTypes,
-                      mullCode, byElem=True, hi=True)
+    threeRegLongInstX("umull", "UmullElemX", "SimdIndexBOp",
+                      smallUnsignedTypes, mullCode, byElem=True)
+    threeRegLongInstX("umull", "UmullElem2X", "SimdIndexBOp",
+                      smallUnsignedTypes, mullCode, byElem=True, hi=True)
     # UMULL, UMULL2 (vector)
-    threeRegLongInstX("umull", "UmullX", "SimdMultOp", smallUnsignedTypes,
+    threeRegLongInstX("umull", "UmullX", "SimdIndexBOp", smallUnsignedTypes,
                       mullCode)
-    threeRegLongInstX("umull", "Umull2X", "SimdMultOp", smallUnsignedTypes,
+    threeRegLongInstX("umull", "Umull2X", "SimdIndexBOp", smallUnsignedTypes,
                       mullCode, hi=True)
     # UQADD
     uqaddCode = '''
@@ -3102,11 +3108,11 @@ let {{
             }
             FpscrQc = fpscr;
     '''
-    threeEqualRegInstX("uqrshl", "UqrshlDX", "SimdCmpOp", smallUnsignedTypes,
-                       2, uqrshlCode)
-    threeEqualRegInstX("uqrshl", "UqrshlQX", "SimdCmpOp", unsignedTypes, 4,
+    threeEqualRegInstX("uqrshl", "UqrshlDX", "SimdFloatBOp",
+                       smallUnsignedTypes, 2, uqrshlCode)
+    threeEqualRegInstX("uqrshl", "UqrshlQX", "SimdFloatBOp", unsignedTypes, 4,
                        uqrshlCode)
-    threeEqualRegInstX("uqrshl", "UqrshlScX", "SimdCmpOp", unsignedTypes, 4,
+    threeEqualRegInstX("uqrshl", "UqrshlScX", "SimdFloatBOp", unsignedTypes, 4,
                        uqrshlCode, scalar=True)
     # UQRSHRN
     uqrshrnCode = '''
@@ -3136,11 +3142,11 @@ let {{
             }
             FpscrQc = fpscr;
     '''
-    twoRegNarrowInstX("uqrshrn", "UqrshrnX", "SimdShiftOp", smallUnsignedTypes,
-                      uqrshrnCode, hasImm=True)
-    twoRegNarrowInstX("uqrshrn2", "Uqrshrn2X", "SimdShiftOp",
+    twoRegNarrowInstX("uqrshrn", "UqrshrnX", "SimdIndexBOp",
+                      smallUnsignedTypes, uqrshrnCode, hasImm=True)
+    twoRegNarrowInstX("uqrshrn2", "Uqrshrn2X", "SimdIndexBOp",
                       smallUnsignedTypes, uqrshrnCode, hasImm=True, hi=True)
-    twoRegNarrowInstX("uqrshrn", "UqrshrnScX", "SimdShiftOp",
+    twoRegNarrowInstX("uqrshrn", "UqrshrnScX", "SimdIndexBOp",
                       smallUnsignedTypes, uqrshrnCode, hasImm=True,
                       scalar=True)
     # UQSHL (immediate)
@@ -3167,11 +3173,11 @@ let {{
             }
             FpscrQc = fpscr;
     '''
-    twoEqualRegInstX("uqshl", "UqshlImmDX", "SimdAluOp", smallUnsignedTypes, 2,
+    twoEqualRegInstX("uqshl", "UqshlImmDX", "SimdMiscBOp", smallUnsignedTypes,
+                     2, uqshlImmCode, hasImm=True)
+    twoEqualRegInstX("uqshl", "UqshlImmQX", "SimdMiscBOp", unsignedTypes, 4,
                      uqshlImmCode, hasImm=True)
-    twoEqualRegInstX("uqshl", "UqshlImmQX", "SimdAluOp", unsignedTypes, 4,
-                     uqshlImmCode, hasImm=True)
-    twoEqualRegInstX("uqshl", "UqshlImmScX", "SimdAluOp", unsignedTypes, 4,
+    twoEqualRegInstX("uqshl", "UqshlImmScX", "SimdMiscBOp", unsignedTypes, 4,
                      uqshlImmCode, hasImm=True, scalar=True)
     # UQSHL (register)
     uqshlCode = '''
@@ -3207,11 +3213,11 @@ let {{
             }
             FpscrQc = fpscr;
     '''
-    threeEqualRegInstX("uqshl", "UqshlDX", "SimdAluOp", smallUnsignedTypes, 2,
+    threeEqualRegInstX("uqshl", "UqshlDX", "SimdMiscBOp", smallUnsignedTypes,
+                       2, uqshlCode)
+    threeEqualRegInstX("uqshl", "UqshlQX", "SimdMiscBOp", unsignedTypes, 4,
                        uqshlCode)
-    threeEqualRegInstX("uqshl", "UqshlQX", "SimdAluOp", unsignedTypes, 4,
-                       uqshlCode)
-    threeEqualRegInstX("uqshl", "UqshlScX", "SimdAluOp", unsignedTypes, 4,
+    threeEqualRegInstX("uqshl", "UqshlScX", "SimdMiscBOp", unsignedTypes, 4,
                        uqshlCode, scalar=True)
     # UQSHRN, UQSHRN2
     uqshrnCode = '''
@@ -3233,11 +3239,12 @@ let {{
             }
             FpscrQc = fpscr;
     '''
-    twoRegNarrowInstX("uqshrn", "UqshrnX", "SimdShiftOp", smallUnsignedTypes,
+    twoRegNarrowInstX("uqshrn", "UqshrnX", "SimdFloatBOp", smallUnsignedTypes,
                       uqshrnCode, hasImm=True)
-    twoRegNarrowInstX("uqshrn2", "Uqshrn2X", "SimdShiftOp", smallUnsignedTypes,
-                      uqshrnCode, hasImm=True, hi=True)
-    twoRegNarrowInstX("uqshrn", "UqshrnScX", "SimdShiftOp", smallUnsignedTypes,
+    twoRegNarrowInstX("uqshrn2", "Uqshrn2X", "SimdFloatBOp",
+                      smallUnsignedTypes, uqshrnCode, hasImm=True, hi=True)
+    twoRegNarrowInstX("uqshrn", "UqshrnScX", "SimdFloatBOp",
+                      smallUnsignedTypes,
                       uqshrnCode, hasImm=True, scalar=True)
     # UQSUB
     uqsubCode = '''
@@ -3283,14 +3290,14 @@ let {{
     threeEqualRegInstX("urhadd", "UrhaddQX", "SimdAddOp", smallUnsignedTypes,
                        4, rhaddCode)
     # URSHL
-    threeEqualRegInstX("urshl", "UrshlDX", "SimdShiftOp", unsignedTypes, 2,
+    threeEqualRegInstX("urshl", "UrshlDX", "SimdFloatBOp", unsignedTypes, 2,
                        rshlCode)
-    threeEqualRegInstX("urshl", "UrshlQX", "SimdShiftOp", unsignedTypes, 4,
+    threeEqualRegInstX("urshl", "UrshlQX", "SimdFloatBOp", unsignedTypes, 4,
                        rshlCode)
     # URSHR
-    twoEqualRegInstX("urshr", "UrshrDX", "SimdShiftOp", unsignedTypes, 2,
+    twoEqualRegInstX("urshr", "UrshrDX", "SimdMisc2Op", unsignedTypes, 2,
                      rshrCode, hasImm=True)
-    twoEqualRegInstX("urshr", "UrshrQX", "SimdShiftOp", unsignedTypes, 4,
+    twoEqualRegInstX("urshr", "UrshrQX", "SimdMisc2Op", unsignedTypes, 4,
                      rshrCode, hasImm=True)
     # URSQRTE
     ursqrteCode = "destElem = unsignedRSqrtEstimate(srcElem1);"
@@ -3299,9 +3306,9 @@ let {{
     twoEqualRegInstX("ursqrte", "UrsqrteQX", "SimdMiscOp", ("uint32_t",), 4,
                      ursqrteCode)
     # URSRA
-    twoEqualRegInstX("ursra", "UrsraDX", "SimdShiftOp", unsignedTypes, 2,
+    twoEqualRegInstX("ursra", "UrsraDX", "SimdMisc2Op", unsignedTypes, 2,
                      rsraCode, True, hasImm=True)
-    twoEqualRegInstX("ursra", "UrsraQX", "SimdShiftOp", unsignedTypes, 4,
+    twoEqualRegInstX("ursra", "UrsraQX", "SimdMisc2Op", unsignedTypes, 4,
                      rsraCode, True, hasImm=True)
     # USHL
     threeEqualRegInstX("ushl", "UshlDX", "SimdMiscBOp", unsignedTypes, 2,
@@ -3309,9 +3316,9 @@ let {{
     threeEqualRegInstX("ushl", "UshlQX", "SimdMiscBOp", unsignedTypes, 4,
                        shlCode)
     # USHLL, USHLL2
-    twoRegLongInstX("ushll", "UshllX", "SimdShiftOp", smallUnsignedTypes,
+    twoRegLongInstX("ushll", "UshllX", "SimdFloatBOp", smallUnsignedTypes,
                     shllCode, hasImm=True)
-    twoRegLongInstX("ushll", "Ushll2X", "SimdShiftOp", smallUnsignedTypes,
+    twoRegLongInstX("ushll", "Ushll2X", "SimdFloatBOp", smallUnsignedTypes,
                     shllCode, hi=True, hasImm=True)
     # USHR
     twoEqualRegInstX("ushr", "UshrDX", "SimdShiftOp", unsignedTypes, 2,
@@ -3347,19 +3354,19 @@ let {{
     twoEqualRegInstX("usqadd", "UsqaddScX", "SimdAddOp", unsignedTypes, 4,
                      usqaddCode, True, scalar=True)
     # USRA
-    twoEqualRegInstX("usra", "UsraDX", "SimdShiftOp", unsignedTypes, 2,
+    twoEqualRegInstX("usra", "UsraDX", "SimdMisc2Op", unsignedTypes, 2,
                      sraCode, True, hasImm=True)
-    twoEqualRegInstX("usra", "UsraQX", "SimdShiftOp", unsignedTypes, 4,
+    twoEqualRegInstX("usra", "UsraQX", "SimdMisc2Op", unsignedTypes, 4,
                      sraCode, True, hasImm=True)
     # USUBL
-    threeRegLongInstX("usubl", "UsublX", "SimdAddOp", smallUnsignedTypes,
+    threeRegLongInstX("usubl", "UsublX", "SimdFloatBOp", smallUnsignedTypes,
                       sublwCode)
-    threeRegLongInstX("usubl2", "Usubl2X", "SimdAddOp", smallUnsignedTypes,
+    threeRegLongInstX("usubl2", "Usubl2X", "SimdFloatBOp", smallUnsignedTypes,
                       sublwCode, hi=True)
     # USUBW
-    threeRegWideInstX("usubw", "UsubwX", "SimdAddOp", smallUnsignedTypes,
+    threeRegWideInstX("usubw", "UsubwX", "SimdFloatBOp", smallUnsignedTypes,
                       sublwCode)
-    threeRegWideInstX("usubw2", "Usubw2X", "SimdAddOp", smallUnsignedTypes,
+    threeRegWideInstX("usubw2", "Usubw2X", "SimdFloatBOp", smallUnsignedTypes,
                       sublwCode, hi=True)
     # UXTL -> alias to USHLL
     # UZP1
@@ -3370,10 +3377,10 @@ let {{
             destReg.elements[eCount / 2 + i] = srcReg2.elements[2 * i + part];
         }
     '''
-    threeRegScrambleInstX("Uzp1", "Uzp1DX", "SimdMiscOp",
+    threeRegScrambleInstX("Uzp1", "Uzp1DX", "SimdMiscAOp",
                           smallUnsignedTypes, 2,
                           uzpCode % "0")
-    threeRegScrambleInstX("Uzp1", "Uzp1QX", "SimdMiscOp", unsignedTypes, 4,
+    threeRegScrambleInstX("Uzp1", "Uzp1QX", "SimdMiscAOp", unsignedTypes, 4,
                           uzpCode % "0")
     # UZP2
     threeRegScrambleInstX("Uzp2", "Uzp2DX", "SimdMiscAOp",

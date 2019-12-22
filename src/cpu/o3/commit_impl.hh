@@ -1587,8 +1587,10 @@ DefaultCommit<Impl>::updateComInstStats(const DynInstPtr &inst)
            (inst->opClass() == OpClass::SimdFloatMult) ||
            (inst->opClass() == OpClass::SimdFloatMultAcc) ||
            (inst->opClass() == OpClass::SimdFloatReduceAdd) ||
-           (inst->opClass() == OpClass::SimdFloatAddA) ||
-           (inst->opClass() == OpClass::SimdFloatMultA) ||
+           (inst->opClass() == OpClass::SimdFloatP) ||
+           (inst->opClass() == OpClass::SimdFloatF) ||
+           (inst->opClass() == OpClass::SimdFIDX) ||
+           (inst->opClass() == OpClass::SimdFCMLA) ||
            (inst->opClass() == OpClass::SimdFloatReduceAddA) ||
            (inst->opClass() == OpClass::SveMemRead) ||
            (inst->opClass() == OpClass::SveMemWrite)) {
@@ -1642,10 +1644,16 @@ DefaultCommit<Impl>::updateComInstStats(const DynInstPtr &inst)
         case OpClass::SimdFloatDiv:addFlops = numVectorElems;break;
         case OpClass::SimdFloatMisc:break;
         case OpClass::SimdFloatMult:addFlops = numVectorElems;break;
-        case OpClass::SimdFloatMultAcc:addFlops = numVectorElems * 2;break;//e.g., fmad
+        case OpClass::SimdFloatMultAcc:addFlops = numVectorElems * 2;break;
+//e.g., fmad
+        case OpClass::SimdFIDX:addFlops = numVectorElems * 2;break;
+//e.g., fmla(index), fmls(index)
+        case OpClass::SimdFCMLA:addFlops = numVectorElems * 2;break;
+//e.g., fcmla
         case OpClass::SimdFloatSqrt:addFlops = numVectorElems;break;
         case OpClass::SimdFloatReduceCmp:break;
-        case OpClass::SimdFloatReduceAdd:addFlops = numVectorElems;break;//faddv
+        case OpClass::SimdFloatReduceAdd:addFlops = numVectorElems;break;
+//e.g., faddv
         case OpClass::SimdPredAlu:break;
         case OpClass::MemRead:addMemops = 1;break;
         case OpClass::MemWrite:addMemops = 1;break;
@@ -1661,10 +1669,14 @@ DefaultCommit<Impl>::updateComInstStats(const DynInstPtr &inst)
         case OpClass::SimdAluB:break;
         case OpClass::SimdMiscA:break;
         case OpClass::SimdMiscB:break;
-        case OpClass::SimdFloatAddA:addFlops = numVectorElems;break;//fadd(imm),fsub(imm),fsubr(imm)
-        case OpClass::SimdFloatMultA:addFlops = numVectorElems;break;//fmul(imm),frsqrts,frecps
-        case OpClass::SimdFloatA:break;//incp,sqdecp,sqincp,uqdecp,uqincp <-integer?
-        case OpClass::SimdFloatReduceAddA:addFlops = numVectorElems;break;//fadda
+        case OpClass::SimdFloatP:addFlops = numVectorElems;break;
+//e.g., fadd(imm),fmul(imm),frsqrts,frecps,fsub(imm),fsubr(imm)
+        case OpClass::SimdFloatF:addFlops = numVectorElems;break;
+//e.g., fcadd,fmul(indexed)
+        case OpClass::SimdFloatA:break;
+//e.g., incp,sqdecp,sqincp,uqdecp,uqincp <-integer?
+        case OpClass::SimdFloatReduceAddA:addFlops = numVectorElems;break;
+//e.g., fadda
         case OpClass::SveMemRead:addMemops = numVectorElems;break;
         case OpClass::SveMemWrite:addMemops = numVectorElems;break;
         default: break;

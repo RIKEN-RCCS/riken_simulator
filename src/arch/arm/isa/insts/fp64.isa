@@ -932,7 +932,7 @@ let {{
 
         iop = InstObjParams("fcsel", "FCSel%s" %("D" if isDouble else "S"),
                             "FpCondSelOp", { "code":     code,
-                                             "op_class": "FloatCvtOp" })
+                                             "op_class": "FloatCmpOp" })
         iop.snippets["code"] += zeroSveVecRegUpperPartCode % "AA64FpDest"
         header_output  += DataXCondSelDeclare.subst(iop)
         decoder_output += DataXCondSelConstructor.subst(iop)

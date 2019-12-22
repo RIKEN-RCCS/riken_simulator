@@ -49,14 +49,6 @@ class O3_ARM_PostK_Int_A(FUDesc):
                OpDesc(opClass='IntShiftLong', opLat=3, pipelined=True),
                OpDesc(opClass='IntMFlow', opLat=1, pipelined=True),
                OpDesc(opClass='IntMult', opLat=5, pipelined=True),
-               #OpDesc(opClass='VectorExtVExu', opLat=1),
-               #OpDesc(opClass='VectorExtVExu2', opLat=2),
-               #OpDesc(opClass='VectorExtVPrx', opLat=3),
-               #OpDesc(opClass='VectorExtVEPrx', opLat=4),
-               #OpDesc(opClass='VectorExtVEPrx6', opLat=6),
-               #OpDesc(opClass='VectorExtVEPrx7', opLat=7),
-               #OpDesc(opClass='VectorExtVEPrx8', opLat=8),
-               #OpDesc(opClass='VectorExtVEPrx12', opLat=12),
                OpDesc(opClass='IprAccess', opLat=3, pipelined=True)]
     count = 1
 
@@ -66,8 +58,6 @@ class O3_ARM_PostK_Int_B(FUDesc):
                OpDesc(opClass='IntShift', opLat=2, pipelined=True),
                OpDesc(opClass='IntShiftLong', opLat=3, pipelined=True),
                OpDesc(opClass='IntMFlow', opLat=1, pipelined=True),
-               #OpDesc(opClass='VectorExtVExu', opLat=1),
-               #OpDesc(opClass='VectorExtVExu2', opLat=2),
                OpDesc(opClass='IntDiv4', opLat=26, pipelined=False),
                OpDesc(opClass='IntDiv8', opLat=42, pipelined=False),
                OpDesc(opClass='IntDiv', opLat=12, pipelined=False),
@@ -82,24 +72,32 @@ class O3_ARM_PostK_Int_C(FUDesc):
 # Floating point and SIMD instructions
 class O3_ARM_PostK_FLA(FUDesc):
     opList = [ OpDesc(opClass='SimdAdd', opLat=4),
+#               OpDesc(opClass='SimdAddAcc', opLat=8, cyclesPerOp=2),
                OpDesc(opClass='SimdAddAcc', opLat=8),
                OpDesc(opClass='SimdAlu', opLat=4),
                OpDesc(opClass='SimdCmp', opLat=4),
                OpDesc(opClass='SimdDiv', opLat=178, pipelined=False),
                OpDesc(opClass='SimdDivS', opLat=114, pipelined=False),
-               OpDesc(opClass='SimdGpr', opLat=25),
                OpDesc(opClass='SimdMisc', opLat=4),
+#               OpDesc(opClass='SimdMisc2', opLat=8, cyclesPerOp=2),
+               OpDesc(opClass='SimdMisc2', opLat=8),
                OpDesc(opClass='SimdCvt', opLat=9),
                OpDesc(opClass='SimdMult',opLat=9),
                OpDesc(opClass='SimdMultAcc',opLat=9),
 #               OpDesc(opClass='SimdMvp', opLat=1),
 
+#               OpDesc(opClass='SimdReduceAdd', opLat=42, cyclesPerOp=9),
+#               OpDesc(opClass='SimdReduceAlu', opLat=34, cyclesPerOp=7),
+#               OpDesc(opClass='SimdReduceCmp', opLat=34, cyclesPerOp=7),
+#               OpDesc(opClass='SimdFloatReduceAdd', opLat=49, cyclesPerOp=7),
+#               OpDesc(opClass='SimdFloatReduceCmp', opLat=34, cyclesPerOp=7),
+#               OpDesc(opClass='SimdFloatReduceAddA',opLat=114,cyclesPerOp=15),
                OpDesc(opClass='SimdReduceAdd', opLat=42),
                OpDesc(opClass='SimdReduceAlu', opLat=34),
                OpDesc(opClass='SimdReduceCmp', opLat=34),
                OpDesc(opClass='SimdFloatReduceAdd', opLat=49),
                OpDesc(opClass='SimdFloatReduceCmp', opLat=34),
-               OpDesc(opClass='SimdFloatReduceAddA', opLat=114),
+               OpDesc(opClass='SimdFloatReduceAddA',opLat=114),
 
                OpDesc(opClass='SimdShift',opLat=4),
                OpDesc(opClass='SimdShiftAcc', opLat=4),
@@ -108,20 +106,30 @@ class O3_ARM_PostK_FLA(FUDesc):
                OpDesc(opClass='SimdFloatAlu',opLat=4),
                OpDesc(opClass='SimdFloatCmp', opLat=4),
                OpDesc(opClass='SimdFloatCvt', opLat=9),
-               OpDesc(opClass='SimdFloatDiv', opLat=154, pipelined=False),
-               #OpDesc(opClass='SimdFloatDivs', opLat=29, pipelined=False),
-               #OpDesc(opClass='SimdFloatDivd', opLat=43, pipelined=False),
                OpDesc(opClass='SimdFloatMisc', opLat=4),
                OpDesc(opClass='SimdFloatMult', opLat=9),
                OpDesc(opClass='SimdFloatMultAcc',opLat=9),
+#               OpDesc(opClass='SimdFloatDiv', opLat=154, pipelined=False),
                OpDesc(opClass='SimdFloatSqrtS', opLat=98, pipelined=False),
                OpDesc(opClass='SimdFloatSqrt', opLat=154, pipelined=False),
+
                OpDesc(opClass='SimdAluA', opLat=4),
                OpDesc(opClass='SimdMiscA', opLat=6),
-               OpDesc(opClass='SimdFloatAddA', opLat=9),
-               OpDesc(opClass='SimdFloatMultA', opLat=9),
+#               OpDesc(opClass='SimdMiscA2', opLat=10, cyclesPerOp=2),
+               OpDesc(opClass='SimdMiscA2', opLat=10),
+#               OpDesc(opClass='SimdFloatAddA', opLat=9),
+#               OpDesc(opClass='SimdFloatMultA', opLat=9),
                OpDesc(opClass='SimdFloatA', opLat=9),
-               OpDesc(opClass='SimdFCMLA', opLat=16, cyclesPerOp=2),
+#               OpDesc(opClass='SimdIndexA', opLat=15, cyclesPerOp=2),
+               OpDesc(opClass='SimdIndexA', opLat=15),
+               OpDesc(opClass='SimdGpr', opLat=25),
+               OpDesc(opClass='SimdFloatP', opLat=9), # FLOP=1
+#               OpDesc(opClass='SimdFloatF', opLat=15, cyclesPerOp=2),# FLOP=1
+#               OpDesc(opClass='SimdFIDX', opLat=15, cyclesPerOp=2), # FLOP=2
+#               OpDesc(opClass='SimdFCMLA', opLat=16, cyclesPerOp=3),# FLOP=2
+               OpDesc(opClass='SimdFloatF', opLat=15),# FLOP=1
+               OpDesc(opClass='SimdFIDX', opLat=15), # FLOP=2
+               OpDesc(opClass='SimdFCMLA', opLat=16),# FLOP=2
 
                OpDesc(opClass='FloatAdd', opLat=9),
                OpDesc(opClass='FloatCmp', opLat=4),
@@ -129,47 +137,10 @@ class O3_ARM_PostK_FLA(FUDesc):
                OpDesc(opClass='FloatMult', opLat=9),
                OpDesc(opClass='FloatMultAcc', opLat=9),
                OpDesc(opClass='FloatDiv', opLat=29, pipelined=False),
-               #OpDesc(opClass='FloatDivs', opLat=29, pipelined=False),
                OpDesc(opClass='FloatDivd', opLat=43, pipelined=False),
-               #OpDesc(opClass='FloatMisc', opLat=4),
+               OpDesc(opClass='FloatMisc', opLat=4),
                OpDesc(opClass='FloatSqrt', opLat=29, pipelined=False),
-               #OpDesc(opClass='FloatSqrts', opLat=29, pipelined=False),
-               OpDesc(opClass='FloatSqrtd', opLat=43, pipelined=False),
-
-               #OpDesc(opClass='VectorExtVAlu', opLat=4),
-               #OpDesc(opClass='VectorExtVAluA', opLat=4),
-               #OpDesc(opClass='VectorExtVAluAL5', opLat=5),
-               #OpDesc(opClass='VectorExtVAluAL', opLat=6),
-               #OpDesc(opClass='VectorExtVAluAL8', opLat=8),
-               #OpDesc(opClass='VectorExtVAluAL10', opLat=10),
-               #OpDesc(opClass='VectorExtVAluAL13', opLat=13),
-               #OpDesc(opClass='VectorExtVAluAL17', opLat=17),
-               #OpDesc(opClass='VectorExtVAluAL21', opLat=21),
-               #OpDesc(opClass='VectorExtVAluAL25', opLat=25),
-               #OpDesc(opClass='VectorExtVAluAL29', opLat=29),
-               #OpDesc(opClass='VectorExtVMvp', opLat=1),
-               #OpDesc(opClass='VectorExtVFp', opLat=9, cyclesPerOp=2),
-               #OpDesc(opClass='VectorExtVFp', opLat=9),
-               #OpDesc(opClass='VectorExtVFla', opLat=9),
-               #OpDesc(opClass='VectorExtVFlavrs', opLat=64),
-               #OpDesc(opClass='VectorExtVFlavrd', opLat=49),
-               #OpDesc(opClass='VectorExtVFlaas', opLat=234),
-               #OpDesc(opClass='VectorExtVFlaad', opLat=114),
-               #OpDesc(opClass='VectorExtVAlavrb', opLat=46),
-               #OpDesc(opClass='VectorExtVAlavrb2', opLat=50),
-               #OpDesc(opClass='VectorExtVAlavrh', opLat=42),
-               #OpDesc(opClass='VectorExtVAlavrs', opLat=38),
-               #OpDesc(opClass='VectorExtVAlavrd', opLat=34),
-               #OpDesc(opClass='VectorExtVAladivs',
-               #opLat=114, pipelined=False),
-               #OpDesc(opClass='VectorExtVAladivd',
-               #opLat=178, pipelined=False),
-               #OpDesc(opClass='VectorExtVFsqrtd',
-               #opLat=154, pipelined=False),
-               #OpDesc(opClass='VectorExtVFsqrts',
-               #opLat=98, pipelined=False),
-               #OpDesc(opClass='VectorExtVFdivd', opLat=154, pipelined=False),
-               #OpDesc(opClass='VectorExtVFdivs', opLat=98, pipelined=False)
+               OpDesc(opClass='FloatSqrtd', opLat=43, pipelined=False)
     ]
     count = 1
 
@@ -178,6 +149,8 @@ class O3_ARM_PostK_FLB(FUDesc):
                OpDesc(opClass='SimdAddAcc', opLat=8),
                OpDesc(opClass='SimdAlu', opLat=4),
                OpDesc(opClass='SimdMisc', opLat=4),
+#               OpDesc(opClass='SimdMisc2', opLat=8, cyclesPerOp=2),
+               OpDesc(opClass='SimdMisc2', opLat=8),
                OpDesc(opClass='SimdCvt', opLat=9),
                OpDesc(opClass='SimdMult',opLat=9),
                OpDesc(opClass='SimdMultAcc',opLat=9),
@@ -191,6 +164,10 @@ class O3_ARM_PostK_FLB(FUDesc):
                OpDesc(opClass='SimdFloatMultAcc',opLat=9),
                OpDesc(opClass='SimdAluB', opLat=4),
                OpDesc(opClass='SimdMiscB', opLat=6),
+#               OpDesc(opClass='SimdFloatB', opLat=10, cyclesPerOp=2),
+#               OpDesc(opClass='SimdIndexB', opLat=15, cyclesPerOp=3),
+               OpDesc(opClass='SimdFloatB', opLat=10),
+               OpDesc(opClass='SimdIndexB', opLat=15),
 #               OpDesc(opClass='SimdMvp', opLat=1),
 
                OpDesc(opClass='FloatAdd', opLat=9),
@@ -198,13 +175,7 @@ class O3_ARM_PostK_FLB(FUDesc):
                OpDesc(opClass='FloatCvt', opLat=9),
                OpDesc(opClass='FloatMult', opLat=9),
                OpDesc(opClass='FloatMultAcc', opLat=9),
-               OpDesc(opClass='FloatMisc', opLat=4),
-
-               #OpDesc(opClass='VectorExtVAlu', opLat=4),
-               #OpDesc(opClass='VectorExtVAluB', opLat=4),
-               #OpDesc(opClass='VectorExtVFp', opLat=9, cyclesPerOp=2),
-               #OpDesc(opClass='VectorExtVFp', opLat=9),
-               #OpDesc(opClass='VectorExtVMvp', opLat=1)
+               OpDesc(opClass='FloatMisc', opLat=4)
     ]
     count = 1
 
@@ -237,8 +208,7 @@ class O3_ARM_PostK_BP(BiModeBP):
     instShiftAmt = 2
 
 class O3_ARM_PostK_3(DerivO3CPU):
-    LQEntries = 40
-#    LQEntries = 80
+    LQEntries = 40 # 80
     SQEntries = 24
     LSQDepCheckShift = 0
     LFSTSize = 2048
@@ -255,14 +225,11 @@ class O3_ARM_PostK_3(DerivO3CPU):
     commitToIEWDelay = 1
     fetchWidth = 8
     fetchBufferSize = 128 # 192 but should be 256/n
-#    fetchToDecodeDelay = 1
-    fetchToDecodeDelay = 2
+    fetchToDecodeDelay = 2 # 1
     decodeWidth = 4
-#    decodeToRenameDelay = 1
-    decodeToRenameDelay = 2
+    decodeToRenameDelay = 2 # 1
     renameWidth = 4
-#    renameToIEWDelay = 1
-    renameToIEWDelay = 2
+    renameToIEWDelay = 2 # 1
     issueToExecuteDelay = 1
     dispatchWidth = 4
     issueWidth = 4
@@ -273,16 +240,14 @@ class O3_ARM_PostK_3(DerivO3CPU):
     commitWidth = 4
     squashWidth = 40
     trapLatency = 13
-#    backComSize = 5
-#    forwardComSize = 4
-    backComSize = 25
-    forwardComSize = 20
+    backComSize = 25 # 5
+    forwardComSize = 20 # 4
     numPhysIntRegs = 96
-    numPhysFloatRegs = 512 #1056 #544 # 32*4+32=160:numFloatRegs 128*4+32=544
-    numPhysVecRegs = 128 #264 #136 # 32+8=40 numVectorRegs 128+8=136
-    numPhysPredRegs = 48 #32
-    numIQEntries = 64 #128 #64
-    numROBEntries = 128 #256 #128
+    numPhysFloatRegs = 512
+    numPhysVecRegs = 128
+    numPhysPredRegs = 48
+    numIQEntries = 48 # 64
+    numROBEntries = 128
     cacheLoadPorts=2
     cacheStorePorts=1
     storePortUsageRatio = 2
@@ -300,11 +265,8 @@ class O3_ARM_PostK_3(DerivO3CPU):
 
 # Instruction Cache
 class O3_ARM_PostK_ICache(Cache):
-#    tag_latency = 1
     tag_latency = 2
-#    data_latency = 1
     data_latency = 3
-#    response_latency = 1
     response_latency = 3
     mshrs = 8
     tgts_per_mshr = 8
@@ -344,7 +306,6 @@ class O3_ARM_PostK_WalkCache(Cache):
     mshrs = 6
     tgts_per_mshr = 8
     size = '1kB'
-#    assoc = 8
     assoc = 4
     write_buffers = 16
     is_read_only = True
