@@ -3377,22 +3377,22 @@ let {{
             destReg.elements[eCount / 2 + i] = srcReg2.elements[2 * i + part];
         }
     '''
-    threeRegScrambleInstX("Uzp1", "Uzp1DX", "SimdMiscAOp",
+    threeRegScrambleInstX("uzp1", "Uzp1DX", "SimdMiscAOp",
                           smallUnsignedTypes, 2,
                           uzpCode % "0")
-    threeRegScrambleInstX("Uzp1", "Uzp1QX", "SimdMiscAOp", unsignedTypes, 4,
+    threeRegScrambleInstX("uzp1", "Uzp1QX", "SimdMiscAOp", unsignedTypes, 4,
                           uzpCode % "0")
     # UZP2
-    threeRegScrambleInstX("Uzp2", "Uzp2DX", "SimdMiscAOp",
+    threeRegScrambleInstX("uzp2", "Uzp2DX", "SimdMiscAOp",
                           smallUnsignedTypes, 2,
                           uzpCode % "1")
-    threeRegScrambleInstX("Uzp2", "Uzp2QX", "SimdMiscAOp", unsignedTypes, 4,
+    threeRegScrambleInstX("uzp2", "Uzp2QX", "SimdMiscAOp", unsignedTypes, 4,
                           uzpCode % "1")
     # XTN, XTN2
     xtnCode = "destElem = srcElem1;"
-    twoRegNarrowInstX("Xtn", "XtnX", "SimdMiscBOp", smallUnsignedTypes,
+    twoRegNarrowInstX("xtn", "XtnX", "SimdMiscBOp", smallUnsignedTypes,
                       xtnCode)
-    twoRegNarrowInstX("Xtn", "Xtn2X", "SimdMiscBOp", smallUnsignedTypes,
+    twoRegNarrowInstX("xtn", "Xtn2X", "SimdMiscBOp", smallUnsignedTypes,
                       xtnCode, hi=True)
     # ZIP1
     zipCode = '''
