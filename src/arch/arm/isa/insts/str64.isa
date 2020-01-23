@@ -65,7 +65,8 @@ let {{
             # Add memory request flags where necessary
             if self.user:
                 self.memFlags.append("ArmISA::TLB::UserMode")
-
+            if self.flavor == "fp":
+                self.instFlags.append("FloatMemWriteOp")
             if self.flavor in ("relexp", "exp"):
                 # For exclusive pair ops alignment check is based on total size
                 self.memFlags.append("%d" % int(math.log(self.size, 2) + 1))

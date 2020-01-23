@@ -82,6 +82,9 @@ let {{
             if self.micro:
                 self.instFlags.append("IsMicroop")
 
+            if self.flavor == "fp":
+                self.instFlags.append("FloatMemReadOp")
+
             if self.flavor in ("acexp", "exp"):
                 # For exclusive pair ops alignment check is based on total size
                 self.memFlags.append("%d" % int(math.log(self.size, 2) + 1))
