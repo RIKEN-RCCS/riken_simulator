@@ -160,6 +160,7 @@ class ArmStaticInst : public StaticInst
     void printIntReg(std::ostream &os, RegIndex reg_idx,
                      uint8_t opWidth = 0) const;
     void printFloatReg(std::ostream &os, RegIndex reg_idx) const;
+    void printFloatReg64(std::ostream &os, RegIndex reg_idx) const;
     void printVecReg(std::ostream &os, RegIndex reg_idx,
                      bool isSveVecReg = false) const;
     void printPredReg(std::ostream &os, RegIndex reg_idx) const;

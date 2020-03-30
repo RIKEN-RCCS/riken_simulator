@@ -341,6 +341,28 @@ ArmStaticInst::printFloatReg(std::ostream &os, RegIndex reg_idx) const
 {
     ccprintf(os, "f%d", reg_idx);
 }
+void
+ArmStaticInst::printFloatReg64(std::ostream &os, RegIndex reg_idx) const
+{
+    char cwidth;
+
+    switch(intWidth){
+    case 32:
+        cwidth = 's';
+        break;
+    case 64:
+        cwidth = 'd';
+        break;
+    case 128:
+        cwidth = 'q';
+        break;
+    default:
+        cwidth = 'z';
+        break;
+    }
+
+    ccprintf(os, "%c%d", cwidth, reg_idx);
+}
 
 void
 ArmStaticInst::printVecReg(std::ostream &os, RegIndex reg_idx,
