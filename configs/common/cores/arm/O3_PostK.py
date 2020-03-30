@@ -185,7 +185,7 @@ class O3_ARM_PostK_BP(BiModeBP):
     choiceCtrBits = 2
     BTBEntries = 4096
     BTBTagSize = 18
-    RASSize = 16
+    RASSize = 8
     instShiftAmt = 2
 
 class O3_ARM_PostK_3(DerivO3CPU):
