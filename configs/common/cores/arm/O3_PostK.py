@@ -29,7 +29,7 @@
 
 from m5.objects import *
 class FujitsuArmISA(ArmISA):
-    midr = 0x460F0010
+    midr = 0x461F0010
 
 class Atomic_PostKCPU(AtomicSimpleCPU):
     def createThreads(self):
