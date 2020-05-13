@@ -1,0 +1,27 @@
+This is the git repository for RIKEN simulator designed to simulate
+the binary code for Fujitsu A64FX, developed by Fujitsu for Japanese
+national flagship supercomputer, "Fugaku". The RIKEN simulator is
+based on gem5 general-purpose processor simulator. Our base code is
+the branch by Arm research for SVE. While the branch is merged the main
+of gem5, we are using the branch because the additional modifications
+on the base code is still large. We tuned several parameters and
+extended the functions to improve the accuracy for the A64FX
+behavior. The details of extensions and the comparison with A64FX test
+chip are described in [1, 2].
+
+Most parameters in the RIKEN simulator are aligned to the parameters
+described in the A64FX microarchitecture manual
+(https://github.com/fujitsu/A64FX). However, the values of some parameters
+could not be applied as they are due to differences in implementation,
+and the values are set by appropriately evaluating them.
+
+[1] Yuetsu Kodama, Tetsuya Odajima, Akira Asato, and Mitsuhisa
+Sato. Evaluation of the RIKEN post-k processor simulator. CoRR,
+abs/1904.06451, 2019.
+
+[2] Yuetsu Kodama, Tetsuya Odajima, Akira Asato, and Mitsuhisa
+Sato. Accuracy improvement of memory system simulation for modern
+shared memory processor. In Proceedings of the International
+Conference on High Performance Computing in Asia-Paciﬁc Region,
+HPCAsia2020, pages 142–149, New York, NY, USA, 2020. Association for
+Computing Machinery.
