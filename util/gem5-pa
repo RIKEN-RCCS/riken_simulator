@@ -1,0 +1,408 @@
+#!/bin/python
+
+import re
+import argparse
+import sys
+
+# define (default; double 512-bit)
+NUM_ELMT = 2
+NUM_VL = 4
+
+list_mem = []
+list_cpu = []
+list_l2cache = []
+list_other = []
+list_thread = []
+list_thread_all = []
+
+num_flop = 0
+execution_time = 0
+num_total_committed_insts = 0
+num_zero_commit = 0
+
+def execution_time():
+    global execution_time
+
+    for line in list_other:
+        if "sim_seconds" in line:
+            execution_time = float(line.split()[1])
+            return
+
+    assert 0, "No execution time"
+
+def total_committed_insts():
+    global num_total_committed_insts
+
+    for line in list_cpu:
+        if "commit.committedInsts" in line:
+            num_total_committed_insts += int(line.split()[1])
+        elif "commit.op_class_0::SimdMvp" in line:
+            num_total_committed_insts -= int(line.split()[1])
+
+    assert num_total_committed_insts >= 0, "num_total_committed_insts < 0"
+
+def num_floationg_insts():
+    global num_flop
+
+    for line in list_cpu:
+        if "commit.op_class_0" in line:
+            if line.count("SimdFloatAdd "):
+                num_flop += int(line.split()[1]) * NUM_ELMT * NUM_VL
+            elif line.count("SimdFloatMult "):
+                num_flop += int(line.split()[1]) * NUM_ELMT * NUM_VL
+            elif line.count("SimdFloatReduceAdd "):
+                num_flop += int(line.split()[1]) * NUM_ELMT * NUM_VL
+            elif line.count("SimdFloatDiv "):
+                num_flop += int(line.split()[1]) * NUM_ELMT * NUM_VL
+            elif line.count("SimdFloatSqrt "):
+                num_flop += int(line.split()[1]) * NUM_ELMT * NUM_VL
+            elif line.count("SimdFloatAddA "):
+                num_flop += int(line.split()[1]) * NUM_ELMT * NUM_VL
+            elif line.count("SimdFloatMultA "):
+                num_flop += int(line.split()[1]) * NUM_ELMT * NUM_VL
+            elif line.count("SimdFloatMultAcc "):
+                num_flop += int(line.split()[1]) * NUM_ELMT * NUM_VL * 2
+
+    assert num_flop >= 0, "num_flop < 0"
+
+def commit_and_wait_rate(target):
+    n_zero_commit = 0
+    n_total = 0
+    n_memory = 0
+    n_decode = 0
+    n_microop = 0
+    n_squash = 0
+
+    for line in list_cpu:
+        if ("system."+target+".commit.committed_insts_per_cycle" in line):
+            if line.split("::")[1].split(" ")[0] in str(range(1,5)):
+                print line.split()[0].replace("system."+target+".commit.", ""), line.split()[2].replace("%", " [%]")
+            elif line.split("::")[1].split(" ")[0] in str(0):
+                n_zero_commit += int(line.split()[1])
+                print line.split()[0].replace("system."+target+".commit.", ""), line.split()[2].replace("%", " [%]")
+            elif ("system."+target+".commit.committed_insts_per_cycle::total" in line):
+                n_total += (int(line.split()[1]))
+                assert n_total != 0, "system."+target+"committed_insts_per_cycle::total == 0"
+        elif ("system."+target+".commit.zerocommitted_memref" in line):
+            n_memory += (int(line.split()[1]))
+        elif ("system."+target+".commit.zerocommitted_frontend" in line):
+            n_decode += (int(line.split()[1]))
+        elif ("system."+target+".commit.zerocommitted_uop" in line):
+            n_microop += (int(line.split()[1]))
+        elif ("system."+target+".commit.zerocommitted_squash" in line):
+            n_squash += (int(line.split()[1]))
+
+    n_sum_cycles = n_memory + n_decode + n_microop + n_squash
+
+    print "Waiting memory :", round((float)(n_memory) / (float)(n_total)*100.0, 2), "[%]"
+    print "Waiting decode :",round((float)(n_decode) / (float)(n_total)*100.0, 2), "[%]"
+    print "Waiting microOp :",round((float)(n_microop) / (float)(n_total)*100.0, 2), "[%]"
+    print "Waiting squash :",round((float)(n_squash) / (float)(n_total)*100.0, 2), "[%]"
+    print "Waiting calculation :", round(((float)(n_zero_commit) - (float)(n_sum_cycles)) / (float)(n_total) *100.0, 2), "[%]"
+
+def l1d_misses(target):
+    n_misses = 0
+    n_demand_misses = 0
+    n_mem_insts = 0
+
+    for line in list_cpu:
+        if re.match("system."+target+".dcache.ReadReq_mshr_misses::"+target+".data", line):
+            n_misses += int(line.split()[1])
+            n_demand_misses += int(line.split()[1])
+        elif re.match("system."+target+".dcache.WriteReq_mshr_misses::"+target+".data", line):
+            n_misses += int(line.split()[1])
+            n_demand_misses += int(line.split()[1])
+        elif re.match("system."+target+".dcache.HardPFReq_mshr_misses::"+target+".dcache.prefetcher", line):
+            n_misses += int(line.split()[1])
+        elif re.match("system."+target+".dcache.HardPFExReq_mshr_misses::"+target+".dcache.prefetcher", line):
+            n_misses += int(line.split()[1])
+        elif re.match("system."+target+".iq.FU_type_0::SveMemRead", line):
+            n_mem_insts += int(line.split()[1])
+        elif re.match("system."+target+".iq.FU_type_0::SveMemWrite", line):
+            n_mem_insts += int(line.split()[1])
+        elif re.match("system."+target+".iq.FU_type_0::MemRead", line):
+            n_mem_insts += int(line.split()[1])
+        elif re.match("system."+target+".iq.FU_type_0::MemWrite", line):
+            n_mem_insts += int(line.split()[1])
+        elif re.match("system."+target+".iq.FU_type_0::FloatMemRead", line):
+            n_mem_insts += int(line.split()[1])
+        elif re.match("system."+target+".iq.FU_type_0::FloatMemWrite", line):
+            n_mem_insts += int(line.split()[1])
+
+    print "Number of load-store instructions : ", n_mem_insts
+    print "Number of L1D misses : ", n_misses
+    try:
+        print "L1D miss rate (/Load-store instruction) :", round(float(n_misses) / float(n_mem_insts), 2)
+    except ZeroDivisionError:
+        print "L1D miss rate (/Load-store instruction) : 0.0"
+    try:
+        print "L1D miss demand rate (/L1D miss) :", round(float(n_demand_misses) / float(n_misses) * 100.0, 2), "[%]"
+    except ZeroDivisionError:
+        print "L1D miss demand rate (/L1D miss) : 0.0 [%]"
+
+def l2_misses():
+    n_misses = 0
+    n_accesses = 0
+    n_mem_insts = 0
+
+    for line in list_l2cache:
+        if re.match("system.l2s?\d*.demand_accesses::cpu?\d*.data", line):
+            n_accesses += int(line.split()[1])
+        elif re.match("system.l2s?\d*.ReadExReq_mshr_misses::total", line):
+            n_misses += int(line.split()[1])
+        elif re.match("system.l2s?\d*.ReadSharedReq_mshr_misses::total", line):
+            n_misses += int(line.split()[1])
+
+    for line in list_cpu:
+        if re.match("system.cpu?\d*.iq.FU_type_0::SveMemRead", line):
+            n_mem_insts += int(line.split()[1])
+        elif re.match("system.cpu?\d*.iq.FU_type_0::SveMemWrite", line):
+            n_mem_insts += int(line.split()[1])
+        elif re.match("system.cpu?\d*.iq.FU_type_0::MemRead", line):
+            n_mem_insts += int(line.split()[1])
+        elif re.match("system.cpu?\d*.iq.FU_type_0::MemWrite", line):
+            n_mem_insts += int(line.split()[1])
+        elif re.match("system.cpu?\d*.iq.FU_type_0::FloatMemRead", line):
+            n_mem_insts += int(line.split()[1])
+        elif re.match("system.cpu?\d*.iq.FU_type_0::FloatMemWrite", line):
+            n_mem_insts += int(line.split()[1])
+
+    print "Number of L2 misses : ", n_misses
+    try:
+        print "L2 miss rate (/Load-store instruction) :", round(float(n_misses) / float(n_mem_insts))
+    except ZeroDivisionError:
+        print "L2 miss rate  (/Load-store instruction) can not calcurate. L2 accesses is 0"
+
+    try:
+        print "L2 miss demand rate (/L2 access) :", round(float(n_misses) / float(n_accesses) * 100.0, 2), "[%]"
+    except ZeroDivisionError:
+        print "L2 miss demand rate (/L2 access) can not calcurate. L2 accesses is 0"
+
+    
+def mem_throughput():
+    read_tp = 0.0
+    write_tp = 0.0
+
+    for line in list_mem:
+        if re.match("system.mem_ctrls?\d*.avgRdBWSys", line):
+            read_tp += float(line.split()[1])
+        elif re.match("system.mem_ctrls?\d*.avgWrBWSys", line):
+            write_tp += float(line.split()[1])
+
+    print "Memory Read throughput :", round(read_tp / 1e3, 2), "[GB/s]"
+    print "Memory Write throughput :", round(write_tp / 1e3, 2), "[GB/s]"
+    print "Memory Total throughput :", round((read_tp + write_tp) / 1e3, 2), "[GB/s]"
+
+def flops():
+    try:
+        return round((float(num_flop) / float(execution_time) / 1e9), 2)
+    except ZeroDivisionError:
+        print "FLOPS can not calculate. Execution time is extremely small. Check your code or set larger problem size."
+
+def num_of_committed_insts(target):
+    n_insts = 0
+
+    for line in list_cpu:
+        if re.match("system."+target+".commit.committedInsts", line):
+            n_insts += int(line.split()[1])
+        elif re.match("system."+target+".commit.op_class_0::SimdMvp", line):
+            n_insts -= int(line.split()[1])
+
+    ratio = round(float(n_insts) / float(num_total_committed_insts) * 100.0, 2)
+
+    print "Number of committed instructions on", target, ":", n_insts, "(",ratio,"% )"
+
+def print_whole_information(list_thread):
+    print "***Whole information***"
+    print "Execution Time :", execution_time, "[sec]"
+    print "FLOP :", num_flop
+    print "GFLOPS :", flops()
+    print "Number of instructions :", num_total_committed_insts
+    if args.show_all:
+        print_whole_l1d_information(list_thread)
+    print ""
+
+def print_each_cpu_information(target):
+    print "***"+target+" information***"
+    num_of_committed_insts(target)
+    l1d_misses(target)
+    commit_and_wait_rate(target)
+    flops_and_bytes(target)
+    print ""
+
+def flops_and_bytes(target):
+    pahflops = 0.0
+    pasflops = 0.0
+    padflops = 0.0
+    hflops = 0.0
+    sflops = 0.0
+    dflops = 0.0
+    _pabytes = 0.0
+    _bytes = 0.0
+
+    for line in list_cpu:
+        if ("system."+target+".commit.pahflops" in line):
+            pahflops = float(line.split()[1])
+        elif ("system."+target+".commit.pasflops" in line):
+            pasflops = float(line.split()[1])
+        elif ("system."+target+".commit.padflops" in line):
+            padflops = float(line.split()[1])
+        elif ("system."+target+".commit.hflops" in line):
+            hflops = float(line.split()[1])
+        elif ("system."+target+".commit.sflops" in line):
+            sflops = float(line.split()[1])
+        elif ("system."+target+".commit.dflops" in line):
+            dflops = float(line.split()[1])
+        elif ("system."+target+".commit.pabytes" in line):
+            _pabytes = float(line.split()[1])
+        elif ("system."+target+".commit.bytes" in line):
+            _bytes = float(line.split()[1])
+
+    print "CPU Throughput (Active Elements Only):"
+    print "  Half Precision[GFLOPS] :", round(pahflops/execution_time/1e9, 2)
+    print "  Single Precision[GFLOPS] :", round(pasflops/execution_time/1e9, 2)
+    print "  Double Precision[GFLOPS] :", round(padflops/execution_time/1e9, 2)
+    print "CPU Throughput (Active + Inactive Elements):"
+    print "  Half Precision[GFLOPS] :", round(hflops/execution_time/1e9, 2)
+    print "  Single Precision[GFLOPS] :", round(sflops/execution_time/1e9, 2)
+    print "  Double Precision[GFLOPS] :", round(dflops/execution_time/1e9, 2)
+
+    print "Bandwidth:"
+    try:
+        print "  Active Elements Only[GB/s] :", round(_pabytes/execution_time/1e9, 2)
+    except ZeroDivisionError:
+        print "  Active Elements Only[GB/s] : 0.0"
+    try:
+        print "  Active + Inactive Elements[GB/s] :", round(_bytes/execution_time/1e9, 2)
+    except ZeroDivisionError:
+        print "  Active + Inactive Elements[GB/s] : 0.0"
+
+    print "Arithmetic Intensity:"
+    sys.stdout.write("  Active Elements Only[flops/bytes] : ")
+    try:
+        print round((pahflops + pasflops + padflops) / _pabytes, 2)
+    except ZeroDivisionError:
+        print "0.0"
+    sys.stdout.write("  Active + Inactive Elements[flops/bytes] : ")
+    try:
+        print round((hflops + sflops + dflops) / _bytes, 2)
+    except ZeroDivisionError:
+        print "0.0"
+
+def print_l2_mem_information():
+    print "***L2 & Mem information***"
+    l2_misses()
+    mem_throughput()
+    print ""
+
+def print_whole_l1d_information(list_thread):
+    n_misses = 0
+    n_demand_misses = 0
+    n_mem_insts = 0
+
+    for target in list_thread:
+        for line in list_cpu:
+            if re.match("system."+target+".dcache.ReadReq_mshr_misses::"+target+".data", line):
+                n_misses += int(line.split()[1])
+                n_demand_misses += int(line.split()[1])
+            elif re.match("system."+target+".dcache.WriteReq_mshr_misses::"+target+".data", line):
+                n_misses += int(line.split()[1])
+                n_demand_misses += int(line.split()[1])
+            elif re.match("system."+target+".dcache.HardPFReq_mshr_misses::"+target+".dcache.prefetcher", line):
+                n_misses += int(line.split()[1])
+            elif re.match("system."+target+".dcache.HardPFExReq_mshr_misses::"+target+".dcache.prefetcher", line):
+                n_misses += int(line.split()[1])
+            elif re.match("system."+target+".iq.FU_type_0::SveMemRead", line):
+                n_mem_insts += int(line.split()[1])
+            elif re.match("system."+target+".iq.FU_type_0::SveMemWrite", line):
+                n_mem_insts += int(line.split()[1])
+            elif re.match("system."+target+".iq.FU_type_0::MemRead", line):
+                n_mem_insts += int(line.split()[1])
+            elif re.match("system."+target+".iq.FU_type_0::MemWrite", line):
+                n_mem_insts += int(line.split()[1])
+            elif re.match("system."+target+".iq.FU_type_0::FloatMemRead", line):
+                n_mem_insts += int(line.split()[1])
+            elif re.match("system."+target+".iq.FU_type_0::FloatMemWrite", line):
+                n_mem_insts += int(line.split()[1])
+
+    print "Total number of load-store instructions : ", n_mem_insts
+    print "Total number of L1D misses :", n_misses
+    try:
+        print "Total L1D miss rate (/Load-store instruction) :", round(float(n_misses) / float(n_mem_insts), 2)
+    except ZeroDivisionError:
+        print "Total L1D miss rate (/Load-store instruction) : 0.0"
+    try:
+        print "Total L1D miss demand rate (/L1D miss) :", round(float(n_demand_misses) / float(n_misses) * 100.0, 2), "[%]"
+    except ZeroDivisionError:
+        print "Total L1D miss demand rate (/L1D miss) : 0.0 [%]"
+
+
+parser = argparse.ArgumentParser(
+    prog='gem5-pa-omp',
+    usage='gem5-pa-omp m5out/stats.txt [-a|--show-all]',
+    add_help=True,
+)
+
+parser.add_argument('stats', \
+                    action='store', nargs=None, type=str, help="Statistics information of gem5")
+parser.add_argument('-a', '--show-all', \
+                    action='store_true', default=False, help='Show information of all CPUs')
+parser.add_argument('-p', '--precision', \
+                    action='store', nargs=1, type=str, default=['double'], help="Set precision. Default is double")
+parser.add_argument('-v', '--vlength', \
+                    action='store', nargs=1, type=str, default=['4'], help="Set vector length. Default is VL=4 (512-bit)")
+
+if __name__ == "__main__":
+    args = parser.parse_args()
+
+    f = open(args.stats)
+    for line in f:
+        line = re.sub(r"\s+", " ", line.split("#")[0])
+        if "system.mem_ctrls" in line:
+            list_mem.append(line)
+        elif re.match("system.cpu\d*\.", line):
+            list_cpu.append(line)
+        elif re.match("system.l2s?\d*\.", line):
+            list_l2cache.append(line)
+        else:
+            list_other.append(line)
+
+    for line in list_cpu:
+        if re.match("system.cpu\d*\.", line):
+            cpu = line.split(".")[1]
+            if (cpu not in list_thread):
+                list_thread.append(cpu)
+
+    list_thread_all = list_thread
+    if not args.show_all:
+        list_thread = list_thread[:1]
+
+    if args.precision[0] == "double":
+        NUM_ELMT = 2
+    elif args.precision[0] == "single":
+        NUM_ELMT = 4
+    elif args.precision[0] == "half":
+        NUM_ELMT = 8
+    else:
+        print "Illegal precision."
+        exit(-1)
+
+    if args.vlength[0] == "1":
+        NUM_VL = 1
+    elif args.vlength[0] == "2":
+        NUM_VL = 2
+    elif args.vlength[0] == "4":
+        NUM_VL = 4
+    else:
+        print "Illegal vector length."
+        exit(-1)
+
+    execution_time()
+    total_committed_insts()
+    num_floationg_insts()
+
+    print "===Use "+args.precision[0]+" precision. Vector length :"+str(NUM_VL*128)+"bit==="
+    print_whole_information(list_thread)
+    print_l2_mem_information()
+    for th in list_thread:
+        print_each_cpu_information(th)

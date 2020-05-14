@@ -1,0 +1,92 @@
+#!/bin/python
+
+import os
+import sys
+import argparse
+import subprocess
+
+class gem5:
+    BIN = '/opt/gem5/fs_sim_arm/build/ARM/gem5.opt'
+    SE = '/opt/gem5/fs_sim_arm/configs/example/se.py'
+    TYPE = '--cpu-type=O3_ARM_PostK_3'
+
+parser = argparse.ArgumentParser(
+    prog='run-pa',
+    usage='run-pa {binary} {tag} [-p|--print-stdout] [-o|--options "..."]',
+    add_help=True,
+)
+
+parser.add_argument('binary', \
+                    action='store', nargs=None, type=str, help="Your binary file")
+parser.add_argument('tag', \
+                    action='store', nargs=None, type=str, help="New stats name")
+parser.add_argument('-n', '--num_threads', \
+                    action='store', nargs=1, type=str, default=['1'], help="Number of OpenMP threads")
+parser.add_argument('-o', '--options', \
+                    action='store', nargs=1, type=str, default=[], help="Command line arguments")
+parser.add_argument('-v', '--vector_length', \
+                    action='store', nargs=1, type=str, default=['512'], help="Set vector length")
+parser.add_argument('-p', '--print-stdout', \
+                    action='store_true', default=False, help="Show all stdout/stderr")
+
+tickList = []
+
+def command_run(command):
+    proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    for line in iter(proc.stdout.readline,''):
+        if args.print_stdout:
+            sys.stdout.write(line)
+        if "get_clocktime" in line:
+            tickList.append(line.split(":")[0])
+
+    command.append('--stat-events=%s,%s' % (tickList[0], tickList[1]))
+
+def check_run(command):
+
+    try:
+        subprocess.check_call(command, shell=True)
+    except:
+        print("subprocess.check_call() failed")
+        exit
+
+def add_vl_options(cmd, num_vl):
+    if not (128 <= int(num_vl) <= 2048 and int(num_vl) % 128 == 0):
+        print "Error: num_vl must 128 <= num_vl <= 2048 and num_vl % 128 == 0"
+        exit
+        
+    cmd += ["--arm-sve-vl="+str(int(num_vl)/128)]
+
+if __name__ == "__main__":
+    args = parser.parse_args()
+
+    # make OpenMP environment file
+    omp_file = "omp" + args.num_threads[0] + ".txt"
+    file = open(omp_file, "w")
+    file.write("OMP_NUM_THREADS="+args.num_threads[0]+"\n")
+    file.close()
+
+    gem5_command = [gem5.BIN, "--debug-flags=GetTimer", gem5.SE, gem5.TYPE, "-c", args.binary, "-n", args.num_threads[0], "-e", omp_file]
+    add_vl_options(gem5_command, args.vector_length[0])
+    if args.options:
+        gem5_command += ["-o", args.options[0]]
+
+    print("Running 1pass")
+    command_run(gem5_command)
+
+    if (len(tickList) > 2):
+        print("Warn: The number of check point (clock_gettime()) is more than 2. We use first two.")
+    elif (len(tickList) < 2):
+        print("Error: We can not find twe check points (clock_gettime()).")
+        exit
+
+    print("Running 2pass")
+    command_run(gem5_command)
+
+    m5out_command = 'cp ./m5out/stats.txt ./stats-%s-all.txt' % (args.tag)
+    check_run(m5out_command)
+    m5out_command = 'awk \'BEGIN { RS = \"\" ; FS = \"\\n\"}; NR ==3\' ./m5out/stats.txt > ./stats-%s.txt' % (args.tag)
+    check_run(m5out_command)
+    print("run-pa completed")
+    print("stats-%s-all.txt: PA information in all section" % (args.tag))
+    print("stats-%s.txt: PA information between %s and %s ticks" % (args.tag, tickList[0], tickList[1]))
