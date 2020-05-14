@@ -1,0 +1,70 @@
+#!/bin/bash
+
+PREFIX=/opt/gem5/fs_sim_arm
+GEM5_PATH="$PREFIX"/build/ARM/gem5.opt
+SE_PATH="$PREFIX"/configs/example/se.py
+PROGNAME=$(basename $0)
+GEM5_OPTIONS="--cpu-type=O3_ARM_PostK_3 --caches --l2cache"
+
+usage() {
+    echo "Usage: $PROGNAME -c BINARY [Options]"
+    echo
+    echo "Options:"
+    echo "  --help"
+    echo "  -o \"ARGUMENT0 ARGUMENT1 ... \""
+    echo "  -n {# of threads}"
+    echo
+    exit 1
+}
+
+for OPT in "$@"
+do
+    case "$OPT" in
+        '--help' )
+            usage
+            exit 1
+            ;;
+        '-c' )
+            if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
+                echo "$PROGNAME: option requires an argument -- $1" 1>&2
+                exit 1
+            fi
+            BINARY="$2"
+            shift 2
+            ;;
+        '-o' )
+            if [[ -z "$2" ]] || [[ "$2" =~ ^+ ]]; then
+                echo "$PROGNAME: option requires an argument -- $1" 1>&2
+                exit 1
+            fi
+            ARG_O=$2
+            shift 2
+            ;;
+        '-n' )
+            if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
+                echo "$PROGNAME: option requires an argument -- $1" 1>&2
+                exit 1
+            fi
+            NUM_THREADS="$2"
+            ENV_FILE=omp"$2".txt
+            echo "OMP_NUM_THREADS="$2"" > "$ENV_FILE"
+            echo "OMP_NUM_PARALELL="$2"" >> "$ENV_FILE"
+            echo "FLIB_FASTOMP=FALSE" >> "$ENV_FILE"
+            echo "FLIB_CNTL_BARRIER_ERR=FALSE" >> "$ENV_FILE"
+            OMP="-n "$NUM_THREADS" -e "$ENV_FILE""
+            shift 2
+            ;;
+    esac
+done
+
+if [ -z "$BINARY" ]; then
+    echo "$PROGNAME: too few arguments" 1>&2
+    echo "Try '$PROGNAME --help' for more information." 1>&2
+    exit 1
+fi
+
+if [ -n "$ARG_O" ]; then
+    $GEM5_PATH $SE_PATH $GEM5_OPTIONS -c $BINARY $OMP -o "$ARG_O"
+else
+    $GEM5_PATH $SE_PATH $GEM5_OPTIONS -c $BINARY $OMP
+fi
