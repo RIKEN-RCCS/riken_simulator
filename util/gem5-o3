@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PREFIX=/opt/gem5/fs_sim_arm
+PREFIX=/opt/riken_simulator
 GEM5_PATH="$PREFIX"/build/ARM/gem5.opt
 SE_PATH="$PREFIX"/configs/example/se.py
 PROGNAME=$(basename $0)

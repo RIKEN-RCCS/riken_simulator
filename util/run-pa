@@ -6,8 +6,8 @@ import argparse
 import subprocess
 
 class gem5:
-    BIN = '/opt/gem5/fs_sim_arm/build/ARM/gem5.opt'
-    SE = '/opt/gem5/fs_sim_arm/configs/example/se.py'
+    BIN = '/opt/riken_simulator/build/ARM/gem5.opt'
+    SE = '/opt/riken_simulator/configs/example/se.py'
     TYPE = '--cpu-type=O3_ARM_PostK_3'
 
 parser = argparse.ArgumentParser(
